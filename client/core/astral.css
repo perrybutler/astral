@@ -37,6 +37,12 @@
 	transition:background 1s;
 }
 
+#previewCanvas {
+	image-rendering:pixelated;
+	background:gray;
+	border-radius:3px;
+}
+
 .dragover .droppanel {display:block;}
 
 .droppanel {
@@ -78,15 +84,17 @@
 }
 
 .panel .input {
-	background: #585858;
+	background: #313131; /*#585858;*/
     color: #fff;
     font-family: courier;
     font-size: 0.8em;
+    border-radius:3px;
+    padding-left:0.2em;
 }
 
 .panel .input.pair {
 	display:inline-block;
-	width:48%;
+	width:46%;
 	margin-right:0.2em;
 	margin-bottom:0.2em;
 }

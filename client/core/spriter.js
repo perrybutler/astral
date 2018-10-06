@@ -22,6 +22,7 @@ ASTRAL.spriter = new function() {
 	var animCount = 0;
 	var fid = 0;
 	var imgLoading = false;
+	var animationTimer;
 
 	var sidePanel;
 	var animsPanel;
@@ -39,8 +40,15 @@ ASTRAL.spriter = new function() {
 
 	function open(filename) {
 		ASTRAL.loadImage(filename, function() {
+			// set the current image
+			img = ASTRAL.images[filename];
+
+			// create a layer for the sprite tool
 			var spriterLayer = ASTRAL.createLayer("spriter", draw);
 			var spriterDiv = document.getElementById("spriterDiv");
+			spriterDiv.style.overflow = "auto";
+
+			// create the drag-drop indicator zone
 			var dropPanel = document.createElement("DIV");
 			dropPanel.innerHTML = "<div class='droplabel'>DROP HERE</div>";
 			dropPanel.className = "droppanel";
@@ -106,7 +114,7 @@ ASTRAL.spriter = new function() {
 
 			var regionLabel = document.createElement("DIV");
 			regionLabel.className = "label";
-			regionLabel.innerHTML = "region:";
+			regionLabel.innerHTML = "region";
 			propsPanel.appendChild(regionLabel);
 
 			regionInput = document.createElement("DIV");
@@ -122,24 +130,30 @@ ASTRAL.spriter = new function() {
 
 			var previewLabel = document.createElement("DIV");
 			previewLabel.className = "label";
-			previewLabel.innerHTML = "preview:";
+			previewLabel.innerHTML = "preview";
 			previewPanel.appendChild(previewLabel);
 
 			previewCanvas = document.createElement("CANVAS");
+			previewCanvas.id = "previewCanvas";
 			previewCanvas.width = 128;
 			previewCanvas.height = 128;
 			previewPanel.appendChild(previewCanvas);
 
-			img = ASTRAL.images[filename];
-			var can = spriterLayer.can;
+			var speedButton = ctl("button pill", "speed", "1x", null, previewPanel, function() {setSpeed(1)});
+			var speedButton = ctl("button pill", null, "2x", null, previewPanel, function() {setSpeed(2)});
+			var speedButton = ctl("button pill", null, "3x", null, previewPanel, function() {setSpeed(3)});
+			var speedButton = ctl("button pill", null, "4x", null, previewPanel, function() {setSpeed(4)});
+			var speedButton = ctl("button pill", null, "8x", null, previewPanel, function() {setSpeed(8)});
 
-			spriterDiv.style.overflow = "auto";
+			// set up the canvas using the img properties
+			var can = spriterLayer.can;
 			can.width = img.width;
 			can.height = img.height;
 			can.style.width = "auto";
 			can.style.height = "auto";
 			can.style.border = padding + "px solid";
 
+			// event handlers
 			spriterLayer.can.addEventListener("mousedown", function(e) {
 				//console.log("mousedown " + e.button + " in spriter layer");
 				startSelect(e.offsetX, e.offsetY);
@@ -174,9 +188,8 @@ ASTRAL.spriter = new function() {
 				setImage(file.name);
 			});
 
-			setZoom(0);
-
-			setInterval(function() {animate();}, 300);
+			// run the animation preview
+			setSpeed(1);
 		});
 	}
 
@@ -188,7 +201,7 @@ ASTRAL.spriter = new function() {
 		else {
 			el.innerHTML = value;	
 		}
-		el.id = id;
+		if (id) el.id = id;
 		el.className = type;
 		el.onclick = click;
 		if (type.indexOf("input") != -1) {
@@ -300,6 +313,9 @@ ASTRAL.spriter = new function() {
 	function setBackground(color) {
 		var layer = ASTRAL.layers["spriter"];
 		var can = layer.can;
+		can.style.background = color;
+
+		var can = previewCanvas;
 		can.style.background = color;
 	}
 
@@ -558,6 +574,12 @@ ASTRAL.spriter = new function() {
 		var tran = 0; //1024 / 2 / 2 + 32 / 2 * val; // if zoom is 1 this should equal tran of 0px
 		can.style.transform = "scale(" + (val + 1) + "," + (val + 1) + ") translate(" + tran + "px," + tran + "px)";
 		zoom = val;
+	}
+
+	function setSpeed(val) {
+		// setInterval(function() {animate();}, 300);
+		clearInterval(animationTimer);
+		animationTimer = setInterval(function() {animate();}, 200 / val);
 	}
 
 	function newAnimation(anim) {
