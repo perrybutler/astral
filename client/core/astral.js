@@ -113,7 +113,7 @@ var ASTRAL = new function() {
 		loadImage("pup.png");
 
 		// create layers
-		var gameLayer = createLayer("game", drawGameLayer);
+		var gameLayer = createLayer("game", 1, drawGameLayer);
 
 		// handle mousedown
 		gameLayer.can.addEventListener("mousedown", function(e) {
@@ -484,8 +484,6 @@ var ASTRAL = new function() {
 			ctx.font = "16px Arial";
 			ctx.fillText(obj.name, obj.x, obj.y - 15);
 		}
-
-
 	}
 
 	// creates a game object in memory and immediately returns it for further use
@@ -513,7 +511,7 @@ var ASTRAL = new function() {
 		return obj;
 	}
 
-	function createLayer(name, drawFunc) {
+	function createLayer(name, zindex, drawFunc) {
 		console.log("creating layer " + name);
 		// create the layer in dom
 		var body = document.body;
@@ -523,7 +521,7 @@ var ASTRAL = new function() {
 		can.width = 720;
 		can.height = 480;
 		layerDiv.id = name + "Div";
-		layerDiv.style.zIndex = body.childElementCount;
+		layerDiv.style.zIndex = zindex; //body.childElementCount;
 		layerDiv.appendChild(can);
 		body.appendChild(layerDiv);
 		// define the layer

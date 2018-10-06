@@ -1,29 +1,31 @@
 console.log("spriter.js entry point");
 
 ASTRAL.spriter = new function() {
+	// the image we'll be working on
+	var img;
+	var imgLoading = false;
+	var padding = 32;
+
+	// the data that will get saved
 	//var anims = [];
 	var data = {};
 	data.anims = [];
 
-	function init() {
-		console.log("spriter.js init()");
-	}
-
-	var gridx = 52;
-	var gridy = 78;
-	var snapx = 52;
-	var snapy = 78;
-	var img;
-	var rect = {};
-	var selected = {};
-	var padding = 32;
+	// basic props
 	var zoom = 1;
-	var mode = "";
+	// var gridx = 32;
+	// var gridy = 32;
+	var snapToGrid = true;
+	//var mode = "";
+	
+	// animation preview stuff
+	var animationTimer;
 	var animCount = 0;
 	var fid = 0;
-	var imgLoading = false;
-	var animationTimer;
 
+	// panels, canvas, layers
+	var spriterLayer;
+	var spriterDiv;
 	var sidePanel;
 	var animsPanel;
 	var propsPanel;
@@ -31,165 +33,177 @@ ASTRAL.spriter = new function() {
 	var previewPanel;
 	var previewCanvas;
 
+	// input boxes
 	var nameInput;
 	var rowsInput;
 	var colsInput;
 	var regionInput;
 
+	// region selection stuff
+	var rect = {};
+	var selected = {};
 	var selectedId;
 
+	function init() {
+		console.log("spriter.js init()");
+
+		// create a layer for the sprite tool
+		spriterLayer = ASTRAL.createLayer("spriter", 2, draw);
+		spriterDiv = document.getElementById("spriterDiv");
+		spriterDiv.style.overflow = "auto";
+
+		// create the drag-drop indicator zone
+		var dropPanel = document.createElement("DIV");
+		dropPanel.innerHTML = "<div class='droplabel'>DROP HERE</div>";
+		dropPanel.className = "droppanel";
+		spriterDiv.appendChild(dropPanel);
+
+		// create the sidebar
+		sidePanel = document.createElement("DIV");
+		sidePanel.className = "sidebar";
+		spriterDiv.appendChild(sidePanel);
+
+		// create the tools panel
+		toolsPanel = document.createElement("DIV");
+		toolsPanel.className = "panel";
+		sidePanel.appendChild(toolsPanel);
+		var openImageButton = ctl("button", "file", "open image", null, toolsPanel, openImage);
+		var openDataButton = ctl("button", null, "open data", null, toolsPanel, openData);
+		var viewButton = ctl("button", "data", "view", null, toolsPanel, viewData);
+		var downloadButton = ctl("button", null, "download", null, toolsPanel, downloadData);
+		var saveButton = ctl("button", null, "save", null, toolsPanel, saveData);
+		var gridInputX = ctl("input pair", "grid", "32", "gridx", toolsPanel, setGrid);
+		var gridInputY = ctl("input pair", null, "32", "gridy", toolsPanel, setGrid);
+		// var snapButton = ctl("button pill", "snap", "1", null, toolsPanel, function() {});
+		// var snapButton = ctl("button pill", null, "4", null, toolsPanel, function() {});
+		// var snapButton = ctl("button pill", null, "8", null, toolsPanel, function() {});
+		// var snapButton = ctl("button pill", null, "16", null, toolsPanel, function() {});
+		// var snapButton = ctl("button pill", null, "32", null, toolsPanel, function() {});
+		var zoomButton = ctl("button pill", "zoom", "1x", null, toolsPanel, function() {setZoom(0)});
+		var zoomButton = ctl("button pill", null, "2x", null, toolsPanel, function() {setZoom(1)});
+		var zoomButton = ctl("button pill", null, "3x", null, toolsPanel, function() {setZoom(2)});
+		var zoomButton = ctl("button pill", null, "4x", null, toolsPanel, function() {setZoom(3)});
+		var bgButton = ctl("button pill bgaqua", "background", "-", null, toolsPanel, function() {setBackground("#00FFFF")});
+		var bgButton = ctl("button pill bgfuchsia", null, "-", null, toolsPanel, function() {setBackground("#FF00FF")});
+		var bgButton = ctl("button pill bggray", null, "-", null, toolsPanel, function() {setBackground("#808080")});
+		var bgButton = ctl("button pill bgblack", null, "-", null, toolsPanel, function() {setBackground("#000")});
+		var bgButton = ctl("button pill bgwhite", null, "-", null, toolsPanel, function() {setBackground("#FFF")});
+		var moveleftButton = ctl("button icon moveleft", "adjust selection", "", null, toolsPanel, function() {moveSelection(-1, 0)});
+		var moverightButton = ctl("button icon moveright", null, "", null, toolsPanel, function() {moveSelection(1, 0)});
+		var moveupButton = ctl("button icon moveup", null, "", null, toolsPanel, function() {moveSelection(0, -1)});
+		var movedownButton = ctl("button icon movedown", null, "", null, toolsPanel, function() {moveSelection(0, 1)});
+		var shrinkleftButton = ctl("button icon shrinkleft", null, "", null, toolsPanel, function() {resizeSelection(-1, 0, 0, 0)});
+		var shrinkrightButton = ctl("button icon shrinkright", null, "", null, toolsPanel, function() {resizeSelection(0, 0, -1, 0)});
+		var shrinktopButton = ctl("button icon shrinktop", null, "", null, toolsPanel, function() {resizeSelection(0, -1, 0, 0)});
+		var shrinkbottomButton = ctl("button icon shrinkbottom", null, "", null, toolsPanel, function() {resizeSelection(0, 0, 0, -1)});
+		var growleftButton = ctl("button icon growleft", null, "", null, toolsPanel, function() {resizeSelection(1, 0, 0, 0)});
+		var growrightButton = ctl("button icon growright", null, "", null, toolsPanel, function() {resizeSelection(0, 0, 1, 0)});
+		var growtopButton = ctl("button icon growtop", null, "", null, toolsPanel, function() {resizeSelection(0, 1, 0, 0)});
+		var growbottomButton = ctl("button icon growbottom", null, "", null, toolsPanel, function() {resizeSelection(0, 0, 0, 1)});
+
+		// create the animations panel
+		animsPanel = document.createElement("DIV");
+		animsPanel.className = "panel";
+		sidePanel.appendChild(animsPanel);
+		var newButton = ctl("button pill", "anims", "(new)", null, animsPanel, function() {newAnimation();});
+		var deleteButton = ctl("button pill", null, "(delete)", null, animsPanel, function() {deleteAnimation();});
+
+		// create the properties panel
+		propsPanel = document.createElement("DIV");
+		propsPanel.className = "panel";
+		sidePanel.appendChild(propsPanel);
+		nameInput = ctl("input", "name", "new", "props-name", propsPanel, null);
+		rowsInput = ctl("input", "rows", "1", "props-rows", propsPanel, null);
+		colsInput = ctl("input", "cols", "1", "props-cols", propsPanel, null);
+
+		var regionLabel = document.createElement("DIV");
+		regionLabel.className = "label";
+		regionLabel.innerHTML = "region";
+		propsPanel.appendChild(regionLabel);
+
+		regionInput = document.createElement("DIV");
+		regionInput.className = "input";
+		regionInput.style.color = "#999";
+		regionInput.id = "props-region";
+		propsPanel.appendChild(regionInput);
+
+		// create the preview panel
+		previewPanel = document.createElement("DIV");
+		previewPanel.className = "panel";
+		sidePanel.appendChild(previewPanel);
+
+		var previewLabel = document.createElement("DIV");
+		previewLabel.className = "label";
+		previewLabel.innerHTML = "preview";
+		previewPanel.appendChild(previewLabel);
+
+		previewCanvas = document.createElement("CANVAS");
+		previewCanvas.id = "previewCanvas";
+		previewCanvas.width = 128;
+		previewCanvas.height = 128;
+		previewPanel.appendChild(previewCanvas);
+
+		var speedButton = ctl("button pill", "speed", "1x", null, previewPanel, function() {setSpeed(1)});
+		var speedButton = ctl("button pill", null, "2x", null, previewPanel, function() {setSpeed(2)});
+		var speedButton = ctl("button pill", null, "3x", null, previewPanel, function() {setSpeed(3)});
+		var speedButton = ctl("button pill", null, "4x", null, previewPanel, function() {setSpeed(4)});
+		var speedButton = ctl("button pill", null, "8x", null, previewPanel, function() {setSpeed(8)});
+
+		spriterLayer.can.style.width = "auto";
+		spriterLayer.can.style.height = "auto";
+		spriterLayer.can.style.border = padding + "px solid";
+
+		// event handlers
+		spriterLayer.can.addEventListener("mousedown", function(e) {
+			//console.log("mousedown " + e.button + " in spriter layer");
+			startSelect(e.offsetX, e.offsetY);
+		});
+
+		spriterLayer.can.addEventListener("mousemove", function(e) {
+			//console.log("mousemove in spriter layer");
+			adjustSelect(e.offsetX, e.offsetY);
+		});
+
+		spriterLayer.can.addEventListener("mouseup", function(e) {
+			//console.log("mouseup " + e.button + " in spriter layer");
+			endSelect();
+		});
+
+		spriterDiv.addEventListener("dragover", function(e) {
+			e.preventDefault();
+			this.setAttribute("class", "dragover");
+		}, false);
+
+		spriterDiv.addEventListener("dragleave", function(e) {
+			e.preventDefault();
+			this.removeAttribute("class");
+		}, false);
+
+		spriterDiv.addEventListener("drop", function(e) {
+			e.preventDefault();
+			var files = e.dataTransfer.files;
+			var file = files[0];
+			//var reader = new FileReader();
+			this.removeAttribute("class");
+			setImage(file.name);
+		});
+
+		// start the animation preview at normal speed
+		setSpeed(1);
+	}
+
+	function activate(filename) {
+
+	}
+
 	function open(filename) {
+		// TODO: we should move all the layer creations tuff into init()...and call this instead 
+		//	of whatever other function we're using to set the image on dragdrop
 		ASTRAL.loadImage(filename, function() {
 			// set the current image
 			img = ASTRAL.images[filename];
-
-			// create a layer for the sprite tool
-			var spriterLayer = ASTRAL.createLayer("spriter", draw);
-			var spriterDiv = document.getElementById("spriterDiv");
-			spriterDiv.style.overflow = "auto";
-
-			// create the drag-drop indicator zone
-			var dropPanel = document.createElement("DIV");
-			dropPanel.innerHTML = "<div class='droplabel'>DROP HERE</div>";
-			dropPanel.className = "droppanel";
-			spriterDiv.appendChild(dropPanel);
-
-			// create the sidebar
-			sidePanel = document.createElement("DIV");
-			sidePanel.className = "sidebar";
-			spriterDiv.appendChild(sidePanel);
-
-			// create the tools panel
-			toolsPanel = document.createElement("DIV");
-			toolsPanel.className = "panel";
-			sidePanel.appendChild(toolsPanel);
-			var openImageButton = ctl("button", "file", "open image", null, toolsPanel, openImage);
-			var openDataButton = ctl("button", null, "open data", null, toolsPanel, openData);
-			var viewButton = ctl("button", "data", "view", null, toolsPanel, viewData);
-			var downloadButton = ctl("button", null, "download", null, toolsPanel, downloadData);
-			var saveButton = ctl("button", null, "save", null, toolsPanel, saveData);
-			var gridInputX = ctl("input pair", "grid", "32", "gridx", toolsPanel, setGrid);
-			var gridInputY = ctl("input pair", null, "32", "gridy", toolsPanel, setGrid);
-			// var snapButton = ctl("button pill", "snap", "1", null, toolsPanel, function() {});
-			// var snapButton = ctl("button pill", null, "4", null, toolsPanel, function() {});
-			// var snapButton = ctl("button pill", null, "8", null, toolsPanel, function() {});
-			// var snapButton = ctl("button pill", null, "16", null, toolsPanel, function() {});
-			// var snapButton = ctl("button pill", null, "32", null, toolsPanel, function() {});
-			var zoomButton = ctl("button pill", "zoom", "1x", null, toolsPanel, function() {setZoom(0)});
-			var zoomButton = ctl("button pill", null, "2x", null, toolsPanel, function() {setZoom(1)});
-			var zoomButton = ctl("button pill", null, "3x", null, toolsPanel, function() {setZoom(2)});
-			var zoomButton = ctl("button pill", null, "4x", null, toolsPanel, function() {setZoom(3)});
-			var bgButton = ctl("button pill bgaqua", "background", "-", null, toolsPanel, function() {setBackground("#00FFFF")});
-			var bgButton = ctl("button pill bgfuchsia", null, "-", null, toolsPanel, function() {setBackground("#FF00FF")});
-			var bgButton = ctl("button pill bggray", null, "-", null, toolsPanel, function() {setBackground("#808080")});
-			var bgButton = ctl("button pill bgblack", null, "-", null, toolsPanel, function() {setBackground("#000")});
-			var bgButton = ctl("button pill bgwhite", null, "-", null, toolsPanel, function() {setBackground("#FFF")});
-			var moveleftButton = ctl("button icon moveleft", "adjust selection", "", null, toolsPanel, function() {moveSelection(-1, 0)});
-			var moverightButton = ctl("button icon moveright", null, "", null, toolsPanel, function() {moveSelection(1, 0)});
-			var moveupButton = ctl("button icon moveup", null, "", null, toolsPanel, function() {moveSelection(0, -1)});
-			var movedownButton = ctl("button icon movedown", null, "", null, toolsPanel, function() {moveSelection(0, 1)});
-			var shrinkleftButton = ctl("button icon shrinkleft", null, "", null, toolsPanel, function() {resizeSelection(-1, 0, 0, 0)});
-			var shrinkrightButton = ctl("button icon shrinkright", null, "", null, toolsPanel, function() {resizeSelection(0, 0, -1, 0)});
-			var shrinktopButton = ctl("button icon shrinktop", null, "", null, toolsPanel, function() {resizeSelection(0, -1, 0, 0)});
-			var shrinkbottomButton = ctl("button icon shrinkbottom", null, "", null, toolsPanel, function() {resizeSelection(0, 0, 0, -1)});
-			var growleftButton = ctl("button icon growleft", null, "", null, toolsPanel, function() {resizeSelection(1, 0, 0, 0)});
-			var growrightButton = ctl("button icon growright", null, "", null, toolsPanel, function() {resizeSelection(0, 0, 1, 0)});
-			var growtopButton = ctl("button icon growtop", null, "", null, toolsPanel, function() {resizeSelection(0, 1, 0, 0)});
-			var growbottomButton = ctl("button icon growbottom", null, "", null, toolsPanel, function() {resizeSelection(0, 0, 0, 1)});
-
-			// create the animations panel
-			animsPanel = document.createElement("DIV");
-			animsPanel.className = "panel";
-			sidePanel.appendChild(animsPanel);
-			var newButton = ctl("button pill", "anims", "(new)", null, animsPanel, function() {newAnimation();});
-			var deleteButton = ctl("button pill", null, "(delete)", null, animsPanel, function() {deleteAnimation();});
-
-			// create the properties panel
-			propsPanel = document.createElement("DIV");
-			propsPanel.className = "panel";
-			sidePanel.appendChild(propsPanel);
-			nameInput = ctl("input", "name", "new", "props-name", propsPanel, null);
-			rowsInput = ctl("input", "rows", "1", "props-rows", propsPanel, null);
-			colsInput = ctl("input", "cols", "1", "props-cols", propsPanel, null);
-
-			var regionLabel = document.createElement("DIV");
-			regionLabel.className = "label";
-			regionLabel.innerHTML = "region";
-			propsPanel.appendChild(regionLabel);
-
-			regionInput = document.createElement("DIV");
-			regionInput.className = "input";
-			regionInput.style.color = "#999";
-			regionInput.id = "props-region";
-			propsPanel.appendChild(regionInput);
-
-			// create the preview panel
-			previewPanel = document.createElement("DIV");
-			previewPanel.className = "panel";
-			sidePanel.appendChild(previewPanel);
-
-			var previewLabel = document.createElement("DIV");
-			previewLabel.className = "label";
-			previewLabel.innerHTML = "preview";
-			previewPanel.appendChild(previewLabel);
-
-			previewCanvas = document.createElement("CANVAS");
-			previewCanvas.id = "previewCanvas";
-			previewCanvas.width = 128;
-			previewCanvas.height = 128;
-			previewPanel.appendChild(previewCanvas);
-
-			var speedButton = ctl("button pill", "speed", "1x", null, previewPanel, function() {setSpeed(1)});
-			var speedButton = ctl("button pill", null, "2x", null, previewPanel, function() {setSpeed(2)});
-			var speedButton = ctl("button pill", null, "3x", null, previewPanel, function() {setSpeed(3)});
-			var speedButton = ctl("button pill", null, "4x", null, previewPanel, function() {setSpeed(4)});
-			var speedButton = ctl("button pill", null, "8x", null, previewPanel, function() {setSpeed(8)});
-
-			// set up the canvas using the img properties
-			var can = spriterLayer.can;
-			can.width = img.width;
-			can.height = img.height;
-			can.style.width = "auto";
-			can.style.height = "auto";
-			can.style.border = padding + "px solid";
-
-			// event handlers
-			spriterLayer.can.addEventListener("mousedown", function(e) {
-				//console.log("mousedown " + e.button + " in spriter layer");
-				startSelect(e.offsetX, e.offsetY);
-			});
-
-			spriterLayer.can.addEventListener("mousemove", function(e) {
-				//console.log("mousemove in spriter layer");
-				adjustSelect(e.offsetX, e.offsetY);
-			});
-
-			spriterLayer.can.addEventListener("mouseup", function(e) {
-				//console.log("mouseup " + e.button + " in spriter layer");
-				endSelect();
-			});
-
-			spriterDiv.addEventListener("dragover", function(e) {
-				e.preventDefault();
-				this.setAttribute("class", "dragover");
-			}, false);
-
-			spriterDiv.addEventListener("dragleave", function(e) {
-				e.preventDefault();
-				this.removeAttribute("class");
-			}, false);
-
-			spriterDiv.addEventListener("drop", function(e) {
-				e.preventDefault();
-				var files = e.dataTransfer.files;
-				var file = files[0];
-				//var reader = new FileReader();
-				this.removeAttribute("class");
-				setImage(file.name);
-			});
-
-			// run the animation preview
-			setSpeed(1);
+			spriterLayer.can.width = img.width;
+			spriterLayer.can.height = img.height;
 		});
 	}
 
@@ -320,7 +334,7 @@ ASTRAL.spriter = new function() {
 	}
 
 	function loadSpriteSheet() {
-		console.log("LSS");
+		console.log("todo load sprite sheet");
 	}
 
 	function getDataJson() {
@@ -365,8 +379,12 @@ ASTRAL.spriter = new function() {
 		if (oy < 0) oy = 0;
 		if (ox > img.width) ox = img.width;
 		if (oy > img.height) oy = img.height;
-		//ox = parseInt(ox / snapx) * snapx;
-		//oy = parseInt(oy / snapy) * snapy;
+		if (snapToGrid == true) {
+			var gridx = parseInt(document.getElementById("gridx").innerHTML);
+			var gridy = parseInt(document.getElementById("gridy").innerHTML);
+			ox = parseInt(ox / gridx) * gridx;
+			oy = parseInt(oy / gridy) * gridy;
+		}
 		rect.left = ox; //e.offsetX * (img.width / spriterDiv.offsetWidth);
 		rect.top = oy; //e.offsetY * (img.height / spriterDiv.offsetHeight);
 		rect.width = 0;
@@ -383,8 +401,12 @@ ASTRAL.spriter = new function() {
 		if (oy > img.height) oy = img.height;
 		ox = ox - rect.left;
 		oy = oy - rect.top;
-		//ox = parseInt(ox / snapx) * snapx;
-		//oy = parseInt(oy / snapy) * snapy;
+		if (snapToGrid == true) {
+			var gridx = parseInt(document.getElementById("gridx").innerHTML);
+			var gridy = parseInt(document.getElementById("gridy").innerHTML);
+			ox = parseInt(ox / gridx) * gridx;
+			oy = parseInt(oy / gridy) * gridy;
+		}
 		rect.width = ox;// - padding; //e.offsetX * (img.width / spriterDiv.offsetWidth) - rect.left;
 		rect.height = oy;// - padding; //e.offsetY * (img.height / spriterDiv.offsetHeight) - rect.top;
 		// 0.5 offset explained here: https://stackoverflow.com/questions/23612000/why-is-my-strokestyle-transparent
@@ -414,39 +436,43 @@ ASTRAL.spriter = new function() {
 		// clear the canvas
 		ctx.clearRect(0, 0, can.width, can.height);
 
+		if (imgLoading || !img) return;
+
 		// draw the spritesheet
-		if (!imgLoading) ctx.drawImage(img, 0, 0);
+		//if (!imgLoading && img) {
+			// draw the image
+			ctx.drawImage(img, 0, 0);
 
-		// draw the grid
-		var gridx = document.getElementById("gridx").innerHTML;
-		var gridy = document.getElementById("gridy").innerHTML;
-		if (!gridx) gridx = 0;
-		if (!gridy) gridy = 0;
-		if (parseInt(gridx) <= 0) {
-			gridx = 0;
-		}
-		if (parseInt(gridy) <= 0) {
-			gridy = 0;
-		}
-		if (gridx > 1 && gridy > 1) {
-			var gridcols = img.width / gridx;
-			var gridrows = img.height / gridy;
-			for (var x = 1; x < gridcols; x++) {
-				ctx.beginPath();
-				ctx.strokeStyle = "#555";
-				ctx.moveTo(x * gridx + 0.5, 0);
-				ctx.lineTo(x * gridx + 0.5, img.height);
-				ctx.stroke();
+			// draw the grid
+			var gridx = document.getElementById("gridx").innerHTML;
+			var gridy = document.getElementById("gridy").innerHTML;
+			if (!gridx) gridx = 0;
+			if (!gridy) gridy = 0;
+			if (parseInt(gridx) <= 0) {
+				gridx = 0;
 			}
-			for (var y = 1; y < gridrows; y++) {
-				ctx.beginPath();
-				ctx.strokeStyle = "#555";
-				ctx.moveTo(0, y * gridy + 0.5);
-				ctx.lineTo(img.width, y * gridy + 0.5);
-				ctx.stroke();
+			if (parseInt(gridy) <= 0) {
+				gridy = 0;
 			}
-		}
-
+			if (gridx > 1 && gridy > 1) {
+				var gridcols = img.width / gridx;
+				var gridrows = img.height / gridy;
+				for (var x = 1; x < gridcols; x++) {
+					ctx.beginPath();
+					ctx.strokeStyle = "#555";
+					ctx.moveTo(x * gridx + 0.5, 0);
+					ctx.lineTo(x * gridx + 0.5, img.height);
+					ctx.stroke();
+				}
+				for (var y = 1; y < gridrows; y++) {
+					ctx.beginPath();
+					ctx.strokeStyle = "#555";
+					ctx.moveTo(0, y * gridy + 0.5);
+					ctx.lineTo(img.width, y * gridy + 0.5);
+					ctx.stroke();
+				}
+			}
+		//}
 
 		// draw the selecting rect
 		// var x, y, w, h;
@@ -584,8 +610,9 @@ ASTRAL.spriter = new function() {
 
 	function newAnimation(anim) {
 		// adds a new anim button to the anims list and populate the props list with values
+		selected = {};
 
-		mode = "new";
+		//mode = "new";
 		animCount += 1;
 		selectedId = "anim" + animCount;
 
