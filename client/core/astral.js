@@ -110,10 +110,18 @@ var ASTRAL = new function() {
 
 		// preload assets (for testing...later we will detect what to load based on proximity to cells)
 		loadImage("guy.png");
-		loadImage("pup.png");
 
 		// create layers
 		var gameLayer = createLayer("game", 1, drawGameLayer);
+
+		// prevent accidental drag drop on game canvas
+		gameDiv.addEventListener("dragover", function(e) {
+			e.preventDefault();
+		}, false);
+
+		gameDiv.addEventListener("drop", function(e) {
+			e.preventDefault();
+		}, false);
 
 		// handle mousedown
 		gameLayer.can.addEventListener("mousedown", function(e) {
@@ -138,7 +146,8 @@ var ASTRAL = new function() {
 					moveDown = true;
 					break;
 				case "`":
-					ASTRAL.editor.activate();
+					// TODO: handle state and draw debugs for editor visible
+					ASTRAL.editor.toggle();
 			}
 		});
 
@@ -477,15 +486,17 @@ var ASTRAL = new function() {
 			var img = images[obj.imageid];
 			ctx.drawImage(img, obj.x, obj.y);
 
-			// draw the hitbox
-			ctx.beginPath();
-			ctx.rect(obj.x, obj.y, img.width, img.height);
-			ctx.stroke();
-			ctx.closePath();
+			if (ASTRAL.editor.enabled()) {
+				// draw the hitbox
+				ctx.beginPath();
+				ctx.rect(obj.x, obj.y, img.width, img.height);
+				ctx.stroke();
+				ctx.closePath();
 
-			// draw the object name and props
-			ctx.font = "16px Arial";
-			ctx.fillText(obj.name, obj.x, obj.y - 15);
+				// draw the object name and props
+				ctx.font = "16px Arial";
+				ctx.fillText(obj.name, obj.x, obj.y - 15);
+			}
 		}
 	}
 

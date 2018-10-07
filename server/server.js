@@ -56,6 +56,10 @@ ws.on('connection', function(client, req) {
 		queueSend("zone1", "*delete," + oid);
 	});
 
+	var fs = require('fs');
+	var files = fs.readdirSync('../client/assets/');
+	queueSend(name, "*assets," + JSON.stringify(files));
+
 	// greet the client that just connected
 	queueSend(name, "*createm," + getObjectsByTopic("zone1"));
 	queueSend(name, "*greet," + player.object.id + "," + name);

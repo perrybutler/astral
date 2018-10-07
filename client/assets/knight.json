@@ -1,0 +1,10 @@
+{
+	"body": {
+		"hitbox": "40, 40",
+		"sprite": {}
+	},
+	"weapon": {
+		"hitbox": "40, 40",
+		"sprite": {}
+	}
+}

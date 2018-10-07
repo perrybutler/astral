@@ -1,6 +1,8 @@
 console.log("spriter.js entry point");
 
 ASTRAL.spriter = new function() {
+	var isenabled = false;
+
 	// the image we'll be working on
 	var img;
 	var imgLoading = false;
@@ -195,6 +197,7 @@ ASTRAL.spriter = new function() {
 
 	function activate(filename) {
 		spriterDiv.style.visibility = "visible";
+		isenabled = true;
 		ASTRAL.loadImage(filename, function() {
 			// set the current image
 			img = ASTRAL.images[filename];
@@ -205,6 +208,11 @@ ASTRAL.spriter = new function() {
 
 	function deactivate() {
 		spriterDiv.style.visibility = "hidden";
+		isenabled = false;
+	}
+
+	function enabled() {
+		return isenabled;
 	}
 
 	function ctl(type, label, value, id, parent, click) {
@@ -561,8 +569,6 @@ ASTRAL.spriter = new function() {
 			0, 0,
 			fwidth,	fheight
 		);
-		
-
 	}
 
 	function animate() {
@@ -685,13 +691,13 @@ ASTRAL.spriter = new function() {
 	}
 
 	function rowsChange() {
-		var newval = rowsInput.innerHTML;
+		var newval = parseInt(rowsInput.innerHTML);
 		var anim = data.anims[selectedId];
 		anim.rows = newval;
 	}
 
 	function colsChange() {
-		var newval = colsInput.innerHTML;
+		var newval = parseInt(colsInput.innerHTML);
 		var anim = data.anims[selectedId];
 		anim.cols = newval;
 	}
@@ -711,4 +717,5 @@ ASTRAL.spriter = new function() {
 	this.init = init;
 	this.activate = activate;
 	this.zoom = zoom;
+	this.enabled = enabled;
 }

@@ -1,6 +1,7 @@
 console.log("editor.js entry point");
 
 ASTRAL.editor = new function() {
+	var isenabled = false;
 
 	var editorLayer;
 	var editorDiv;
@@ -51,16 +52,22 @@ ASTRAL.editor = new function() {
 		projectPanel.className = "panel";
 		sidePanel.appendChild(projectPanel);
 		var thing = ctl("button", "project", "folder list here", null, projectPanel, null);
+
+		// TODO: do a server request for assets here
+		// might need a pub/sub to make a func in this file that hooks into the netcode message
 	}
 
-	function activate() {
-		console.log("editor.js activate()");
+	function toggle() {
+		// TODO: some tight coupling here...but considering spriter is always coupled this might be fine
+		console.log("editor.js toggle()");
 		if (editorDiv.style.visibility == "hidden") {
 			editorDiv.style.visibility = "visible";
+			isenabled = true;
 		}
 		else {
 			editorDiv.style.visibility = "hidden";
 			spriterDiv.style.visibility = "hidden";
+			isenabled = false;
 		}
 	}
 
@@ -92,6 +99,11 @@ ASTRAL.editor = new function() {
 
 	}
 
+	function enabled() {
+		return isenabled;
+	}
+
 	this.init = init;
-	this.activate = activate;
+	this.toggle = toggle;
+	this.enabled = enabled; // TODO: cant make primitive refs so had to make a wrapper func...i dont like this, better way?
 }
