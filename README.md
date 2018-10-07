@@ -23,4 +23,4 @@ Tips:
 - For Chrome close all windows then launch w/ --allow-access-from-files
 - For Chromium wrapper, make shortcut to RapidNative.exe and include a -path [full path to index.html]
 - Game will immediately connect to server, make sure to have the server running
-- Press tilde/backtick key to enable realtime editor mode
+- Press tilde/backtick key to toggle realtime editor mode
