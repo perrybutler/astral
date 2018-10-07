@@ -3,6 +3,7 @@
 A game framework in vanilla JavaScript.
 
 - 2d canvas layers
+- Realtime editing
 - Lightweight and very fast
 - Load resources at run-time with the custom async loader
 - Everything is dynamic, no build/compile, minimal tooling
@@ -17,7 +18,9 @@ A game framework in vanilla JavaScript.
 
 Tips:
 
-- Early development, broken stuff
-- Load index.html in a web browser to run it
+- Early development, broken stuff, WIP!
+- Load index.html in a web browser to run game
 - For Chrome close all windows then launch w/ --allow-access-from-files
 - For Chromium wrapper, make shortcut to RapidNative.exe and include a -path [full path to index.html]
+- Game will immediately connect to server, make sure to have the server running
+- Press tilde/backtick key to enable realtime editor mode
