@@ -4,7 +4,6 @@ ASTRAL.spriter = new function() {
 	// the image we'll be working on
 	var img;
 	var imgLoading = false;
-	var padding = 32;
 
 	// the data that will get saved
 	//var anims = [];
@@ -24,6 +23,7 @@ ASTRAL.spriter = new function() {
 	var fid = 0;
 
 	// panels, canvas, layers
+	var padding = 32; // padding around canvas to assist with selecting
 	var spriterLayer;
 	var spriterDiv;
 	var sidePanel;
@@ -48,7 +48,7 @@ ASTRAL.spriter = new function() {
 		console.log("spriter.js init()");
 
 		// create a layer for the sprite tool
-		spriterLayer = ASTRAL.createLayer("spriter", 2, draw);
+		spriterLayer = ASTRAL.createLayer("spriter", 3, draw);
 		spriterDiv = document.getElementById("spriterDiv");
 		spriterDiv.style.overflow = "auto";
 		spriterDiv.style.visibility = "hidden";
@@ -203,6 +203,10 @@ ASTRAL.spriter = new function() {
 		});
 	}
 
+	function deactivate() {
+		spriterDiv.style.visibility = "hidden";
+	}
+
 	function ctl(type, label, value, id, parent, click) {
 		var el = document.createElement("DIV");
 		if (value.indexOf("#") != -1) {
@@ -308,7 +312,7 @@ ASTRAL.spriter = new function() {
 			item.remove();
 		});
 
-		var can = spriterCanvas;
+		var can = spriterCanvas; // TODO: this is implicitly referring to the dom element id...might need to enable option strict
 		var ctx = can.getContext("2d");
 		ctx.clearRect(0, 0, can.width, can.height);
 		imgLoading = true;

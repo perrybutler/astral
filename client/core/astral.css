@@ -8,6 +8,8 @@
 	/*width: 720px; height: 480px;*/
 }
 
+/* SPRITER */
+
 #gameCanvas {
 	position: absolute;
 	z-index: 10;
@@ -67,6 +69,29 @@
 	left: 50%;
 	transform: translate(-50%, -50%);
 }
+
+/* EDITOR */
+
+#editorDiv {
+	position: absolute;
+	left: 0px;
+	right: 0px;
+	top: 0px;
+	bottom: 0px;
+	margin: auto;
+	/*width: 720px; height: 480px;*/
+}
+
+#editorCanvas {
+	position: absolute;
+	z-index: 10;
+	transform-origin: 0 0;
+	image-rendering:pixelated;
+	width: 100%;
+	height: 100%;
+}
+
+/* SHARED */
 
 .sidebar {
 	z-index: 20;
@@ -164,4 +189,4 @@
 .panel .button:hover {
 	background:#333;
 	color:#aaa;
-}	
+}

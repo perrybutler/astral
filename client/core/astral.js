@@ -137,6 +137,8 @@ var ASTRAL = new function() {
 				case "s":
 					moveDown = true;
 					break;
+				case "`":
+					ASTRAL.editor.activate();
 			}
 		});
 
