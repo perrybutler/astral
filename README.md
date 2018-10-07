@@ -5,7 +5,7 @@ A game framework in vanilla JavaScript.
 - 2d canvas layers
 - Realtime editing
 - Lightweight and very fast
-- Load resources at run-time with the custom async loader
+- Load resources at runtime with the custom async loader
 - Everything is dynamic, no build/compile, minimal tooling
 - Minimal runtime dependencies (client: none, server: nodejs, ws)
 - Works offline from file:///, embedded on a web page, or Chromium wrapper (included)
