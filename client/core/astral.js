@@ -160,10 +160,11 @@ var ASTRAL = new function() {
 		});
 
 		// connect
+		// TODO: put this on a background timer, dont halt execution or fail out when connect fails
 		connect();
 
-		//editSpriteSheet("novice_body.png");
-		ASTRAL.spriter.open("0x72_DungeonTilesetII_v1.1.png");
+		// open the spriter tool
+		//ASTRAL.spriter.activate("0x72_DungeonTilesetII_v1.1.png");
 	}
 
 	/*==================

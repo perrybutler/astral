@@ -51,6 +51,7 @@ ASTRAL.spriter = new function() {
 		spriterLayer = ASTRAL.createLayer("spriter", 2, draw);
 		spriterDiv = document.getElementById("spriterDiv");
 		spriterDiv.style.overflow = "auto";
+		spriterDiv.style.visibility = "hidden";
 
 		// create the drag-drop indicator zone
 		var dropPanel = document.createElement("DIV");
@@ -193,12 +194,7 @@ ASTRAL.spriter = new function() {
 	}
 
 	function activate(filename) {
-
-	}
-
-	function open(filename) {
-		// TODO: we should move all the layer creations tuff into init()...and call this instead 
-		//	of whatever other function we're using to set the image on dragdrop
+		spriterDiv.style.visibility = "visible";
 		ASTRAL.loadImage(filename, function() {
 			// set the current image
 			img = ASTRAL.images[filename];
@@ -709,6 +705,6 @@ ASTRAL.spriter = new function() {
 	}
 
 	this.init = init;
-	this.open = open;
+	this.activate = activate;
 	this.zoom = zoom;
 }
