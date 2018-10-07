@@ -72,8 +72,8 @@ ASTRAL.spriter = new function() {
 		var viewButton = ctl("button", "data", "view", null, toolsPanel, viewData);
 		var downloadButton = ctl("button", null, "download", null, toolsPanel, downloadData);
 		var saveButton = ctl("button", null, "save", null, toolsPanel, saveData);
-		var gridInputX = ctl("input pair", "grid", "32", "gridx", toolsPanel, setGrid);
-		var gridInputY = ctl("input pair", null, "32", "gridy", toolsPanel, setGrid);
+		var gridInputX = ctl("input pair", "grid", "16", "gridx", toolsPanel, setGrid);
+		var gridInputY = ctl("input pair", null, "16", "gridy", toolsPanel, setGrid);
 		// var snapButton = ctl("button pill", "snap", "1", null, toolsPanel, function() {});
 		// var snapButton = ctl("button pill", null, "4", null, toolsPanel, function() {});
 		// var snapButton = ctl("button pill", null, "8", null, toolsPanel, function() {});
@@ -563,23 +563,6 @@ ASTRAL.spriter = new function() {
 		);
 		
 
-		// var pix = ectx.getImageData(0,0,400,400);
-
-		// // pix.data is a one dimensional array of all the pixels: r,g,b,a,r,g,b,a,r,g,b,a
-
-		// for (var x = 0; x < 1; x++) {
-			
-		// 	for (var y = 0; y < 30; y++) {
-
-		// 		// we are at column 0 and working our way down row by row
-
-		// 		// column 0 and row 0 would be pixel 0
-		// 		// column 0 and row 1 would be 100 * 1 = pixel 100
-
-		// 		var pixnum =  y * 30 + x;
-		// 		console.log(x, y, pixnum, pix.data[pixnum]);
-		// 	}
-		// }
 	}
 
 	function animate() {

@@ -163,7 +163,7 @@ var ASTRAL = new function() {
 		connect();
 
 		//editSpriteSheet("novice_body.png");
-		ASTRAL.spriter.open("novice_body.png");
+		ASTRAL.spriter.open("0x72_DungeonTilesetII_v1.1.png");
 	}
 
 	/*==================
