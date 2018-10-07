@@ -13,3 +13,9 @@ A game framework in vanilla JavaScript.
 - Pub/sub for gameobjects and server topics, multiple channels for system, chat, pm, updates
 
 ![alt text](https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/The_Astral_Sleep_-_by_Jeroen_van_Valkenburg.PNG/300px-The_Astral_Sleep_-_by_Jeroen_van_Valkenburg.PNG)
+
+Tips:
+
+- Early development, broken stuff
+- Load index.html in a web browser to run it
+- For Chrome close all windows then launch w/ --allow-access-from-files
