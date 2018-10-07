@@ -1,7 +1,8 @@
 # ASTRAL
 
-An app/game framework in vanilla JavaScript.
+A game framework in vanilla JavaScript.
 
+- 2d <canvas>
 - Lightweight and very fast
 - Load resources at run-time with the custom async loader
 - Everything is dynamic, no build/compile, minimal tooling
