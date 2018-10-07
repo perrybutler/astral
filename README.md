@@ -19,3 +19,4 @@ Tips:
 - Early development, broken stuff
 - Load index.html in a web browser to run it
 - For Chrome close all windows then launch w/ --allow-access-from-files
+- For Chromium wrapper, make shortcut to RapidNative.exe and include a -path [full path to index.html]
