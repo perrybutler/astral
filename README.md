@@ -3,8 +3,6 @@
 An app/game framework in vanilla JavaScript.
 
 - Lightweight and very fast
-- Super easy-to-learn imperative code
-- No enforced patterns, code how you want
 - Load resources at run-time with the custom async loader
 - Everything is dynamic, no build/compile, minimal tooling
 - Minimal dependencies (client: none, server: ws, nodemon)
