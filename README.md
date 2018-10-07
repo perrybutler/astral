@@ -6,7 +6,7 @@ A game framework in vanilla JavaScript.
 - Lightweight and very fast
 - Load resources at run-time with the custom async loader
 - Everything is dynamic, no build/compile, minimal tooling
-- Minimal dependencies (client: none, server: nodejs, ws, nodemon)
+- Minimal runtime dependencies (client: none, server: nodejs, ws)
 - Works offline from file:///, embedded on a web page, or Chromium wrapper (included)
 - Tiler tool for building tilemaps and animations right in your browser!
 - Custom netcode using Nodejs, WebSockets and ws lib, client/server MMORPG zone architecture
