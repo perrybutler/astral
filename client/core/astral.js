@@ -7,9 +7,11 @@ window.onload = window.onresize = function() {
 var ASTRAL = new function() {
 	// async loader stuff
 	var requires = [
+		{name: "netcode", path: "core/netcode.js"},
 		{name: "entity", path: "core/entity.js"},
 		{name: "spriter", path: "core/spriter.js"},
 		{name: "editor", path: "core/editor.js"},
+		{name: "game", path: "game.js"}
 		//{name: "world", path: "world.js"}
 	];
 	var loaded = 0;
@@ -20,19 +22,9 @@ var ASTRAL = new function() {
 	var layers = [];
 	var images = [];
 
-	// objects
-	var myName = "";
-	var myObjectId = null;
-	var myObject = null;
-	var objects = [];
-
 	// timing stuff
 	var lastFrameTime = Date.now();
 	var pingTime = null;
-
-	// netcode stuff
-	var receiveQueue = [];
-	var sendQueue = [];
 
 	// controls
 	var moveUp = false;
@@ -172,7 +164,11 @@ var ASTRAL = new function() {
 
 		// connect
 		// TODO: put this on a background timer, dont halt execution or fail out when connect fails
-		connect();
+		ASTRAL.netcode.on("connect", function(){
+			console.log("connect handler fired");
+			requestAnimationFrame(gameLoop);
+		});
+		ASTRAL.netcode.connect();
 
 		// open the spriter tool
 		//ASTRAL.spriter.activate("0x72_DungeonTilesetII_v1.1.png");
@@ -223,7 +219,7 @@ var ASTRAL = new function() {
 		if (finalInput != lastInput) {
 			lastInput = finalInput;
 			//send({event: "move", data: {vx: vx, vy: vy}});
-			queueSend("*move," + vx + "," + vy + "," + myObject.x + "," + myObject.y);
+			ASTRAL.netcode.queueSend("*move," + vx + "," + vy + "," + ASTRAL.game.myObject.x + "," + ASTRAL.game.myObject.y);
 		}
 	}
 
@@ -233,138 +229,6 @@ var ASTRAL = new function() {
 
 	function tester() {
 		var pup = createGameObject(Date.parse(new Date().toUTCString()), "pup", "zone1");
-	}
-
-	/*==================
-		NETCODE
-	==================*/
-
-	function connect() {
-		var host = "ws://localhost:33333/echo";
-		//var host = "ws://172.89.46.7:33333/echo";
-		console.log("connecting to host " + host);
-		connection = new WebSocket(host);
-
-		connection.onopen = function() {
-			console.log("connected successfully");
-			//setInterval(updateLoop, 1000 / 20);
-			//drawLoop();
-			//gameLoop();
-			requestAnimationFrame(gameLoop);
-			pingTime = Date.parse(new Date().toUTCString());
-			queueSend("*keepalive,ping?," + pingTime);
-		}
-
-		connection.onerror = function(error) {
-			console.log("connection error: " + error);
-		}
-
-		connection.onmessage = function(msg) {
-			console.log("-> ", msg.data);
-			receive(msg.data);
-		}
-	}
-
-	function sendNow(payload) {
-		console.log("<-", payload);
-		connection.send(JSON.stringify(payload));
-	}
-
-	function receive(data) {
-		receiveQueue.push({data: data});
-	}
-
-	function handleReceiveQueue() {
-		if (receiveQueue.length > 0) {
-			console.log("handling " + receiveQueue.length + " server message(s)");
-			receiveQueue.forEach(function(e) {
-				handleServerMessage(e.data);
-			});
-			// clear the queue
-			receiveQueue = [];
-		}
-	}
-
-	function queueSend(payload) {
-		sendQueue.push(payload);
-	}
-
-	function handleSendQueue() {
-		if (sendQueue.length > 0) {
-			console.log("sending " + sendQueue.length + " message(s)");
-			sendQueue.forEach(function(payload) {
-				sendNow(payload);
-			});
-			// clear the queue
-			sendQueue = [];
-		}
-	}
-
-	function handleServerMessage(payload) {
-		console.log("handling", payload);
-		var spl = payload.split(",");
-		switch (spl[0]) {
-			case "*greet": // *greet,name,objectid | *greet,player1,1
-				// the server told us what object we have control of
-				myObjectId = spl[1];
-				myObject = objects[myObjectId];
-				myName = spl[2];
-				myObject.player = myName;
-				console.log("server said my name is " + myName + " and my object id is " + myObjectId);
-				break;
-			case "*keepalive": // *keepalive,pong!,timestamp | *greet,pong!,12389791414
-				// the server responded to our ping
-				var pongTime = spl[2];
-				var serverDelta = pongTime - pingTime;
-				console.log("round trip time (RTT) is " + serverDelta + "ms");
-				break;
-			case "*create": // *create,id,name,x,vx,y,vy | *create,1,player1,0,0,0,0
-				// creates a single object
-				var obj = createGameObject(spl[1], spl[2], "zone1");
-				obj.x = parseInt(spl[3]);
-				obj.vx = parseInt(spl[4]);
-				obj.y = parseInt(spl[5]);
-				obj.vy = parseInt(spl[6]);
-				break;
-			case "*createm":
-				// the server sent us multiple objects to be created
-				// create the first object which is at a unique offset from the rest
-				var obj = createGameObject(spl[1], spl[2], "zone1");
-				obj.x = parseInt(spl[3]);
-				obj.vx = parseInt(spl[4]);
-				obj.y = parseInt(spl[5]);
-				obj.vy = parseInt(spl[6]);
-				// create the rest of the objects
-				// example: *createm,player1,50,0,50,0,player2,50,0,50,0,player3,50,0,50,0
-				var componentCount = 6;
-				for (var i = 1; i < spl.length; i+= componentCount) {
-					var obj = createGameObject(spl[i], spl[i + 1], "zone1");
-					//obj.name = spl[i + 1];
-					obj.x = parseInt(spl[i + 2]);
-					obj.vx = parseInt(spl[i + 3]);
-					obj.y = parseInt(spl[i + 4]);
-					obj.vy = parseInt(spl[i + 5]);
-				}
-				break;
-			case "*move": // *move,objectid,vx,vy | *move,1,0,1
-				// the server said an object changed its movement vector
-				var obj = objects[spl[1]];
-				if (obj) {
-					obj.vx = parseInt(spl[2]);
-					obj.vy = parseInt(spl[3]);
-					obj.x = parseInt(spl[4]);
-					obj.y = parseInt(spl[5]);
-				}
-				else {
-					console.log("ERROR: received a server message for non existant object '" + spl[1] + "'");
-				}
-				break;
-			case "*delete": // *delete,objectid | *delete,1
-				// the server said we should delete an object
-				//var obj = objects[spl[1]];
-				delete objects[spl[1]];
-				break;
-		}
 	}
 
 	/*==================
@@ -406,61 +270,23 @@ var ASTRAL = new function() {
 
 	function update(delta) {
 		// handle messages from the server
-		handleReceiveQueue();
+		ASTRAL.netcode.handleReceiveQueue();
 
 		// update user input state
 		input();
 
 		// handle messages to the server
-		handleSendQueue();
+		ASTRAL.netcode.handleSendQueue();
 
 		// update the objects by incrementing their state
-		for (var key in objects) {
-			var obj = objects[key];
+		for (var key in ASTRAL.game.objects) {
+			var obj = ASTRAL.game.objects[key];
 			obj.x += obj.vx * obj.speed * delta;
 			obj.y += obj.vy * obj.speed * delta;
 		}
 	}
 
 	function draw(delta) {
-		// var gameLayer = layers["game"];
-		// var can = gameLayer.can;
-		// var ctx = gameLayer.ctx;
-
-		// for (var key in layers) {
-		// 	var layer = layers[key];
-			
-		// }
-
-		// // clear the canvas
-		// ctx.clearRect(0, 0, can.width, can.height);
-		// //can.width = can.width;
-
-		// // draw the visible graphics
-		// for (var key in objects) {
-		// 	var obj = objects[key];
-			
-		// 	// draw the sprite
-		// 	var img = images[obj.imageid];
-		// 	ctx.drawImage(img, obj.x, obj.y);
-
-		// 	// draw the hitbox
-		// 	ctx.beginPath();
-		// 	ctx.rect(obj.x, obj.y, img.width, img.height);
-		// 	ctx.stroke();
-		// 	ctx.closePath();
-
-		// 	// draw the object name and props
-		// 	ctx.font = "16px Arial";
-		// 	ctx.fillText(obj.name, obj.x, obj.y - 15);
-		// }
-
-		// ctx.beginPath();
-		// ctx.rect(rect.left, rect.top, rect.right, rect.bottom);
-		// ctx.stroke();
-		// ctx.closePath();
-
-		// TODO: what about layer ordering?
 		for (var key in layers) {
 			var layer = layers[key];
 			if (layer.visible) {
@@ -479,8 +305,8 @@ var ASTRAL = new function() {
 		//can.width = can.width;
 
 		// draw the visible graphics
-		for (var key in objects) {
-			var obj = objects[key];
+		for (var key in ASTRAL.game.objects) {
+			var obj = ASTRAL.game.objects[key];
 			
 			// draw the sprite
 			var img = images[obj.imageid];
@@ -500,10 +326,11 @@ var ASTRAL = new function() {
 		}
 	}
 
-	// creates a game object in memory and immediately returns it for further use
-	//	the attributes are supplied by the server because the server creates objects 
-	//	and the client mimics
 	function createGameObject(id, name, sector) {
+		// creates a game object in memory and immediately returns it for further use
+		//	the attributes are supplied by the server because the server creates objects 
+		//	and the client mimics
+
 		// create the object
 		var obj = {};
 		obj.id = id;
@@ -520,7 +347,7 @@ var ASTRAL = new function() {
 		else if (name.includes("pup")) {
 			obj.imageid = "pup.png";
 		}
-		objects[obj.id] = obj;
+		ASTRAL.game.objects[obj.id] = obj;
 		console.log("created object " + obj.name + " with id " + obj.id);
 		return obj;
 	}
@@ -600,9 +427,9 @@ var ASTRAL = new function() {
 	this.init = init;
 	this.layers = layers;
 	this.images = images;
-	this.objects = objects;
 	this.tester = tester;
 	this.createLayer = createLayer;
+	this.createGameObject = createGameObject;
 	this.loadImage = loadImage;
 }
 

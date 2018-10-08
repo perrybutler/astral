@@ -51,10 +51,24 @@ ASTRAL.editor = new function() {
 		projectPanel = document.createElement("DIV");
 		projectPanel.className = "panel";
 		sidePanel.appendChild(projectPanel);
-		var thing = ctl("button", "project", "folder list here", null, projectPanel, null);
+		//var thing = ctl("button", "project", "folder list here", null, projectPanel, null);
 
 		// TODO: do a server request for assets here
 		// might need a pub/sub to make a func in this file that hooks into the netcode message
+		ASTRAL.netcode.on("*assets", function(payload) {
+			var assets = JSON.parse(payload);
+			for (var i = 0; i < assets.length; i++) {
+				var asset = assets[i];
+				var label;
+				if (i == 0) {
+					label = "project";
+				}
+				else {
+					label = null;
+				}
+				var assetButton = ctl("button", label, asset, null, projectPanel, null);
+			}
+		});
 	}
 
 	function toggle() {
