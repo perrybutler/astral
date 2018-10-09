@@ -25,7 +25,7 @@ A game framework in vanilla JavaScript.
 - Game will immediately connect to server, make sure to have the server running
 - Press tilde/backtick key to toggle realtime editor mode
 
-## How It Works
+## Core Design
 
 ### The Main Modules
 
@@ -66,3 +66,5 @@ What the above module will do when loaded is:
 - We can now access ASTRAL.mymodule and ASTRAL.othermodule from any other module
 
 When all the required modules for astral.js have loaded, astral.js::ready() is called to kickstart the engine.
+
+As stated earlier, this does not conform to CJS or AMD patterns simply because ASTRAL and its components are designed to work in unison rather than be universal tools for any type of project. It simply allows us to break out code into different files for separation of concerns, avoids pollution of the global JS namespace, facilitates non-blocking game resource loading, and cuts down on the number of dependencies. This doesn't mean you can't use CJS or AMD in your ASTRAL projects though.
