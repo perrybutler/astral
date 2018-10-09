@@ -16,11 +16,53 @@ A game framework in vanilla JavaScript.
 
 ![alt text](https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/The_Astral_Sleep_-_by_Jeroen_van_Valkenburg.PNG/300px-The_Astral_Sleep_-_by_Jeroen_van_Valkenburg.PNG)
 
-Tips:
+## Tips
 
 - Early development, broken stuff, WIP!
-- Load index.html in a web browser to run game
-- For Chrome close all windows then launch w/ --allow-access-from-files
-- For Chromium wrapper, make shortcut to RapidNative.exe and include a -path [full path to index.html]
+- Load index.html in a web browser to run game/framework
+- For Chrome, close all windows then launch w/ chrome.exe --allow-access-from-files
+- For Chromium wrapper, make shortcut to RapidNative.exe and include in shortcut: -path [full path to index.html]
 - Game will immediately connect to server, make sure to have the server running
 - Press tilde/backtick key to toggle realtime editor mode
+
+## How It Works
+
+### The Main Modules
+
+client:
+
+- astral.js - boots everything, handles game loop and canvas layers
+- netcode.js - client implementation for the game server
+- editor.js - realtime in-game/in-browser game development ide
+- spriter.js - sprite animation/tilemap maker
+
+server:
+
+- server.js - tcp pub/sub game server for nodejs, enables full editor functionality
+
+### Async Loader / Modules
+
+When a module (code file) is loaded it gets attached to the global ASTRAL object (window.ASTRAL) which keeps all of our code in one logical spot from which we can access any of the loaded modules, and any properties/methods within those modules which have been set to public. This loader/module design incorporates the bare minimum for speed purposes and it does not conform to CJS or AMD patterns.
+
+Barebones module example:
+
+	ASTRAL.mymodule = new function() {
+		var requires = [
+			{name: "othermodule", path: "core/othermodule.js"}
+		];
+		function init() {
+			console.log("mymodule.js init()");
+		}
+		this.init = init;
+	}
+	
+Load the module by calling ASTRAL.load("mymodule.js") or by requiring it in another module's requires array.
+
+What the above module will do when loaded is:
+
+- Call init() as soon as the script gets created in the dom
+- Signal to the loader that it should also load othermodule.js
+- The loader will load othermodule.js and call init() there if it exists
+- We can now access ASTRAL.mymodule and ASTRAL.othermodule from any other module
+
+When all the required modules for astral.js have loaded, astral.js::ready() is called to kickstart the engine.
