@@ -2,6 +2,8 @@ var Server = require('ws').Server;
 var port = process.env.PORT || 33333;
 var ws = new Server({port: port});
 
+var fs = require('fs');
+
 var objectCount = 0;
 var playerCount = 0;
 var players = [];		// connected players
@@ -56,14 +58,33 @@ ws.on('connection', function(client, req) {
 		queueSend("zone1", "*delete," + oid);
 	});
 
-	var fs = require('fs');
-	var files = fs.readdirSync('../client/assets/');
-	queueSend(name, "*assets," + JSON.stringify(files));
+	// // send the assets folder contents for editor mode where non-async methods are ok
+	
+	// var files = getFiles('../client/assets/');
+	// var folders = getDirectories('../client/assets/');
+	// //var final = folders.concat(['***']).concat(files);
+	// var final = folders.join() + "***" + files.join();
+	// console.log("FINAL", final);
+	// queueSend(name, "*dirlist," + final);
 
 	// greet the client that just connected
 	queueSend(name, "*createm," + getObjectsByTopic("zone1"));
 	queueSend(name, "*greet," + player.object.id + "," + name);
 });
+
+function getFiles(path) {
+	return fs.readdirSync(path).filter(function (file) {
+		return fs.statSync(path+'/'+file).isFile();
+	});
+	// https://stackoverflow.com/questions/18112204/get-all-directories-within-directory-nodejs/24594123
+}
+
+function getDirectories(path) {
+	return fs.readdirSync(path).filter(function (file) {
+		return fs.statSync(path+'/'+file).isDirectory();
+	});
+	// https://stackoverflow.com/questions/18112204/get-all-directories-within-directory-nodejs/24594123
+}
 
 function sendNow(id, payload) {
 	var player = players[id];
@@ -148,7 +169,7 @@ function handleMessage(player, payload) {
 	else {
 		task = spl[0];
 	}
-
+	
 	switch (task) {
 		case "*keepalive":
 			var zone = player.name;
@@ -162,7 +183,19 @@ function handleMessage(player, payload) {
 			var zone = "zone1";
 			queueSend(zone, "*move," + obj.id + "," + obj.vx + "," + obj.vy + "," + obj.x + "," + obj.y);
 			break;
+		case "*getdir":
+			var zone = player.name;
+			queueSend(zone, "*dirlist," + getDir(spl[1]));
+			break;
 	}
+}
+
+function getDir(path) {
+	var files = getFiles(path);
+	var folders = getDirectories(path);
+	//var final = folders.concat(['***']).concat(files);
+	var final = folders.join() + '***' + files.join();
+	return final;
 }
 
 /*==================

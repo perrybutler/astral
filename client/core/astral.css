@@ -14,7 +14,7 @@
 	position: absolute;
 	width: 100%;
 	height: 100%;
-	background:gray;
+	background-color:gray;
 }
 
 #spriterDiv {
@@ -25,7 +25,7 @@
 	bottom: 0px;
 	margin: auto;
 	/*width: 720px; height: 480px;*/
-	background:#666;
+	background-color:#666;
 }
 
 #spriterCanvas {
@@ -34,13 +34,13 @@
 	image-rendering:pixelated;
 	width: 100%;
 	height: 100%;
-	background:gray;
+	background-color:gray;
 	transition:background 1s;
 }
 
 #previewCanvas {
 	image-rendering:pixelated;
-	background:gray;
+	background-color:gray;
 	border-radius:3px;
 }
 
@@ -54,7 +54,7 @@
 	right:0;
 	top:0;
 	bottom:0;
-	background: rgba(0,0,0,0.9);
+	background-color: rgba(0,0,0,0.9);
 	display:none;
 	pointer-events:none;
 }
@@ -102,13 +102,13 @@
 
 .panel {
 	padding:0.5em;
-    background:#3c3c3c;
+    background-color:#3c3c3c;
     border-radius:5px;
     margin-bottom:0.5em;
 }
 
 .panel .input {
-	background: #313131; /*#585858;*/
+	background-color: #313131; /*#585858;*/
     color: #fff;
     font-family: courier;
     font-size: 0.8em;
@@ -139,7 +139,7 @@
 }
 
 .panel .button {
-	background: #585858;
+	background-color: #585858;
 	color: #ddd;
 	padding:0.2em;
 	cursor:pointer;
@@ -151,6 +151,11 @@
 	word-break: break-all;
 }
 
+.panel .button.disabled {
+	background-color: transparent;
+	pointer-events:none;
+}
+
 .panel .button.pill {
 	display:inline-block;
 	margin-right:0.2em;
@@ -158,11 +163,11 @@
 	padding-right:0.5em;
 }
 
-.panel .button.bgaqua {background:#00FFFF; color:#00FFFF;}
-.panel .button.bgfuchsia {background:#FF00FF; color:#FF00FF;}
-.panel .button.bggray {background:#808080; color:#808080;}
-.panel .button.bgblack {background:#000; color:#000;}
-.panel .button.bgwhite {background:#FFF; color:#FFF;}
+.panel .button.bgaqua {background-color:#00FFFF; color:#00FFFF;}
+.panel .button.bgfuchsia {background-color:#FF00FF; color:#FF00FF;}
+.panel .button.bggray {background-color:#808080; color:#808080;}
+.panel .button.bgblack {background-color:#000; color:#000;}
+.panel .button.bgwhite {background-color:#FFF; color:#FFF;}
 
 .panel .button.icon {display:inline-block; margin-right:0.2em; padding:0 !important; width:16px; height:16px; background-size:contain;}
 .panel .button.icon.shrinkleft {background-image:url('assets/shrink_left.png');}
@@ -177,6 +182,12 @@
 .panel .button.icon.moveright {background-image:url('assets/move_right.png');}
 .panel .button.icon.moveup {background-image:url('assets/move_up.png');}
 .panel .button.icon.movedown {background-image:url('assets/move_down.png');}
+.panel .button.icon.folder {background-image:url('assets/folder.png');}
+.panel .button.icon.home {background-image:url('assets/home.png');}
+
+.panel .button.buttonicon {background-repeat:no-repeat; padding-left:18px;}
+.panel .button.buttonicon.file {background-image:url('assets/file.png');}
+.panel .button.buttonicon.folder {background-image:url('assets/folder.png');}
 
 .panel .button.new {
 	margin-bottom:0.2em;
@@ -187,6 +198,6 @@
 }
 
 .panel .button:hover {
-	background:#333;
+	background-color:#333;
 	color:#aaa;
 }

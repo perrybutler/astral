@@ -7,6 +7,15 @@ ASTRAL.editor = new function() {
 	var editorDiv;
 	var sidePanel;
 
+	var homeButton;
+	var upButton;
+	var folderButton;
+
+
+	var homePath = "../client/assets";
+	var currentPath;
+	var oldPath;
+
 	function init() {
 		console.log("editor.js init()");
 
@@ -53,22 +62,80 @@ ASTRAL.editor = new function() {
 		sidePanel.appendChild(projectPanel);
 		//var thing = ctl("button", "project", "folder list here", null, projectPanel, null);
 
+		homeButton = ctl("button icon home", "project", "", null, projectPanel, function() {getDir("../client/assets")});
+		upButton = ctl("button icon moveup", null, "", null, projectPanel, function() {});
+		folderButton = ctl("button icon folder", null, "", null, projectPanel, function() {});
+		currentPath = "../client/assets";
+
 		// TODO: do a server request for assets here
 		// might need a pub/sub to make a func in this file that hooks into the netcode message
-		ASTRAL.netcode.on("*assets", function(payload) {
-			var assets = JSON.parse(payload);
-			for (var i = 0; i < assets.length; i++) {
-				var asset = assets[i];
-				var label;
-				if (i == 0) {
-					label = "project";
+		ASTRAL.netcode.on("*dirlist", function(payload) {
+			var currentList = document.querySelectorAll(".projectfolder, .projectfile");
+			for (var i = 0; i < currentList.length; i++) {
+				currentList[i].remove();
+			}
+
+			var spl = payload.join().split("***");
+
+			if (spl[0]) {
+				var folders = spl[0].split(",");
+				for (var i = 0; i < folders.length; i++) {
+					var folderName = folders[i];
+					var label = null;
+					// if (i == 0) {
+					// 	label = "project";
+					// }
+					// else {
+					// 	label = null;
+					// }
+					var path = currentPath + "/" + folderName;
+					(function(path) {
+						var assetButton = ctl("button buttonicon folder projectfolder", label, folderName, null, projectPanel, function() {getDir(path)});
+						// https://stackoverflow.com/questions/22438002/dealing-with-loops-in-javascript-only-last-item-gets-affected
+					}).call(this, path);
 				}
-				else {
-					label = null;
+			}
+
+			if (spl[1]) {
+				var files = spl[1].split(",");
+				for (var i = 0; i < files.length; i++) {
+					var fileName = files[i];
+					var label = null;
+					// if (i == 0) {
+					// 	label = "project";
+					// }
+					// else {
+					// 	label = null;
+					// }
+					var assetButton = ctl("button file projectfile", label, fileName, null, projectPanel, null);
 				}
-				var assetButton = ctl("button", label, asset, null, projectPanel, null);
 			}
 		});
+
+		// ASTRAL.netcode.on("*dirlist", function(payload) {
+		// 	console.log("DIRLIST", payload);
+		// });
+
+		// getDir("../client/assets"); // TODO: this demonstrates race condition/problem with loading multiple modules and firing their init() asap...
+	}
+
+	function getDir(path) {
+		var parentPath = path.split("/").slice(0, -1).join("/");
+		console.log("PREVPATH", parentPath);
+
+		if (parentPath == "../client") {
+			upButton.classList.add("disabled");
+		}
+		else {
+			upButton.classList.remove("disabled");
+		}
+
+		upButton.onclick = function() {
+			var prev = parentPath;
+			getDir(prev);
+		}
+		ASTRAL.netcode.sendNow("*getdir," + path);
+		currentPath = path;
 	}
 
 	function toggle() {
@@ -77,6 +144,7 @@ ASTRAL.editor = new function() {
 		if (editorDiv.style.visibility == "hidden") {
 			editorDiv.style.visibility = "visible";
 			isenabled = true;
+			getDir("../client/assets");
 		}
 		else {
 			editorDiv.style.visibility = "hidden";
