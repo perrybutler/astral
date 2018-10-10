@@ -163,6 +163,22 @@
 	padding-right:0.5em;
 }
 
+.mainControl {
+	position: fixed;
+    right: 3px;
+    top: 11px;
+    width: 24px;
+    height: 24px;
+    background-color: #3c3c3c;
+    color: white;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 1.3em;
+    cursor:pointer;
+}
+
+.mainControl:hover {background-color:white; color:black;}
+
 .panel .button.bgaqua {background-color:#00FFFF; color:#00FFFF;}
 .panel .button.bgfuchsia {background-color:#FF00FF; color:#FF00FF;}
 .panel .button.bggray {background-color:#808080; color:#808080;}
@@ -182,12 +198,20 @@
 .panel .button.icon.moveright {background-image:url('assets/move_right.png');}
 .panel .button.icon.moveup {background-image:url('assets/move_up.png');}
 .panel .button.icon.movedown {background-image:url('assets/move_down.png');}
-.panel .button.icon.folder {background-image:url('assets/folder.png');}
+.panel .button.icon.folderadd {background-image:url('assets/folder_add.png');}
 .panel .button.icon.home {background-image:url('assets/home.png');}
 
 .panel .button.buttonicon {background-repeat:no-repeat; padding-left:18px;}
-.panel .button.buttonicon.file {background-image:url('assets/file.png');}
+.panel .button.buttonicon.file {background-image:url('assets/file.png'); background-position-x:right; padding-left:0.2em; padding-right:18px;}
 .panel .button.buttonicon.folder {background-image:url('assets/folder.png');}
+
+.panel .button.buttonicon.image {background-image:url('assets/image.png');}
+.panel .button.buttonicon.jpg {background-image:url('assets/jpg.png');}
+.panel .button.buttonicon.png {background-image:url('assets/png.png');}
+.panel .button.buttonicon.prefab {background-image:url('assets/prefab.png');}
+.panel .button.buttonicon.scene {background-image:url('assets/scene.png');}
+.panel .button.buttonicon.sound {background-image:url('assets/sound.png');}
+.panel .button.buttonicon.tilemap {background-image:url('assets/tilemap.png');}
 
 .panel .button.new {
 	margin-bottom:0.2em;
@@ -200,4 +224,12 @@
 .panel .button:hover {
 	background-color:#333;
 	color:#aaa;
+}
+
+.panel.pulsestart {
+	background-color:#0099ff;
+}
+
+.panel.pulsing {
+	transition:background 1s;
 }

@@ -6,15 +6,17 @@ ASTRAL.editor = new function() {
 	var editorLayer;
 	var editorDiv;
 	var sidePanel;
+	var toolsPanel;
+	var scenePanel;
+	var inspectorPanel;
+	var projectPanel;
 
 	var homeButton;
 	var upButton;
 	var folderButton;
 
-
 	var homePath = "../client/assets";
 	var currentPath;
-	var oldPath;
 
 	function init() {
 		console.log("editor.js init()");
@@ -48,7 +50,7 @@ ASTRAL.editor = new function() {
 		scenePanel = document.createElement("DIV");
 		scenePanel.className = "panel";
 		sidePanel.appendChild(scenePanel);
-		var thing = ctl("button", "scene", "scene stuff here", null, scenePanel, null);
+		var thing = ctl("button sceneobjectbutton", "scene", "scene stuff here", null, scenePanel, null);
 
 		// create the inspector panel
 		inspectorPanel = document.createElement("DIV");
@@ -64,78 +66,129 @@ ASTRAL.editor = new function() {
 
 		homeButton = ctl("button icon home", "project", "", null, projectPanel, function() {getDir("../client/assets")});
 		upButton = ctl("button icon moveup", null, "", null, projectPanel, function() {});
-		folderButton = ctl("button icon folder", null, "", null, projectPanel, function() {});
+		folderButton = ctl("button icon folderadd", null, "", null, projectPanel, function() {});
 		currentPath = "../client/assets";
 
-		// TODO: do a server request for assets here
-		// might need a pub/sub to make a func in this file that hooks into the netcode message
 		ASTRAL.netcode.on("*dirlist", function(payload) {
 			var currentList = document.querySelectorAll(".projectfolder, .projectfile");
 			for (var i = 0; i < currentList.length; i++) {
 				currentList[i].remove();
 			}
-
-			var spl = payload.join().split("***");
-
-			if (spl[0]) {
-				var folders = spl[0].split(",");
-				for (var i = 0; i < folders.length; i++) {
-					var folderName = folders[i];
-					var label = null;
-					// if (i == 0) {
-					// 	label = "project";
-					// }
-					// else {
-					// 	label = null;
-					// }
-					var path = currentPath + "/" + folderName;
-					(function(path) {
-						var assetButton = ctl("button buttonicon folder projectfolder", label, folderName, null, projectPanel, function() {getDir(path)});
-						// https://stackoverflow.com/questions/22438002/dealing-with-loops-in-javascript-only-last-item-gets-affected
-					}).call(this, path);
-				}
-			}
-
-			if (spl[1]) {
-				var files = spl[1].split(",");
-				for (var i = 0; i < files.length; i++) {
-					var fileName = files[i];
-					var label = null;
-					// if (i == 0) {
-					// 	label = "project";
-					// }
-					// else {
-					// 	label = null;
-					// }
-					var assetButton = ctl("button file projectfile", label, fileName, null, projectPanel, null);
-				}
-			}
+			populateProjectPanel(payload);
 		});
 
-		// ASTRAL.netcode.on("*dirlist", function(payload) {
-		// 	console.log("DIRLIST", payload);
-		// });
+		ASTRAL.on("loadscene", function(scenedata) {
+			var currentList = document.querySelectorAll(".sceneobjectbutton");
+			for (var i = 0; i < currentList.length; i++) {
+				currentList[i].remove();
+			}
+			populateScenePanel(scenedata);			
+		});
+	}
 
-		// getDir("../client/assets"); // TODO: this demonstrates race condition/problem with loading multiple modules and firing their init() asap...
+	function populateProjectPanel(payload) {
+		var spl = payload.join().split("***");
+
+		if (spl[0]) {
+			var folders = spl[0].split(",");
+			for (var i = 0; i < folders.length; i++) {
+				var folderName = folders[i];
+				var label = null;
+				var path = currentPath + "/" + folderName;
+				(function(path) {
+					var assetButton = ctl("button buttonicon folder projectfolder", label, folderName, null, projectPanel, function() {getDir(path)});
+					// https://stackoverflow.com/questions/22438002/dealing-with-loops-in-javascript-only-last-item-gets-affected
+				}).call(this, path);
+			}
+		}
+
+		if (spl[1]) {
+			var files = spl[1].split(",");
+			for (var i = 0; i < files.length; i++) {
+				var fileName = files[i];
+				var label = null;
+				var path = currentPath + "/" + fileName;
+				(function(path) {
+					var iconName = getIconForFile(path);
+					var assetButton = ctl("button file projectfile buttonicon " + iconName, label, fileName, null, projectPanel, function() {openProjectFile(path)});
+				}).call(this, path);
+			}
+		}
+	}
+
+	function populateScenePanel(scenedata) {
+		pulsePanel(scenePanel);
+		for (var i = 0; i < scenedata.length; i++) {
+			var objectName = scenedata[i].name;
+			var objectButton = ctl("button sceneobjectbutton", null, objectName, null, scenePanel);
+		}
+	}
+
+	function pulsePanel(p) {
+		p.classList.add("pulsestart");
+		setTimeout(function() {
+			p.classList.add("pulsing");
+			p.classList.remove("pulsestart");
+			setTimeout(function() {
+				p.classList.remove("pulsing");
+			}, 500);
+		}, 500);
 	}
 
 	function getDir(path) {
 		var parentPath = path.split("/").slice(0, -1).join("/");
-		console.log("PREVPATH", parentPath);
-
 		if (parentPath == "../client") {
 			upButton.classList.add("disabled");
 		}
 		else {
 			upButton.classList.remove("disabled");
 		}
-
 		upButton.onclick = function() {
 			var prev = parentPath;
 			getDir(prev);
 		}
 		ASTRAL.netcode.sendNow("*getdir," + path);
 		currentPath = path;
+	}
+
+	function getIconForFile(path) {
+		if (path.includes("png")) {
+			return "png";
+		}
+		else if (path.includes("jpg")) {
+			return "jpg";
+		}
+		else if (path.includes("prefab")) {
+			return "prefab";
+		}
+		else if (path.includes("scene")) {
+			return "scene";
+		}
+		else if (path.includes("mp3") || path.includes("wav")) {
+			return "sound";
+		}
+		else if (path.includes("tilemap")) {
+			return "tilemap";
+		}
+	}
+
+	function openProjectFile(path) {
+		var relpath = path.replace(homePath, "");
+		if (path.includes(".png") || path.includes(".jpg")) {
+			ASTRAL.spriter.activate(relpath);
+		}
+		else if (path.includes("mp3") || path.includes("wav")) {
+			ASTRAL.playSound(path);
+		}
+		else if (path.includes("scene")) {
+			ASTRAL.loadScene(path);
+		}
+		else if (path.includes("tilemap")) {
+
+		}
+		else if (path.includes("prefab")) {
+
+		}
 	}
 
 	function toggle() {

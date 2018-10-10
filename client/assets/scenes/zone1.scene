@@ -1,0 +1,16 @@
+[
+	{
+		"name": "knight",
+		"pos": "200, 200",
+		"objects": [
+			{
+				"name": "weapon",
+				"pos": "0, 0"
+			}
+		]
+	},
+	{
+		"name": "knight",
+		"pos": "250, 230"
+	}
+]

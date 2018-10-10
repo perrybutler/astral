@@ -18,6 +18,8 @@ var ASTRAL = new function() {
 	var loadcount = 0;
 	var finalCallback = null;
 
+	var onHandlers = [];
+
 	// graphics stuff
 	var layers = [];
 	var images = [];
@@ -34,66 +36,21 @@ var ASTRAL = new function() {
 	var lastInput = "0,0";
 	var finalInput = "0,0";
 
+	function onHandler(name, func) {
+		onHandlers[name] = func;
+	}
+
+	function doHandler(name, payload) {
+		var func = onHandlers[name];
+		if (func) func(payload);
+	}
+
 	function init() {
 		console.log("astral initializing...");
 		loadRequirements(requires, function() {
 			console.log("astral was initialized successfully");
 			console.log("###################################");
 			ready();
-		});
-	}
-
-	// loads a script file from the given path
-	function load(path, callback) {
-		console.log("loading " + path);
-		var script = document.createElement("SCRIPT");
-		script.src = path;
-		script.onload = function() {
-			callback();
-			script.remove();
-		}
-		document.body.appendChild(script);
-	}
-
-	// loads multiple files
-	function loadRequirements(requires, callback) {
-		// if we just started a load chain, save the initial callback as the final callback 
-		//	because callback will get overwritten by recursive calls to loadRequirements
-		//	for any sub-dependencies
-		if (loadcount == 0) {
-			finalCallback = callback;
-			console.log("load chain started with " + requires.length + " modules pending");
-		}
-		// keep track of the total number of modules being loaded
-		loadcount += requires.length;
-		// start the load chain
-		requires.forEach(function(r) {
-			load(r.path, function() {
-				// this file has been loaded
-				loaded++;
-				console.log(r.name + " module finished loading");
-				// we can now grab the module that was loaded and load any of its dependencies too
-				var module = ASTRAL[r.name];
-				if (module && module.requires) {
-					console.log(r.name + " module has " + module.requires.length + " dependencies");
-					loadRequirements(module.requires, function() {
-						if (module.init) {
-							module.init();
-						}
-					});
-				}
-				else {
-					console.log(r.name + " module has 0 dependencies");
-					if (module.init) {
-						module.init();
-					}
-				}
-				console.log("loaded " + loaded + " of " + loadcount + " modules");
-				// if all dependencies have been loaded we are done!
-				if (loaded == loadcount) {
-					finalCallback();
-				}
-			});
 		});
 	}
 
@@ -163,15 +120,113 @@ var ASTRAL = new function() {
 		});
 
 		// connect
-		// TODO: put this on a background timer, dont halt execution or fail out when connect fails
+		// TODO: put this on a button or background timer, dont halt execution or fail out when connect fails
 		ASTRAL.netcode.on("connect", function(){
 			console.log("connect handler fired");
 			requestAnimationFrame(gameLoop);
 		});
 		ASTRAL.netcode.connect();
 
-		// open the spriter tool
-		//ASTRAL.spriter.activate("0x72_DungeonTilesetII_v1.1.png");
+		// load a scene
+		loadScene("assets/scenes/zone1.scene");
+	}
+
+	/*==================
+		LOADERS
+	==================*/
+
+	// loads a script file from the given path
+	function loadScript(path, callback) {
+		console.log("loading " + path);
+		var script = document.createElement("SCRIPT");
+		script.src = path;
+		script.onload = function() {
+			callback();
+			script.remove();
+		}
+		document.body.appendChild(script);
+	}
+
+	// loads multiple files
+	function loadRequirements(requires, callback) {
+		// if we just started a load chain, save the initial callback as the final callback 
+		//	because callback will get overwritten by recursive calls to loadRequirements
+		//	for any sub-dependencies
+		if (loadcount == 0) {
+			finalCallback = callback;
+			console.log("load chain started with " + requires.length + " modules pending");
+		}
+		// keep track of the total number of modules being loaded
+		loadcount += requires.length;
+		// start the load chain
+		requires.forEach(function(r) {
+			loadScript(r.path, function() {
+				// this file has been loaded
+				loaded++;
+				console.log(r.name + " module finished loading");
+				// we can now grab the module that was loaded and load any of its dependencies too
+				var module = ASTRAL[r.name];
+				if (module && module.requires) {
+					console.log(r.name + " module has " + module.requires.length + " dependencies");
+					loadRequirements(module.requires, function() {
+						if (module.init) {
+							module.init();
+						}
+					});
+				}
+				else {
+					console.log(r.name + " module has 0 dependencies");
+					if (module.init) {
+						module.init();
+					}
+				}
+				console.log("loaded " + loaded + " of " + loadcount + " modules");
+				// if all dependencies have been loaded we are done!
+				if (loaded == loadcount) {
+					finalCallback();
+				}
+			});
+		});
+	}
+
+	function loadImage(url, callback) {
+		var img = new Image();
+		img.src = "assets/" + url;
+		img.crossOrigin = "Anonymous";
+	    images[url] = img;
+	    img.addEventListener("load", callback); // TODO: this gets fired a second time if we set img.src from spriter.js...
+	}
+
+	function loadJson(name, callback) {
+	    var req = new XMLHttpRequest();
+	    //req.overrideMimeType("application/json");
+	    req.open("GET", name, true);
+	    req.onreadystatechange = function() {
+	    	var statusPassing = "200";
+	    	// if working from the filesystem, override statusPassing to "0" since
+	    	//	a json file returns req.status == "0" on success
+			if (window.location.protocol == "file:") {
+				statusPassing = "0";
+			}
+			if (req.readyState == 4 && req.status == statusPassing) {
+				// TODO: we need to load the deps here or in kit.sprite...
+				callback(req.responseText);
+			}
+	    };
+	    req.send(null);  
+	}
+
+	function loadScene(path) {
+		loadJson(path, function(scenedata) {
+			//console.log("DATA", data);
+			// iterate gameobjects in data and put them in the scene panel / canvas
+			ASTRAL.do("loadscene", JSON.parse(scenedata));
+		});
+	}
+
+	function playSound(path) {
+		var snd = new Audio(path);
+		snd.play();
 	}
 
 	/*==================
@@ -410,20 +465,8 @@ var ASTRAL = new function() {
 		// console.log(zoomFit);
 	}
 
-	function loadImages(arr) {
-		for (var i = 0; i < arr.length; i++) {
-			loadImage(arr[i]);
-		}
-	}
-
-	function loadImage(url, callback) {
-		var img = new Image();
-		img.src = "assets/" + url;
-		img.crossOrigin = "Anonymous";
-	    images[url] = img;
-	    img.addEventListener("load", callback); // TODO: this gets fired a second time if we set img.src from spriter.js...
-	}
-
+	this.on = onHandler;
+	this.do = doHandler;
 	this.init = init;
 	this.layers = layers;
 	this.images = images;
@@ -431,6 +474,8 @@ var ASTRAL = new function() {
 	this.createLayer = createLayer;
 	this.createGameObject = createGameObject;
 	this.loadImage = loadImage;
+	this.loadScene = loadScene;
+	this.playSound = playSound;
 }
 
 document.addEventListener("DOMContentLoaded", function() {

@@ -66,6 +66,13 @@ ASTRAL.spriter = new function() {
 		sidePanel.className = "sidebar";
 		spriterDiv.appendChild(sidePanel);
 
+		// spriter controls
+		var closeButton = document.createElement("DIV");
+		closeButton.innerHTML = "&times;";
+		closeButton.className = "mainControl";
+		closeButton.onclick = function() {deactivate();}
+		sidePanel.appendChild(closeButton);
+
 		// create the tools panel
 		toolsPanel = document.createElement("DIV");
 		toolsPanel.className = "panel";

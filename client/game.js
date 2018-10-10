@@ -10,6 +10,7 @@ ASTRAL.game = new function() {
 	function init() {
 		console.log("game.js init()");
 		attachNetcodeHandlers();
+		// TODO: i think we should be creating gameLayer here...
 	}
 
 	function attachNetcodeHandlers() {
