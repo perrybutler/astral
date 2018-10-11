@@ -6,11 +6,35 @@
 			{
 				"name": "weapon",
 				"pos": "0, 0"
+			},
+			{
+				"name": "armor",
+				"pos": "0, 0"
+			},
+			{
+				"name": "head",
+				"pos": "0, 0",
+				"objects": [
+					{
+						"name": "headgear",
+						"pos": "0, 0"
+					},
+					{
+						"name": "accessory",
+						"pos": "0, 0"
+					}
+				]
 			}
 		]
 	},
 	{
-		"name": "knight",
-		"pos": "250, 230"
+		"name": "bandit",
+		"pos": "250, 230",
+		"components": [
+			{
+				"type": "sprite",
+				"anim": "bandit.idle"
+			}
+		]
 	}
 ]

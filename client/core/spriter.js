@@ -18,6 +18,7 @@ ASTRAL.spriter = new function() {
 	// var gridy = 32;
 	var snapToGrid = true;
 	//var mode = "";
+	var selecting = false;
 	
 	// animation preview stuff
 	var animationTimer;
@@ -386,6 +387,7 @@ ASTRAL.spriter = new function() {
 	}
 
 	function startSelect(offsetX, offsetY) {
+		selecting = true; // we need to track this so that endSelect doesnt fire on every mouseup, only if we were selecting to begin with
 		regionInput.innerHTML = "selecting...";
 		selected = {};
 		var ox = offsetX;// - padding;
@@ -428,12 +430,16 @@ ASTRAL.spriter = new function() {
 	}
 
 	function endSelect() {
-		selected = JSON.parse(JSON.stringify(rect));
-		rect = {};
-		setRegion();
+		if (selecting == true) {
+			selecting = false;
+			selected = JSON.parse(JSON.stringify(rect));
+			rect = {};
+			setRegion();
+		}
 	}
 
 	function createSelect(x, y, w, h) {
+		selecting = true;
 		rect.left = x;
 		rect.top = y;
 		rect.width = w;

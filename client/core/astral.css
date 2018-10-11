@@ -146,10 +146,16 @@
 	font-size:0.7em;
 	font-family:arial;
 	user-select:none;
-	margin-bottom:0.2em;
+	margin-bottom:2px;
 	border-radius:3px;
-	word-break: break-all;
+	text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
 }
+
+.panel .button.level2 {margin-left:1em;}
+.panel .button.level3 {margin-left:2em;}
+
 
 .panel .button.disabled {
 	background-color: transparent;
@@ -206,8 +212,8 @@
 .panel .button.buttonicon.folder {background-image:url('assets/folder.png');}
 
 .panel .button.buttonicon.image {background-image:url('assets/image.png');}
-.panel .button.buttonicon.jpg {background-image:url('assets/jpg.png');}
-.panel .button.buttonicon.png {background-image:url('assets/png.png');}
+.panel .button.buttonicon.jpg {background-image:url('assets/jpg2.png');}
+.panel .button.buttonicon.png {background-image:url('assets/png2.png');}
 .panel .button.buttonicon.prefab {background-image:url('assets/prefab.png');}
 .panel .button.buttonicon.scene {background-image:url('assets/scene.png');}
 .panel .button.buttonicon.sound {background-image:url('assets/sound.png');}

@@ -5,6 +5,7 @@ ASTRAL.editor = new function() {
 
 	var editorLayer;
 	var editorDiv;
+	var editorCanvas;
 	var sidePanel;
 	var toolsPanel;
 	var scenePanel;
@@ -18,11 +19,14 @@ ASTRAL.editor = new function() {
 	var homePath = "../client/assets";
 	var currentPath;
 
+	var sceneData;
+
 	function init() {
 		console.log("editor.js init()");
 
 		// create a layer for the sprite tool
 		editorLayer = ASTRAL.createLayer("editor", 2, draw);
+		editorCanvas = editorLayer.can;
 		editorDiv = document.getElementById("editorDiv");
 		editorDiv.style.overflow = "auto";
 		editorDiv.style.visibility = "hidden";
@@ -69,24 +73,54 @@ ASTRAL.editor = new function() {
 		folderButton = ctl("button icon folderadd", null, "", null, projectPanel, function() {});
 		currentPath = "../client/assets";
 
+		editorCanvas.addEventListener("dragover", function(e) {
+			e.preventDefault();
+		}, false);
+
+		editorCanvas.addEventListener("dragenter", function(e) {
+			//e.preventDefault();
+			event.target.backgroundColor = "red";
+		}, false);
+
+		editorCanvas.addEventListener("drop", function(e) {
+			e.preventDefault();
+			var data = event.dataTransfer.getData("text");
+			var el = document.getElementById(data);
+			console.log("drop event: " + el.id + " -> " + event.target.id);
+			// TODO: now add a GameObject to the objects array/scene
+			//var obj = ASTRAL.createGameObject(Date.parse(new Date().toUTCString()), null, "zone1");
+			addProjectFileToScene(el.id, e);
+		}, false);
+
 		ASTRAL.netcode.on("*dirlist", function(payload) {
-			var currentList = document.querySelectorAll(".projectfolder, .projectfile");
-			for (var i = 0; i < currentList.length; i++) {
-				currentList[i].remove();
-			}
 			populateProjectPanel(payload);
 		});
 
 		ASTRAL.on("loadscene", function(scenedata) {
-			var currentList = document.querySelectorAll(".sceneobjectbutton");
-			for (var i = 0; i < currentList.length; i++) {
-				currentList[i].remove();
-			}
 			populateScenePanel(scenedata);			
 		});
 	}
 
+	function addProjectFileToScene(path, mouseevent) {
+		// create the object
+		var obj = ASTRAL.createGameObject(Date.parse(new Date().toUTCString()), "test", "zone1");
+		var rx = 720 / window.innerWidth;
+		var ry = 480 / window.innerHeight;
+		obj.x = mouseevent.pageX * rx;
+		obj.y = mouseevent.pageY * ry;
+
+		// create the sceneobjectbutton
+		var objectButton = ctl("button sceneobjectbutton level" + 1, null, obj.name, null, scenePanel, function() {inspectGameObjectInScene()});
+
+		console.log(obj);
+	}
+
 	function populateProjectPanel(payload) {
+		var currentList = document.querySelectorAll(".projectfolder, .projectfile");
+		for (var i = 0; i < currentList.length; i++) {
+			currentList[i].remove();
+		}
+
 		var spl = payload.join().split("***");
 
 		if (spl[0]) {
@@ -108,20 +142,39 @@ ASTRAL.editor = new function() {
 				var fileName = files[i];
 				var label = null;
 				var path = currentPath + "/" + fileName;
+				//var fi = ASTRAL.getFileInfo(path);
 				(function(path) {
 					var iconName = getIconForFile(path);
-					var assetButton = ctl("button file projectfile buttonicon " + iconName, label, fileName, null, projectPanel, function() {openProjectFile(path)});
+					var assetButton = ctl("button file projectfile buttonicon " + iconName, label, fileName, fileName, projectPanel, function(event) {openProjectFile(event, path)});
 				}).call(this, path);
 			}
 		}
 	}
 
-	function populateScenePanel(scenedata) {
-		pulsePanel(scenePanel);
-		for (var i = 0; i < scenedata.length; i++) {
-			var objectName = scenedata[i].name;
-			var objectButton = ctl("button sceneobjectbutton", null, objectName, null, scenePanel);
+	function populateScenePanel(objects, level) {	
+		if (!level) {
+			var currentList = document.querySelectorAll(".sceneobjectbutton");
+			for (var i = 0; i < currentList.length; i++) {
+				currentList[i].remove();
+			}
+			sceneData = objects;
+			pulsePanel(scenePanel);
+			level = 0;
 		}
+		level++;
+		for (var i = 0; i < objects.length; i++) {
+			var obj = objects[i];
+			var objectName = obj.name;
+			var objectButton = ctl("button sceneobjectbutton level" + level, null, objectName, null, scenePanel, function() {inspectGameObjectInScene()});
+			if (obj.objects) {
+				populateScenePanel(obj.objects, level);
+			}
+		}
+		level = 1;
+	}
+
+	function inspectGameObjectInScene() {
+		console.log("INSPECT");
 	}
 
 	function pulsePanel(p) {
@@ -152,6 +205,7 @@ ASTRAL.editor = new function() {
 	}
 
 	function getIconForFile(path) {
+		path = path.toLowerCase();
 		if (path.includes("png")) {
 			return "png";
 		}
@@ -172,22 +226,28 @@ ASTRAL.editor = new function() {
 		}
 	}
 
-	function openProjectFile(path) {
-		var relpath = path.replace(homePath, "");
-		if (path.includes(".png") || path.includes(".jpg")) {
-			ASTRAL.spriter.activate(relpath);
+	function openProjectFile(event, path) {
+		if (event.ctrlKey) {
+			window.open(path);
 		}
-		else if (path.includes("mp3") || path.includes("wav")) {
-			ASTRAL.playSound(path);
-		}
-		else if (path.includes("scene")) {
-			ASTRAL.loadScene(path);
-		}
-		else if (path.includes("tilemap")) {
+		else {
+			var relpath = path.replace(homePath, "");
+			path = path.toLowerCase();
+			if (path.includes(".png") || path.includes(".jpg")) {
+				ASTRAL.spriter.activate(relpath);
+			}
+			else if (path.includes("mp3") || path.includes("wav")) {
+				ASTRAL.playSound(path);
+			}
+			else if (path.includes("scene")) {
+				ASTRAL.loadScene(path);
+			}
+			else if (path.includes("tilemap")) {
 
-		}
-		else if (path.includes("prefab")) {
+			}
+			else if (path.includes("prefab")) {
 
+			}
 		}
 	}
 
@@ -216,9 +276,27 @@ ASTRAL.editor = new function() {
 		}
 		if (id) el.id = id;
 		el.className = type;
-		el.onclick = click;
+		//el.onclick = click;
+		el.addEventListener("mouseup", function(event) {
+			if (event.which == 1) {
+				click(event);	
+			}
+		});
 		if (type.indexOf("input") != -1) {
 			el.contentEditable = true;
+		}
+		else if (type.indexOf("projectfile") != -1) {
+			el.draggable = true;
+			el.addEventListener("dragstart", function(event) {
+				event.dataTransfer.setData("text", event.target.id);
+				event.target.style.opacity = 0.3;
+			});
+			el.addEventListener("dragend", function(event) {
+				event.target.style.opacity = "";
+			});
+		}
+		else if (type.indexOf("sceneobjectbutton") != -1) {
+			el.draggable = true;
 		}
 		if (label) {
 			var lbl = document.createElement("DIV");

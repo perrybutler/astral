@@ -6,5 +6,13 @@
 	"weapon": {
 		"hitbox": "40, 40",
 		"sprite": {}
+	},
+	"accessory1": {
+		"hitbox": "40, 40",
+		"sprite": {}
+	},
+	"accessory2": {
+		"hitbox": "40, 40",
+		"sprite": {}
 	}
 }

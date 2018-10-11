@@ -4,6 +4,13 @@ var ws = new Server({port: port});
 
 var fs = require('fs');
 
+const {
+  performance
+} = require('perf_hooks');
+
+var chokidar = require('chokidar');
+var watcher = chokidar.watch("../client/assets", {ignored: /.meta/, ignoreInitial: true, persistent: true});
+
 var objectCount = 0;
 var playerCount = 0;
 var players = [];		// connected players
@@ -23,6 +30,98 @@ function init() {
 	createTopic("zone1");
 	createTopic("serverglobal");
 	setInterval(serverLoop, 1000 / 30);
+}
+
+/*==================
+	EDITOR STUFF
+==================*/
+
+var fileList = [];
+var addedFileName;
+var addedFilePath;
+var unlinkedFileInfo;
+var addedFileInfo;
+var unlinkedFiles = [];
+
+watcher.on("add", function(path) {
+	console.log("file added " + path);
+	setTimeout(function() {
+		var addedInfo = getFileInfo(path);
+		var unlinkedInfo = unlinkedFiles[addedInfo.name];
+		if (unlinkedInfo && addedInfo.name == unlinkedInfo.name) {
+			console.log("should move ", unlinkedInfo.name + ".meta", "to", addedInfo.dir);
+			fs.renameSync(unlinkedInfo.path + ".meta", addedInfo.path + ".meta");
+			delete unlinkedFiles[addedInfo.name];
+			console.log("unlinked remaining", unlinkedFiles);
+		}
+		else {
+			unlinkedFiles = [];
+			createMetaFile(path);
+		}
+	}, 300);
+});
+
+watcher.on("change", function(path) {
+	console.log("file changed " + path);
+});
+
+watcher.on("unlink", function(path) {
+	console.log("file unlinked " + path);
+	var info = getFileInfo(path);
+	if (fs.existsSync(info.path + ".meta")) {
+		unlinkedFiles[info.name] = info;
+	}
+});
+
+console.log(getMetas("../client/assets"));
+
+function createMetaFile(path) {
+	// var pathWithoutExt = path.split('.').slice(0, -1).join('.');
+	// var metaFilePath = pathWithoutExt + ".meta";
+	var metaFilePath = path + ".meta";
+	var content = {};
+	content.id = performance.now().toString().replace(".", "");
+	if (!fs.existsSync(metaFilePath)) {
+		console.log("creating meta file for " + path);
+		fs.writeFile(metaFilePath, JSON.stringify(content), function(err) {
+			if (err) {
+				console.log("ERROR: " + err);
+			}
+		});
+	}
+}
+
+function getMetas(dir) {
+	fs.readdirSync(dir).filter(function (file) {
+		const path = dir+'/'+file;
+		if (fs.statSync(path).isDirectory()) {
+			getMetas(path);
+		}
+		else {
+			if (!file.includes(".meta") && !file.includes(".prefab") && !file.includes(".scene") && !file.includes(".tilemap")) {
+				// we have a raw resource, now check if it has a matching .meta file and if not create it
+				createMetaFile(path);
+				fileList.push(file);
+			}
+		}
+	});
+	return fileList;
+}
+
+function getFiles(path) {
+	return fs.readdirSync(path).filter(function (file) {
+		if (!file.includes(".meta")) {
+			return fs.statSync(path+'/'+file).isFile();	
+		}
+	});
+	// https://stackoverflow.com/questions/18112204/get-all-directories-within-directory-nodejs/24594123
+}
+
+function getDirectories(path) {
+	return fs.readdirSync(path).filter(function (file) {
+		return fs.statSync(path+'/'+file).isDirectory();
+	});
+	// https://stackoverflow.com/questions/18112204/get-all-directories-within-directory-nodejs/24594123
 }
 
 /*==================
@@ -71,20 +170,6 @@ ws.on('connection', function(client, req) {
 	queueSend(name, "*createm," + getObjectsByTopic("zone1"));
 	queueSend(name, "*greet," + player.object.id + "," + name);
 });
-
-function getFiles(path) {
-	return fs.readdirSync(path).filter(function (file) {
-		return fs.statSync(path+'/'+file).isFile();
-	});
-	// https://stackoverflow.com/questions/18112204/get-all-directories-within-directory-nodejs/24594123
-}
-
-function getDirectories(path) {
-	return fs.readdirSync(path).filter(function (file) {
-		return fs.statSync(path+'/'+file).isDirectory();
-	});
-	// https://stackoverflow.com/questions/18112204/get-all-directories-within-directory-nodejs/24594123
-}
 
 function sendNow(id, payload) {
 	var player = players[id];
@@ -323,6 +408,15 @@ function createGameObject(name, sector) {
 /*==================
 	HELPERS
 ==================*/
+
+function getFileInfo(path) {
+	var info = {};
+	info.path = path;
+	info.dir = path.substring(0, path.lastIndexOf("\\"));
+	info.name = path.split("\\").pop();
+	//console.log(info);
+	return info;
+}
 
 function isObjectEmpty(obj) {
 	if (Object.keys(obj).length === 0 && obj.constructor === Object) {

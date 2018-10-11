@@ -23,6 +23,7 @@ var ASTRAL = new function() {
 	// graphics stuff
 	var layers = [];
 	var images = [];
+	var imgMissing;
 
 	// timing stuff
 	var lastFrameTime = Date.now();
@@ -57,6 +58,9 @@ var ASTRAL = new function() {
 	function ready() {
 		console.log("astral.js ready()");
 
+		imgMissing = new Image();
+		imgMissing.src = "core/assets/missing.png";
+
 		// preload assets (for testing...later we will detect what to load based on proximity to cells)
 		loadImage("guy.png");
 
@@ -65,6 +69,10 @@ var ASTRAL = new function() {
 
 		// prevent accidental drag drop on game canvas
 		gameDiv.addEventListener("dragover", function(e) {
+			e.preventDefault();
+		}, false);
+
+		gameDiv.addEventListener("dragenter", function(e) {
 			e.preventDefault();
 		}, false);
 
@@ -365,6 +373,11 @@ var ASTRAL = new function() {
 			
 			// draw the sprite
 			var img = images[obj.imageid];
+
+			if (!img) {
+				img = imgMissing;
+			}
+
 			ctx.drawImage(img, obj.x, obj.y);
 
 			if (ASTRAL.editor.enabled()) {
@@ -375,8 +388,10 @@ var ASTRAL = new function() {
 				ctx.closePath();
 
 				// draw the object name and props
-				ctx.font = "16px Arial";
-				ctx.fillText(obj.name, obj.x, obj.y - 15);
+				ctx.font = "12px Arial";
+
+				ctx.fillText(obj.name + " - " + obj.id, obj.x, obj.y - 6);
+				//ctx.fillText(obj.id, obj.x, obj.y - 6);
 			}
 		}
 	}
@@ -436,6 +451,16 @@ var ASTRAL = new function() {
 		HELPERS
 	==================*/
 
+	function getFileInfo(path) {
+		// TODO: this is also in server.js but paths differ by use of \\
+		var info = {};
+		info.path = path;
+		info.dir = path.substring(0, path.lastIndexOf("/"));
+		info.name = path.split("/").pop();
+		//console.log(info);
+		return info;
+	}
+
 	function getRandomColor() {
 	  var letters = '0123456789ABCDEF';
 	  var color = '#';
@@ -476,6 +501,7 @@ var ASTRAL = new function() {
 	this.loadImage = loadImage;
 	this.loadScene = loadScene;
 	this.playSound = playSound;
+	this.getFileInfo = getFileInfo;
 }
 
 document.addEventListener("DOMContentLoaded", function() {
