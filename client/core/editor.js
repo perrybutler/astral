@@ -20,6 +20,7 @@ ASTRAL.editor = new function() {
 	var currentPath;
 
 	var sceneData;
+	var inspectedObject;
 
 ///////////////////////////////////////
 //
@@ -77,10 +78,29 @@ ASTRAL.editor = new function() {
 		var thing = ctl("button", "inspector", "(nothing selected)", "inspectoritem", inspectorPanel, null);
 		var thing = ctl("input pair", "position", "0", "posx", inspectorPanel, null);
 		var thing = ctl("input pair", null, "0", "posy", inspectorPanel, null);
-		var thing = ctl("input pair", "rotation", "0", "rotx", inspectorPanel, null);
-		var thing = ctl("input pair", null, "0", "roty", inspectorPanel, null);
-		var thing = ctl("input pair", "scale", "0", "scalex", inspectorPanel, null);
-		var thing = ctl("input pair", null, "0", "scaley", inspectorPanel, null);
+		posx.addEventListener("mousewheel", function(event) {
+			posx.innerHTML = parseInt(posx.innerHTML) - event.deltaY / 5;
+			posx.dispatchEvent(new Event('input'));
+		});
+		posy.addEventListener("mousewheel", function(event) {
+			console.log(event);
+			posy.innerHTML = parseInt(posy.innerHTML) - event.deltaY / 5;
+			posy.dispatchEvent(new Event('input'));
+		});
+		// var thing = ctl("input pair", "rotation", "0", "rotx", inspectorPanel, null);
+		// var thing = ctl("input pair", null, "0", "roty", inspectorPanel, null);
+		// var thing = ctl("input pair", "scale", "0", "scalex", inspectorPanel, null);
+		// var thing = ctl("input pair", null, "0", "scaley", inspectorPanel, null);
+		var thing = ctl("input pair", "rotation / scale", "0", "rot", inspectorPanel, null);
+		var thing = ctl("input pair", null, "0", "scale", inspectorPanel, null);
+		rot.addEventListener("mousewheel", function(event) {
+			rot.innerHTML = (parseFloat(rot.innerHTML) - event.deltaY / 5).toFixed(2);
+			rot.dispatchEvent(new Event('input'));
+		});
+		scale.addEventListener("mousewheel", function(event) {
+			scale.innerHTML = (parseFloat(scale.innerHTML) - event.deltaY / 500).toFixed(2);
+			scale.dispatchEvent(new Event('input'));
+		});
 
 		// TODO: need a container for the object components...might need containers for each type of object
 
@@ -309,6 +329,7 @@ ASTRAL.editor = new function() {
 				//console.log(img);
 				obj.x -= img.width / 2;
 				obj.y -= img.height / 2;
+				objectButton.click(); // TODO: this is some magic...is var objectButton being hoisted?
 			});
 			var component = imageComponent(fi.path);
 			obj.components.push(component);
@@ -325,7 +346,7 @@ ASTRAL.editor = new function() {
 		);
 
 		flashDomElement(objectButton);
-		objectButton.click();
+		
 		console.log("added asset to scene as new gameobject:", obj);
 	}
 	
@@ -402,23 +423,30 @@ ASTRAL.editor = new function() {
 
 	function inspectGameObjectInScene(obj) {
 		// this populates the INSPECTOR with the given object's properties
+
+		inspectedObject = obj;
 		inspectoritem.innerHTML = obj.name;
 
+		posx.removeEventListener("input", posChange);
+		posx.addEventListener("input", posChange);
 		posx.removeEventListener("blur", posChange);
 		posx.addEventListener("blur", posChange);
-		posy.removeEventListener("blur", posChange);
-		posy.addEventListener("blur", posChange);
 		posx.focus();
 
-		rotx.removeEventListener("blur", rotChange);
-		rotx.addEventListener("blur", rotChange);
-		roty.removeEventListener("blur", rotChange);
-		roty.addEventListener("blur", rotChange);
+		posy.removeEventListener("blur", posChange);
+		posy.addEventListener("blur", posChange);
+		posy.removeEventListener("input", posChange);
+		posy.addEventListener("input", posChange);
+		
+		rot.removeEventListener("input", rotChange);
+		rot.addEventListener("input", rotChange);
+		rot.removeEventListener("blur", rotChange);
+		rot.addEventListener("blur", rotChange);
 
-		scalex.removeEventListener("blur", scaleChange);
-		scalex.addEventListener("blur", scaleChange);
-		scaley.removeEventListener("blur", scaleChange);
-		scaley.addEventListener("blur", scaleChange);
+		scale.removeEventListener("input", scaleChange);
+		scale.addEventListener("input", scaleChange);
+		scale.removeEventListener("blur", scaleChange);
+		scale.addEventListener("blur", scaleChange);
 
 		if (obj.x) {
 			posx.innerHTML = obj.x;
@@ -446,15 +474,16 @@ ASTRAL.editor = new function() {
 	}
 
 	function posChange() {
-
+		inspectedObject.x = parseInt(posx.innerHTML);
+		inspectedObject.y = parseInt(posy.innerHTML);
 	}
 
 	function rotChange() {
-		
+		inspectedObject.rot = parseFloat(rot.innerHTML);
 	}
 
 	function scaleChange() {
-		
+		inspectedObject.scale = parseFloat(scale.innerHTML);
 	}
 
 ///////////////////////////////////////
@@ -539,12 +568,12 @@ ASTRAL.editor = new function() {
 		el.className = type;
 
 		// store the mouseup event so we can check which button/keys were held in the following onclick event
-		el.addEventListener("mouseup", function(event) {
+		el.addEventListener("mousedown", function(event) {
 			lastMouseEvent = event;
 		});
 
 		el.onclick = function() {
-			if (lastMouseEvent.which == 1) {
+			if (lastMouseEvent && lastMouseEvent.which == 1) {
 				if (click) click(lastMouseEvent);
 			}
 		}

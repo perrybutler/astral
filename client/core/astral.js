@@ -412,7 +412,12 @@ var ASTRAL = new function() {
 						// }
 						//console.log(component, img);
 						if (img) {
+							//console.log(obj.x,obj.y,obj.rot,obj.scale);
+							ctx.save();
+							ctx.rotate(obj.rot * Math.PI/180);
+							ctx.scale(obj.scale, obj.scale);
 							ctx.drawImage(img, obj.x, obj.y);
+							ctx.restore();
 						}
 						else {
 							ctx.drawImage(imgMissing, obj.x, obj.y);	
