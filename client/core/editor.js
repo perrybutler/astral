@@ -56,10 +56,12 @@ ASTRAL.editor = new function() {
 			ASTRAL.spriter.activate("assets/0x72_DungeonTilesetII_v1.1.png");
 		});
 		var thing = ctl("dropdown", "resolution", "Dynamic,1920x1080,1280x720,720x480,1920x1200,1024x768,640x480,480x480,240x240", "resolution", toolsPanel, null);
-		var thing = ctl("dropdown", "scaling", "Stretch,1920x1080,1280x720,720x480,1920x1200,1024x768,640x480,480x480,240x240", "scaling", toolsPanel, null);
 		resolution.onchange = function() {screenResolutionChange()}
 		resolution.value = "Dynamic";
+		var thing = ctl("dropdown", "scaling", "Stretch,1920x1080,1280x720,720x480,1920x1200,1024x768,640x480,480x480,240x240", "scaling", toolsPanel, null);
 		scaling.onchange = function() {screenScalingChange()}
+		var thing = ctl("dropdown", "resampling", "Nearest,Bilinear", "resampling", toolsPanel, null);
+		resampling.onchange = function() {screenResamplingChange()}
 
 		// create the scene panel
 		scenePanel = document.createElement("DIV");
@@ -188,6 +190,19 @@ ASTRAL.editor = new function() {
 			var spl = val.split("x");
 			gameCanvas.style.width = spl[0];
 			gameCanvas.style.height = spl[1];
+		}
+	}
+
+	function screenResamplingChange() {
+		var val = resampling.options[resampling.selectedIndex].value;
+
+		console.log(val);
+
+		if (val == "Nearest") {
+			gameCanvas.style.imageRendering = "pixelated";
+		}
+		else if (val == "Bilinear") {
+			gameCanvas.style.imageRendering = "auto";
 		}
 	}
 
