@@ -5,6 +5,9 @@ ASTRAL.netcode = new function() {
 	var onHandlers = [];
 	var receiveQueue = [];
 	var sendQueue = [];
+	var totalIn = 0;
+	var totalOut = 0;
+	var totalMessages = 0;
 
 	function init() {
 		console.log("netcode.js init()");
@@ -46,12 +49,21 @@ ASTRAL.netcode = new function() {
 	}
 
 	function sendNow(payload) {
+		doHandler("beforesend");
+		totalOut++;
+		totalMessages++;
 		console.log("<-", payload);
 		connection.send(JSON.stringify(payload));
+		doHandler("aftersend");
 	}
 
 	function receive(data) {
+		doHandler("beforeReceive");
+		totalIn++;
+		totalMessages++;
+		console.log(totalMessages);
 		receiveQueue.push({data: data});
+		doHandler("afterreceive");
 	}
 
 	function handleReceiveQueue() {
@@ -87,10 +99,23 @@ ASTRAL.netcode = new function() {
 		doHandler(msgname, spl.splice(1));
 	}
 
+	function getreceiveQueue() {
+		return receiveQueue;
+	}
+
+	function getNetcodeInfo() {
+		var info = "";
+		info += totalIn + " in ";
+		info += totalOut + " out ";
+		info += totalMessages + " tot";
+		return info;
+	}
+
 	this.init = init;
 	this.connect = connect;
 	this.sendNow = sendNow;
 	this.receive = receive;
+	this.getNetcodeInfo = getNetcodeInfo;
 	this.handleReceiveQueue = handleReceiveQueue;
 	this.queueSend = queueSend;
 	this.handleSendQueue = handleSendQueue;

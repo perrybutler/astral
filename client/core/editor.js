@@ -26,7 +26,7 @@ ASTRAL.editor = new function() {
 //	STARTUP
 //
 ///////////////////////////////////////
-
+	
 	function init() {
 		console.log("editor.js init()");
 
@@ -52,9 +52,10 @@ ASTRAL.editor = new function() {
 		toolsPanel = document.createElement("DIV");
 		toolsPanel.className = "panel";
 		sidePanel.appendChild(toolsPanel);
-		var openImageButton = ctl("button", "tools", "open spriter", null, toolsPanel, function() {
+		var openImageButton = ctl("button", "tools", "✎ open spriter", null, toolsPanel, function() {
 			ASTRAL.spriter.activate("assets/0x72_DungeonTilesetII_v1.1.png");
 		});
+		var thing = ctl("button buttonicon message", "network", "netcodestuff", "netcodestuff", toolsPanel, null);
 		var thing = ctl("dropdown", "resolution", "Dynamic,1920x1080,1280x720,720x480,1920x1200,1024x768,640x480,480x480,240x240", "resolution", toolsPanel, null);
 		resolution.onchange = function() {screenResolutionChange()}
 		resolution.value = "Dynamic";
@@ -128,9 +129,25 @@ ASTRAL.editor = new function() {
 			populateProjectPanel(payload);
 		});
 
+		ASTRAL.netcode.on("aftersend", function(payload) {
+			info = ASTRAL.netcode.getNetcodeInfo();
+			if (netcodestuff.innerHTML != info) {
+				netcodestuff.innerHTML = info;
+				flashDomElement(netcodestuff);
+			}
+		});
+
+		ASTRAL.netcode.on("afterreceive", function(payload) {
+			info = ASTRAL.netcode.getNetcodeInfo();
+			if (netcodestuff.innerHTML != info) {
+				netcodestuff.innerHTML = info;
+				flashDomElement(netcodestuff);
+			}
+		});
+
 		// subscribe to loadscene which we use to update the SCENE panel
 		ASTRAL.on("loadscene", function(scenedata) {
-			populateScenePanel(scenedata);			
+			populateScenePanel(scenedata);
 		});
 
 		window.addEventListener("resize", function() {
@@ -139,6 +156,10 @@ ASTRAL.editor = new function() {
 				screenScalingChange();
 			}
 		});
+
+		// setInterval(function() {
+		// 	netcodestuff.innerHTML = ASTRAL.netcode.getNetcodeInfo();
+		// }, 1000);
 
 		// TODO: race condition could happen here if eg we call screenScalingChange() which tries
 		//	to access the gameCanvas before it has been created, this setTimeout demonstrates it,
@@ -381,6 +402,7 @@ ASTRAL.editor = new function() {
 
 	function inspectGameObjectInScene(obj) {
 		// this populates the INSPECTOR with the given object's properties
+		inspectoritem.innerHTML = obj.name;
 
 		posx.removeEventListener("blur", posChange);
 		posx.addEventListener("blur", posChange);
@@ -411,7 +433,14 @@ ASTRAL.editor = new function() {
 			posy.innerHTML = "null";
 		}
 
-		inspectoritem.innerHTML = obj.name;
+		// list the components
+		document.querySelectorAll('.component').forEach(function(a){
+			a.remove()
+		})
+		for (var i = 0; i < obj.components.length; i++) {
+			var component = obj.components[i];
+			var thing = ctl("button component", null, component.type, null, inspectorPanel, null);
+		}
 		
 		flashDomElement(inspectorPanel);
 	}

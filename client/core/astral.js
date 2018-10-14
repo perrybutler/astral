@@ -245,6 +245,7 @@ var ASTRAL = new function() {
 	}
 
 	function loadScene(path) {
+		ASTRAL.game.objects = [];
 		loadJson(path, function(scenedata) {
 			//console.log("DATA", data);
 			// iterate gameobjects in data and put them in the scene panel / canvas

@@ -219,6 +219,7 @@
 .panel .button.buttonicon.scene {background-image:url('assets/scene.png');}
 .panel .button.buttonicon.sound {background-image:url('assets/sound.png');}
 .panel .button.buttonicon.tilemap {background-image:url('assets/tilemap.png');}
+.panel .button.buttonicon.message {background-image:url('assets/message.png');}
 
 .panel .button.new {
 	margin-bottom:0.2em;
