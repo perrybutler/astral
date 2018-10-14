@@ -204,6 +204,7 @@ ASTRAL.spriter = new function() {
 	}
 
 	function activate(filename) {
+		console.log("activating spriter for " + filename);
 		spriterDiv.style.visibility = "visible";
 		isenabled = true;
 		ASTRAL.loadImage(filename, function() {

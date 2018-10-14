@@ -1,7 +1,15 @@
 [
 	{
-		"name": "knight",
-		"pos": "200, 200",
+		"id": "000001",
+		"name": "guy",
+		"x": "200",
+		"y": "200",
+		"components": [
+			{
+				"type": "image",
+				"path": "assets/images/guy.png"
+			}
+		],
 		"objects": [
 			{
 				"name": "weapon",
@@ -28,9 +36,15 @@
 		]
 	},
 	{
-		"name": "bandit",
-		"pos": "250, 230",
+		"id": "000002",
+		"name": "another guy",
+		"x": "150",
+		"y": "170",
 		"components": [
+			{
+				"type": "image",
+				"path": "assets/images/guy.png"
+			},
 			{
 				"type": "sprite",
 				"anim": "bandit.idle"

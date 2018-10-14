@@ -1,8 +1,8 @@
 console.log("astral.js entry point");
 
-window.onload = window.onresize = function() {
-	//resizeWindow();
-}
+// window.onload = window.onresize = function() {
+// 	//resizeWindow();
+// }
 
 var ASTRAL = new function() {
 	// async loader stuff
@@ -18,6 +18,7 @@ var ASTRAL = new function() {
 	var loadcount = 0;
 	var finalCallback = null;
 
+	// pubsub handlers
 	var onHandlers = [];
 
 	// graphics stuff
@@ -62,7 +63,7 @@ var ASTRAL = new function() {
 		imgMissing.src = "core/assets/missing.png";
 
 		// preload assets (for testing...later we will detect what to load based on proximity to cells)
-		loadImage("guy.png");
+		loadImage("assets/guy.png");
 
 		// create layers
 		var gameLayer = createLayer("game", 1, drawGameLayer);
@@ -137,15 +138,22 @@ var ASTRAL = new function() {
 
 		// load a scene
 		loadScene("assets/scenes/zone1.scene");
+
+		// fire a window resize once to make editor resolution setting take effect (we can't call this in
+		//	editor due to race condition see the TODO there)
+		window.dispatchEvent(new Event('resize'));
 	}
 
-	/*==================
-		LOADERS
-	==================*/
+///////////////////////////////////////
+//
+//	LOADERS
+//
+///////////////////////////////////////
 
-	// loads a script file from the given path
 	function loadScript(path, callback) {
-		console.log("loading " + path);
+		// loads a script file from the given path
+
+		console.log("loading script at path " + path);
 		var script = document.createElement("SCRIPT");
 		script.src = path;
 		script.onload = function() {
@@ -154,9 +162,10 @@ var ASTRAL = new function() {
 		}
 		document.body.appendChild(script);
 	}
-
-	// loads multiple files
+	
 	function loadRequirements(requires, callback) {
+		// loads multiple files
+
 		// if we just started a load chain, save the initial callback as the final callback 
 		//	because callback will get overwritten by recursive calls to loadRequirements
 		//	for any sub-dependencies
@@ -197,15 +206,24 @@ var ASTRAL = new function() {
 		});
 	}
 
-	function loadImage(url, callback) {
+	function loadImage(path, callback) {
+		// loads an image dynamically and fires a callback returning the js image object
+		console.log("loading image at path " + path);
+
 		var img = new Image();
-		img.src = "assets/" + url;
+		img.src = path;
 		img.crossOrigin = "Anonymous";
-	    images[url] = img;
-	    img.addEventListener("load", callback); // TODO: this gets fired a second time if we set img.src from spriter.js...
+	    images[path] = img;
+	    if (callback) {
+	    	img.addEventListener("load", function() {callback(img)}); // TODO: this gets fired a second time if we set img.src from spriter.js...
+	    }
 	}
 
 	function loadJson(name, callback) {
+		// loads a json-formatted file (doesn't have to be .json) and fires callback returning a string,
+		//	sometimes you just want the string and not the json.parse() object, so we don't parse here,
+		//	but you can parse in your callback
+
 	    var req = new XMLHttpRequest();
 	    //req.overrideMimeType("application/json");
 	    req.open("GET", name, true);
@@ -237,9 +255,13 @@ var ASTRAL = new function() {
 		snd.play();
 	}
 
-	/*==================
-		INPUT
-	==================*/
+///////////////////////////////////////
+//
+//	INPUT
+//
+///////////////////////////////////////
+
+// TODO: make it pub/sub and let gamedev control more of this
 
 	function input() {
 		var vx = 0
@@ -294,9 +316,11 @@ var ASTRAL = new function() {
 		var pup = createGameObject(Date.parse(new Date().toUTCString()), "pup", "zone1");
 	}
 
-	/*==================
-		CORE
-	==================*/
+///////////////////////////////////////
+//
+//	CORE
+//
+///////////////////////////////////////
 
 	var delta = 0;
 	var last = 0;
@@ -370,30 +394,71 @@ var ASTRAL = new function() {
 		// draw the visible graphics
 		for (var key in ASTRAL.game.objects) {
 			var obj = ASTRAL.game.objects[key];
-			
-			// draw the sprite
-			var img = images[obj.imageid];
 
-			if (!img) {
-				img = imgMissing;
+			// TODO: here we need to get all renderable components and render them
+			//console.log(obj.components);
+			if (obj.components) {
+				for (var i = 0; i < obj.components.length; i++) {
+					var component = obj.components[i];
+					if (component.type == "image") {
+						var img = images[component.path];
+						// if the image isnt set, try to load it now
+						// TODO: this could hide mistakes...lets put this back in later
+						// if (!img) {
+						// 	loadImage(path);
+						// }
+						//console.log(component, img);
+						if (img) {
+							ctx.drawImage(img, obj.x, obj.y);	
+						}
+						else {
+							ctx.drawImage(imgMissing, obj.x, obj.y);	
+						}
+					}
+				}
+			}
+			else {
+				ctx.drawImage(imgMissing, obj.x, obj.y);
 			}
 
-			ctx.drawImage(img, obj.x, obj.y);
+			// // draw the sprite
+			// var img = images[obj.imageid];
+			// if (!img) {
+			// 	img = imgMissing;
+			// }
+			// ctx.drawImage(img, obj.x, obj.y);
 
-			if (ASTRAL.editor.enabled()) {
-				// draw the hitbox
-				ctx.beginPath();
-				ctx.rect(obj.x, obj.y, img.width, img.height);
-				ctx.stroke();
-				ctx.closePath();
+			// if (ASTRAL.editor.enabled()) {
+			// 	// draw the hitbox
+			// 	ctx.beginPath();
+			// 	ctx.rect(obj.x, obj.y, img.width, img.height);
+			// 	ctx.stroke();
+			// 	ctx.closePath();
+			// 	// draw the object name and props
+			// 	ctx.font = "12px Arial";
+			// 	ctx.fillText(obj.name + " - " + obj.id, obj.x, obj.y - 6);
+			// 	//ctx.fillText(obj.id, obj.x, obj.y - 6);
+			// }
+		}
+	}
 
-				// draw the object name and props
-				ctx.font = "12px Arial";
-
-				ctx.fillText(obj.name + " - " + obj.id, obj.x, obj.y - 6);
-				//ctx.fillText(obj.id, obj.x, obj.y - 6);
+	function loadGameObject(obj) {
+		obj.x = parseInt(obj.x);
+		obj.y = parseInt(obj.y);
+		obj.vx = 0;
+		obj.vy = 0;
+		obj.speed = 0.088;
+		obj.channels = [];
+		for (var key in obj.components) {
+			var component = obj.components[key];
+			if (component.type == "image") {
+				// TODO: we don't want to call loadImage() for images already loaded...
+				loadImage(component.path);
 			}
 		}
+		ASTRAL.game.objects[obj.id] = obj;
+		console.log("loaded object " + obj.name + " with id " + obj.id, obj);
+		return obj;
 	}
 
 	function createGameObject(id, name, sector) {
@@ -411,6 +476,7 @@ var ASTRAL = new function() {
 		obj.vy = 0;
 		obj.speed = 0.088;
 		obj.channels = [sector, "serverglobal"];
+		obj.components = [];
 		if (name.includes("player")) {
 			obj.imageid = "guy.png";
 		}
@@ -447,9 +513,11 @@ var ASTRAL = new function() {
 		return layer;
 	}
 
-	/*==================
-		HELPERS
-	==================*/
+///////////////////////////////////////
+//
+//	HELPERS & GENERICS
+//
+///////////////////////////////////////
 
 	function getFileInfo(path) {
 		// TODO: this is also in server.js but paths differ by use of \\
@@ -457,7 +525,15 @@ var ASTRAL = new function() {
 		info.path = path;
 		info.dir = path.substring(0, path.lastIndexOf("/"));
 		info.name = path.split("/").pop();
-		//console.log(info);
+		info.ext = path.split(".").pop().toLowerCase();
+		info.nameNoExt = info.name.split(".").slice(0, -1).join(".");
+		console.log("got file info:", info);
+		switch (info.ext) {
+			case "png":
+			case "jpg":
+				info.type = "image";
+				break;
+		}
 		return info;
 	}
 
@@ -498,6 +574,7 @@ var ASTRAL = new function() {
 	this.tester = tester;
 	this.createLayer = createLayer;
 	this.createGameObject = createGameObject;
+	this.loadGameObject = loadGameObject;
 	this.loadImage = loadImage;
 	this.loadScene = loadScene;
 	this.playSound = playSound;
