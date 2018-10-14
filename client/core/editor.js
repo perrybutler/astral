@@ -53,7 +53,7 @@ ASTRAL.editor = new function() {
 		toolsPanel.className = "panel";
 		sidePanel.appendChild(toolsPanel);
 		var openImageButton = ctl("button", "tools", "open spriter", null, toolsPanel, function() {
-			ASTRAL.spriter.activate("0x72_DungeonTilesetII_v1.1.png");
+			ASTRAL.spriter.activate("assets/0x72_DungeonTilesetII_v1.1.png");
 		});
 		var thing = ctl("dropdown", "resolution", "Dynamic,1920x1080,1280x720,720x480,1920x1200,1024x768,640x480,480x480,240x240", "resolution", toolsPanel, null);
 		var thing = ctl("dropdown", "scaling", "Stretch,1920x1080,1280x720,720x480,1920x1200,1024x768,640x480,480x480,240x240", "scaling", toolsPanel, null);

@@ -7,7 +7,7 @@
 		"components": [
 			{
 				"type": "image",
-				"path": "assets/images/guy.png"
+				"path": "assets/guy.png"
 			}
 		],
 		"objects": [

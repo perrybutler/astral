@@ -209,14 +209,16 @@ var ASTRAL = new function() {
 	function loadImage(path, callback) {
 		// loads an image dynamically and fires a callback returning the js image object
 		console.log("loading image at path " + path);
-
 		var img = new Image();
 		img.src = path;
 		img.crossOrigin = "Anonymous";
-	    images[path] = img;
-	    if (callback) {
-	    	img.addEventListener("load", function() {callback(img)}); // TODO: this gets fired a second time if we set img.src from spriter.js...
-	    }
+    	img.onload = function() {
+    		// TODO: this gets fired a second time if we set img.src from spriter.js...
+    		//	switch back to addEventListener()
+    		images[path] = img;
+    		if (callback) callback(img);
+    	}
+	    img.onerror = function() {console.log("FAIL"); img = null;}
 	}
 
 	function loadJson(name, callback) {
@@ -409,7 +411,7 @@ var ASTRAL = new function() {
 						// }
 						//console.log(component, img);
 						if (img) {
-							ctx.drawImage(img, obj.x, obj.y);	
+							ctx.drawImage(img, obj.x, obj.y);
 						}
 						else {
 							ctx.drawImage(imgMissing, obj.x, obj.y);	
