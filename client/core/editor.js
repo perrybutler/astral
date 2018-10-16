@@ -57,10 +57,10 @@ ASTRAL.editor = new function() {
 			ASTRAL.spriter.activate("assets/0x72_DungeonTilesetII_v1.1.png");
 		});
 		var thing = ctl("button buttonicon message", "network", "netcodestuff", "netcodestuff", toolsPanel, null);
-		var thing = ctl("dropdown", "resolution", "Dynamic,1920x1080,1280x720,720x480,1920x1200,1024x768,640x480,480x480,240x240", "resolution", toolsPanel, null);
+		var thing = ctl("dropdown", "resolution", "Dynamic,3840x2160,2560x1440,1920x1080,1366x768,1280x720,720x480,-,2048x1536,1600x1200,1280x1024,1024x768,640x480,320x240,320x200,-,1000x1000,500x500,250x250,100x100", "resolution", toolsPanel, null);
 		resolution.onchange = function() {screenResolutionChange()}
 		resolution.value = "Dynamic";
-		var thing = ctl("dropdown", "scaling", "Stretch,1920x1080,1280x720,720x480,1920x1200,1024x768,640x480,480x480,240x240", "scaling", toolsPanel, null);
+		var thing = ctl("dropdown", "scaling", "Stretch,3840x2160,2560x1440,1920x1080,1366x768,1280x720,720x480,-,2048x1536,1600x1200,1280x1024,1024x768,640x480,320x240,320x200,-,1000x1000,500x500,250x250,100x100", "scaling", toolsPanel, null);
 		scaling.onchange = function() {screenScalingChange()}
 		var thing = ctl("dropdown", "resampling", "Nearest,Bilinear", "resampling", toolsPanel, null);
 		resampling.onchange = function() {screenResamplingChange()}
@@ -69,7 +69,13 @@ ASTRAL.editor = new function() {
 		scenePanel = document.createElement("DIV");
 		scenePanel.className = "panel";
 		sidePanel.appendChild(scenePanel);
-		var thing = ctl("button sceneobjectbutton", "scene", "scene stuff here", null, scenePanel, null);
+		var thing = ctl("button icon diskette", "scene", "", "scenesave", scenePanel, function() {saveScene()});
+		scenesave.dataset.tip = "Save changes to the current scene.";
+		var thing = ctl("button icon openexternal", null, "", "sceneopenexternal", scenePanel, function() {viewSceneData()});
+		sceneopenexternal.dataset.tip = "View the scene data in a new tab.";
+		var thing = ctl("button icon download", null, "", "scenedownload", scenePanel, function() {downloadScene()});
+		scenedownload.dataset.tip = "Download the scene data to disk.";
+		var thing = ctl("button sceneobjectbutton", null, "scene stuff here", null, scenePanel, null);
 
 		// create the inspector panel
 		inspectorPanel = document.createElement("DIV");
@@ -83,7 +89,6 @@ ASTRAL.editor = new function() {
 			posx.dispatchEvent(new Event('input'));
 		});
 		posy.addEventListener("mousewheel", function(event) {
-			console.log(event);
 			posy.innerHTML = parseInt(posy.innerHTML) - event.deltaY / 5;
 			posy.dispatchEvent(new Event('input'));
 		});
@@ -115,7 +120,9 @@ ASTRAL.editor = new function() {
 		projectPanel.className = "panel";
 		sidePanel.appendChild(projectPanel);
 		homeButton = ctl("button icon home", "project", "", null, projectPanel, function() {getDir("../client/assets")});
+		homeButton.dataset.tip = "Return to the root assets folder";
 		upButton = ctl("button icon moveup", null, "", null, projectPanel, function() {});
+		upButton.dataset.tip = "Go back to the previous folder";
 		folderButton = ctl("button icon folderadd", null, "", null, projectPanel, function() {});
 		currentPath = "../client/assets";
 
@@ -186,6 +193,18 @@ ASTRAL.editor = new function() {
 		//	with a 10ms timeout, sometimes the code will work fine sometimes the race condition
 		//	occurs
 		//setTimeout(function() {screenScalingChange()}, 10);
+	}
+
+	function saveScene() {
+
+	}
+
+	function viewSceneData() {
+		ASTRAL.openDataInNewTab(sceneData);
+	}
+
+	function downloadScene() {
+		ASTRAL.downloadData(sceneData, "myscene.scene");
 	}
 
 ///////////////////////////////////////
@@ -313,6 +332,8 @@ ASTRAL.editor = new function() {
 	function addProjectFileToScene(path, mouseevent) {
 		// this handles dragging an asset from the PROJECT panel into the scene/canvas
 
+		// TODO: we need to call loadGameObject() if the asset is a .prefab...
+
 		// create the gameobject and set its position at the mouse position
 		var fi = ASTRAL.getFileInfo(path);
 		var obj = ASTRAL.createGameObject(Date.parse(new Date().toUTCString()), fi.name, "zone1");
@@ -342,7 +363,7 @@ ASTRAL.editor = new function() {
 			fi.nameNoExt,
 			null,
 			scenePanel,
-			function() {inspectGameObjectInScene(obj)}
+			function() {populateInspectorPanel(obj)}
 		);
 
 		flashDomElement(objectButton);
@@ -368,7 +389,7 @@ ASTRAL.editor = new function() {
 			else if (path.includes("scene")) {
 				ASTRAL.loadScene(path);
 			}
-			else if (path.includes("tilemap")) {
+			else if (path.includes("atlas")) {
 
 			}
 			else if (path.includes("prefab")) {
@@ -411,7 +432,14 @@ ASTRAL.editor = new function() {
 			ASTRAL.loadGameObject(obj);
 			var objectName = obj.name;
 			(function(obj) {
-				var objectButton = ctl("button sceneobjectbutton level" + level, null, objectName, null, scenePanel, function() {inspectGameObjectInScene(obj)});
+				var objectButton = ctl(
+					"button sceneobjectbutton level" + level,
+					null,
+					objectName,
+					null,
+					scenePanel,
+					function() {populateInspectorPanel(obj)}
+				);
 			}).call(this, obj);
 			
 			if (obj.objects) {
@@ -421,7 +449,13 @@ ASTRAL.editor = new function() {
 		level = 1;
 	}
 
-	function inspectGameObjectInScene(obj) {
+///////////////////////////////////////
+//
+//	INSPECTOR PANEL
+//
+///////////////////////////////////////
+
+	function populateInspectorPanel(obj) {
 		// this populates the INSPECTOR with the given object's properties
 
 		inspectedObject = obj;
@@ -437,7 +471,7 @@ ASTRAL.editor = new function() {
 		posy.addEventListener("blur", posChange);
 		posy.removeEventListener("input", posChange);
 		posy.addEventListener("input", posChange);
-		
+
 		rot.removeEventListener("input", rotChange);
 		rot.addEventListener("input", rotChange);
 		rot.removeEventListener("blur", rotChange);
@@ -461,16 +495,51 @@ ASTRAL.editor = new function() {
 			posy.innerHTML = "null";
 		}
 
-		// list the components
-		document.querySelectorAll('.component').forEach(function(a){
+		if (!obj.scale) obj.scale = 1;
+		scale.innerHTML = obj.scale;
+
+		if (!obj.rot) obj.rot = 0;
+		rot.innerHTML = obj.rot;
+
+		// clear old components from panel
+		document.querySelectorAll('.componentDiv').forEach(function(a){
 			a.remove()
-		})
+		});
+
+		// list the components
 		for (var i = 0; i < obj.components.length; i++) {
 			var component = obj.components[i];
-			var thing = ctl("button component", null, component.type, null, inspectorPanel, null);
+			var componentDiv = document.createElement("DIV");
+			componentDiv.className = "componentDiv";
+			var componentLabel = document.createElement("DIV");
+			componentLabel.innerHTML = component.type + " component";
+			componentLabel.className = "componentlabel";
+			componentDiv.appendChild(componentLabel);
+			inspectorPanel.appendChild(componentDiv);
+
+			// if (component.type == "image") {
+			// 	var thing = ctl("button", "path", component.path, null, componentDiv, null);
+			// }
+			// else if (component.type == "atlas") {
+			// 	var thing = ctl("button", "path", component.path, null, componentDiv, null);
+			// 	var thing = ctl("button", "state", component.state, null, componentDiv, null);
+			// }
+
+			Object.keys(component).forEach(function(key,index) {
+				if (key != "type") {
+					var thing = ctl("button", key, component[key], null, componentDiv, null);	
+				}
+			});
 		}
 		
 		flashDomElement(inspectorPanel);
+
+		// clearTimeout(refreshInspector);
+		// setTimeout(refreshInspector, 1000);
+	}
+
+	function refreshInspector() {
+		populateInspectorPanel(inspectedObject);
 	}
 
 	function posChange() {
@@ -529,8 +598,8 @@ ASTRAL.editor = new function() {
 		else if (path.includes("mp3") || path.includes("wav")) {
 			return "sound";
 		}
-		else if (path.includes("tilemap")) {
-			return "tilemap";
+		else if (path.includes("atlas")) {
+			return "atlas";
 		}
 	}
 
@@ -576,6 +645,16 @@ ASTRAL.editor = new function() {
 			if (lastMouseEvent && lastMouseEvent.which == 1) {
 				if (click) click(lastMouseEvent);
 			}
+		}
+
+		el.onmouseover = function(event) {
+			if (el.dataset && el.dataset.tip) {
+				showToolTip(el.dataset.tip, event);
+			}
+		}
+
+		el.onmouseleave = function(event) {
+			hideToolTip();
 		}
 
 		// customize based on type
@@ -627,6 +706,30 @@ ASTRAL.editor = new function() {
 		return el;
 	}
 
+	function showToolTip(text, event) {
+		console.log(text);
+		var tooltip = document.getElementById("tooltip");
+		if (tooltip) tooltip.remove();
+		var el = document.createElement("DIV");
+		el.id = "tooltip";
+		el.style.position = "fixed";
+		el.innerHTML = text; //.toLowerCase();
+		//el.style.left = event.clientX - 160;
+		el.style.right = 200;
+		var sidebar = document.querySelector("#editorDiv .sidebar");
+		sidebar.appendChild(el);
+		el.style.top = event.clientY - el.scrollHeight / 2;
+		el.style.width = "140px";
+
+		setTimeout(function() {el.style.opacity = 1; el.style.right = 180;}, 10);
+	}
+
+	function hideToolTip() {
+		// just grab the tooltip by dom id and remove it
+		var tooltip = document.getElementById("tooltip");
+		if (tooltip) tooltip.remove();
+	}
+
 	function flashDomElement(p) {
 		p.classList.add("pulsestart");
 		setTimeout(function() {
@@ -643,7 +746,7 @@ ASTRAL.editor = new function() {
 	}
 
 	function enabled() {
-		// TODO: we have a better pattern for exposing basic variables
+		// TODO: we have a better pattern for exposing basic variables somewhere dont we?
 		return isenabled;
 	}
 

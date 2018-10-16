@@ -25,6 +25,8 @@ var ASTRAL = new function() {
 	var layers = [];
 	var images = [];
 	var imgMissing;
+	var atlases = [];
+	var prefabs = [];
 
 	// timing stuff
 	var lastFrameTime = Date.now();
@@ -405,28 +407,31 @@ var ASTRAL = new function() {
 					var component = obj.components[i];
 					if (component.type == "image") {
 						var img = images[component.path];
+						if (!img) img = imgMissing;
+
 						// if the image isnt set, try to load it now
 						// TODO: this could hide mistakes...lets put this back in later
 						// if (!img) {
 						// 	loadImage(path);
 						// }
 						//console.log(component, img);
-						if (img) {
-							//console.log(obj.x,obj.y,obj.rot,obj.scale);
-							ctx.save();
-							ctx.rotate(obj.rot * Math.PI/180);
-							ctx.scale(obj.scale, obj.scale);
-							ctx.drawImage(img, obj.x, obj.y);
-							ctx.restore();
-						}
-						else {
-							ctx.drawImage(imgMissing, obj.x, obj.y);	
-						}
+						drawImage(img, obj, ctx);
+
+					}
+					else if (component.type == "atlas") {
+						var img = images[component.path];
+						if (!img) img = imgMissing;
+						//ctx.drawImage(img, obj.x, obj.y);
+						drawImage(img, obj, ctx);
+					}
+					else if (component.type == "rotator") {
+						obj.rot += parseInt(component.speed);
 					}
 				}
 			}
 			else {
-				ctx.drawImage(imgMissing, obj.x, obj.y);
+				//ctx.drawImage(imgMissing, obj.x, obj.y);
+				drawImage(imgMissing, obj, ctx);
 			}
 
 			// // draw the sprite
@@ -436,31 +441,54 @@ var ASTRAL = new function() {
 			// }
 			// ctx.drawImage(img, obj.x, obj.y);
 
-			// if (ASTRAL.editor.enabled()) {
-			// 	// draw the hitbox
-			// 	ctx.beginPath();
-			// 	ctx.rect(obj.x, obj.y, img.width, img.height);
-			// 	ctx.stroke();
-			// 	ctx.closePath();
-			// 	// draw the object name and props
-			// 	ctx.font = "12px Arial";
-			// 	ctx.fillText(obj.name + " - " + obj.id, obj.x, obj.y - 6);
-			// 	//ctx.fillText(obj.id, obj.x, obj.y - 6);
-			// }
+
 		}
 	}
 
+	function drawImage(img, obj, ctx) {
+		// draw the fully transformed image
+		ctx.save();
+		ctx.translate(obj.x + img.width / 2, obj.y + img.height / 2);
+		ctx.rotate(obj.rot * Math.PI/180);
+		ctx.scale(obj.scale, obj.scale);
+		ctx.translate(-(obj.x + img.width / 2), -(obj.y + img.height / 2));
+		ctx.drawImage(img, obj.x, obj.y);
+
+		// draw the editor hints/helpers
+		if (ASTRAL.editor.enabled()) {
+			// TODO: move this code to the editor using a pubsub message...then we can check inspectorObject
+			//	there and change the rect color
+			// draw the outlines and hints
+			ctx.beginPath();
+			ctx.rect(obj.x - 0.5, obj.y - 0.5, img.width, img.height);
+			ctx.stroke();
+			ctx.closePath();
+			// draw the object name and props
+			ctx.font = "12px Arial";
+			ctx.fillText(obj.name + " - " + obj.id, obj.x, obj.y - 6);
+			//ctx.fillText(obj.id, obj.x, obj.y - 6);
+		}
+		ctx.restore();
+	}
+
 	function loadGameObject(obj) {
+		// creates a gameobject in memory based on a game object which was loaded from file/data,
+		//	this is necessary because when we load a gameobject we should load its components etc
 		obj.x = parseInt(obj.x);
 		obj.y = parseInt(obj.y);
 		obj.vx = 0;
 		obj.vy = 0;
+		if (!obj.rot) obj.rot = 0;
+		if (!obj.scale) obj.scale = 1;
 		obj.speed = 0.088;
 		obj.channels = [];
 		for (var key in obj.components) {
 			var component = obj.components[key];
 			if (component.type == "image") {
 				// TODO: we don't want to call loadImage() for images already loaded...
+				loadImage(component.path);
+			}
+			else if (component.type == "atlas") {
 				loadImage(component.path);
 			}
 		}
@@ -473,8 +501,6 @@ var ASTRAL = new function() {
 		// creates a game object in memory and immediately returns it for further use
 		//	the attributes are supplied by the server because the server creates objects 
 		//	and the client mimics
-
-		// create the object
 		var obj = {};
 		obj.id = id;
 		obj.name = name;
@@ -482,6 +508,8 @@ var ASTRAL = new function() {
 		obj.vx = 0;
 		obj.y = 50;
 		obj.vy = 0;
+		obj.rot = 0;
+		obj.scale = 1;
 		obj.speed = 0.088;
 		obj.channels = [sector, "serverglobal"];
 		obj.components = [];
@@ -497,6 +525,7 @@ var ASTRAL = new function() {
 	}
 
 	function createLayer(name, zindex, drawFunc) {
+		// creates a canvas layer in the dom
 		console.log("creating layer " + name);
 		// create the layer in dom
 		var body = document.body;
@@ -528,6 +557,7 @@ var ASTRAL = new function() {
 ///////////////////////////////////////
 
 	function getFileInfo(path) {
+		// gets basic info about a file path
 		// TODO: this is also in server.js but paths differ by use of \\
 		var info = {};
 		info.path = path;
@@ -546,22 +576,61 @@ var ASTRAL = new function() {
 	}
 
 	function getRandomColor() {
-	  var letters = '0123456789ABCDEF';
-	  var color = '#';
-	  for (var i = 0; i < 6; i++) {
-	    color += letters[Math.floor(Math.random() * 16)];
-	  }
-	  return color;
+		// gets a random hex color value
+		var letters = '0123456789ABCDEF';
+		var color = '#';
+		for (var i = 0; i < 6; i++) {
+			color += letters[Math.floor(Math.random() * 16)];
+		}
+		return color;
 	}
 
 	function moveDomElement(el, offsetX, offsetY) {
+		// moves a dom element using its top/left style
 		var x = parseInt(el.style.left.replace("px", ""));
 		var y = parseInt(el.style.top.replace("px", ""));
 		x += offsetX;
 		y += offsetY;
-		console.log(y + "px");
 		el.style.left = x + "px";
 		el.style.top = y + "px";
+	}
+
+	function formatData(data) {
+		// formats a regular js object into a json object
+		let tempArr = [];
+		Object.keys(data).forEach( (element) => {
+		    tempArr.push(data[element]);
+		});
+		let json = JSON.stringify(tempArr, null, 2);
+		return json;
+	}
+
+	function downloadData(data, filename) {
+		// downloads a regular js object as a json formatted file
+		let json = formatData(data);
+		var blob = new Blob([json], {type:"application/json"});
+		var url = URL.createObjectURL(blob);
+		var a = document.createElement("A");
+		a.download = filename;
+		a.href = url;
+		a.click();
+	}
+
+	function openDataInNewTab(data) {
+		let json = ASTRAL.formatData(data);
+		var x = window.open();
+	    x.document.open();
+	    x.document.write('<html><body><pre>' + json + '</pre></body></html>');
+	    x.document.close();
+	}
+
+	function error(msg) {
+		var el = document.createElement("DIV");
+		el.className = "error";
+		el.innerHTML = msg;
+		document.body.appendChild(el);
+		setTimeout(function() {el.classList.add("errorfade")}, 10);
+		//setTimeout(function() {el.remove()}, 1000);
 	}
 
 	// resizes the canvas layers when the browser resizes:
@@ -587,6 +656,10 @@ var ASTRAL = new function() {
 	this.loadScene = loadScene;
 	this.playSound = playSound;
 	this.getFileInfo = getFileInfo;
+	this.formatData = formatData;
+	this.downloadData = downloadData;
+	this.openDataInNewTab = openDataInNewTab;
+	this.error = error;
 }
 
 document.addEventListener("DOMContentLoaded", function() {

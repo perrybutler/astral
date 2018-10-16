@@ -13,23 +13,12 @@
 		"objects": [
 			{
 				"name": "weapon",
-				"pos": "0, 0"
-			},
-			{
-				"name": "armor",
-				"pos": "0, 0"
-			},
-			{
-				"name": "head",
-				"pos": "0, 0",
-				"objects": [
+				"x": 10,
+				"y": 10,
+				"components": [
 					{
-						"name": "headgear",
-						"pos": "0, 0"
-					},
-					{
-						"name": "accessory",
-						"pos": "0, 0"
+						"type": "image",
+						"path": "assets/sword.png"
 					}
 				]
 			}
@@ -37,17 +26,23 @@
 	},
 	{
 		"id": "000002",
-		"name": "another guy",
+		"name": "spunky guy",
 		"x": "150",
 		"y": "170",
 		"components": [
 			{
-				"type": "image",
-				"path": "assets/images/guy.png"
+				"type": "atlas",
+				"path": "assets/0x72_DungeonTilesetII_v1.1.atlas",
+				"state": "knight_walk"
 			},
 			{
-				"type": "sprite",
-				"anim": "bandit.idle"
+				"type": "rotator",
+				"speed": "1"
+			},
+			{
+				"type": "test",
+				"prop1": "val1",
+				"prop2": "val2"
 			}
 		]
 	}

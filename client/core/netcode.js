@@ -31,6 +31,11 @@ ASTRAL.netcode = new function() {
 
 		connection = new WebSocket(host);
 
+		connection.onclose = function() {
+			ASTRAL.error("Connection to " + host + " failed. Make sure the NodeJS server is running, then reload this page.");
+			connection = null;
+		}
+
 		connection.onopen = function() {
 			console.log("connected successfully");
 			doHandler("connect");

@@ -98,7 +98,11 @@ function getMetas(dir) {
 			getMetas(path);
 		}
 		else {
-			if (!file.includes(".meta") && !file.includes(".prefab") && !file.includes(".scene") && !file.includes(".tilemap")) {
+			if (!file.includes(".meta") && 
+				!file.includes(".prefab") && 
+				!file.includes(".scene") && 
+				!file.includes(".atlas")
+			) {
 				// we have a raw resource, now check if it has a matching .meta file and if not create it
 				createMetaFile(path);
 				fileList.push(file);

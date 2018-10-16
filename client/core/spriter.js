@@ -80,9 +80,9 @@ ASTRAL.spriter = new function() {
 		sidePanel.appendChild(toolsPanel);
 		var openImageButton = ctl("button", "file", "open image", null, toolsPanel, openImage);
 		var openDataButton = ctl("button", null, "open data", null, toolsPanel, openData);
-		var viewButton = ctl("button", "data", "view", null, toolsPanel, viewData);
-		var downloadButton = ctl("button", null, "download", null, toolsPanel, downloadData);
-		var saveButton = ctl("button", null, "save", null, toolsPanel, saveData);
+		var viewButton = ctl("button", "data", "view", null, toolsPanel, viewAtlasData);
+		var downloadButton = ctl("button", null, "download", null, toolsPanel, downloadAtlas);
+		var saveButton = ctl("button", null, "save", null, toolsPanel, saveAtlas);
 		var gridInputX = ctl("input pair", "grid", "16", "gridx", toolsPanel, setGrid);
 		var gridInputY = ctl("input pair", null, "16", "gridy", toolsPanel, setGrid);
 		// var snapButton = ctl("button pill", "snap", "1", null, toolsPanel, function() {});
@@ -354,37 +354,19 @@ ASTRAL.spriter = new function() {
 		console.log("todo load sprite sheet");
 	}
 
-	function getDataJson() {
-		let tempArr = [];
-		Object.keys(data.anims).forEach( (element) => {
-		    tempArr.push(data.anims[element]);
-		});
-		let json = JSON.stringify(tempArr, null, 2);
-		return json;
+	function downloadAtlas() {
+		ASTRAL.downloadData(data.anims, "myatlas.atlas");
 	}
 
-	function downloadData() {
-		let json = getDataJson();
-		var blob = new Blob([json], {type:"application/json"});
-		var url = URL.createObjectURL(blob);
-		var a = document.createElement("A");
-		a.download = "sprite.json";
-		a.href = url;
-		a.click();
-	}
-
-	function saveData() {
-		let json = getDataJson();
+	function saveAtlas() {
 		// make a call to the server and let the server save it to disk
 		// hot reload the file on the client/server
+		let json = ASTRAL.formatData(data.anims);
+		console.log("save not implemented");
 	}
 
-	function viewData() {
-		let json = getDataJson();
-		var x = window.open();
-	    x.document.open();
-	    x.document.write('<html><body><pre>' + json + '</pre></body></html>');
-	    x.document.close();
+	function viewAtlasData() {
+	    ASTRAL.openDataInNewTab(data.anims);
 	}
 
 	function startSelect(offsetX, offsetY) {
