@@ -9,8 +9,8 @@ var ASTRAL = new function() {
 	var requires = [
 		{name: "netcode", path: "core/netcode.js"},
 		{name: "entity", path: "core/entity.js"},
-		{name: "spriter", path: "core/spriter.js"},
 		{name: "editor", path: "core/editor.js"},
+		{name: "spriter", path: "core/spriter.js"},
 		{name: "game", path: "game.js"}
 		//{name: "world", path: "world.js"}
 	];
@@ -395,6 +395,7 @@ var ASTRAL = new function() {
 		// clear the canvas
 		ctx.clearRect(0, 0, can.width, can.height);
 		//can.width = can.width;
+		ctx.imageSmoothingEnabled = false; // TODO: not sure why we have to call this here but it only works if called here
 
 		// draw the visible graphics
 		for (var key in ASTRAL.game.objects) {
@@ -556,6 +557,77 @@ var ASTRAL = new function() {
 //
 ///////////////////////////////////////
 
+	function setPanelLayout(panels1, panels2, panels3, panels4) {
+		// var p1 = document.querySelectorAll("#sidebar1 .panel");
+		// p1.forEach(function(p) {
+		// 	if (panels1.includes(p)) {
+		// 		p.style.display = "block";
+		// 	}
+		// 	else {
+		// 		p.style.display = "none";
+		// 	}
+		// });
+
+		// var p2 = document.querySelectorAll("#sidebar2 .panel");
+		// p2.forEach(function(p) {
+		// 	if (panels2.includes(p)) {
+		// 		p.style.display = "block";
+		// 	}
+		// 	else {
+		// 		p.style.display = "none";
+		// 	}
+		// });
+
+		// var p3 = document.querySelectorAll("#sidebar3 .panel");
+		// p3.forEach(function(p) {
+		// 	if (panels3.includes(p)) {
+		// 		p.style.display = "block";
+		// 	}
+		// 	else {
+		// 		p.style.display = "none";
+		// 	}
+		// });
+
+		// var p4 = document.querySelectorAll("#sidebar4 .panel");
+		// p4.forEach(function(p) {
+		// 	if (panels4.includes(p)) {
+		// 		p.style.display = "block";
+		// 	}
+		// 	else {
+		// 		p.style.display = "none";
+		// 	}
+		// });
+
+		var panels = document.querySelectorAll(".sidebar .panel");
+		panels.forEach(function(p) {
+			p.style.display = "none";
+		});
+
+		panels1.forEach(function(p) {
+			var el = document.getElementById(p);
+			el.style.display = "block";
+			sidebar1.appendChild(el);
+		});
+
+		panels2.forEach(function(p) {
+			var el = document.getElementById(p);
+			el.style.display = "block";
+			sidebar2.appendChild(el);
+		});
+
+		panels3.forEach(function(p) {
+			var el = document.getElementById(p);
+			el.style.display = "block";
+			sidebar3.appendChild(el);
+		});
+
+		panels4.forEach(function(p) {
+			var el = document.getElementById(p);
+			el.style.display = "block";
+			sidebar4.appendChild(el);
+		});
+	}
+
 	function getFileInfo(path) {
 		// gets basic info about a file path
 		// TODO: this is also in server.js but paths differ by use of \\
@@ -660,6 +732,7 @@ var ASTRAL = new function() {
 	this.downloadData = downloadData;
 	this.openDataInNewTab = openDataInNewTab;
 	this.error = error;
+	this.setPanelLayout = setPanelLayout;
 }
 
 document.addEventListener("DOMContentLoaded", function() {

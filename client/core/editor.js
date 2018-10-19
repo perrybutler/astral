@@ -10,7 +10,10 @@ ASTRAL.editor = new function() {
 	var toolsPanel;
 	var scenePanel;
 	var inspectorPanel;
+	var inspectorSection;
 	var projectPanel;
+	var sceneSection;
+	var projectSection;
 
 	var homeButton;
 	var upButton;
@@ -31,7 +34,7 @@ ASTRAL.editor = new function() {
 	function init() {
 		console.log("editor.js init()");
 
-		// create a layer for the sprite tool
+		// create a layer
 		editorLayer = ASTRAL.createLayer("editor", 2, draw);
 		editorCanvas = editorLayer.can;
 		editorDiv = document.getElementById("editorDiv");
@@ -44,86 +47,102 @@ ASTRAL.editor = new function() {
 		dropPanel.className = "droppanel";
 		editorDiv.appendChild(dropPanel);
 
-		// create the sidebar
-		sidePanel = document.createElement("DIV");
-		sidePanel.className = "sidebar";
-		editorDiv.appendChild(sidePanel);
+		// create the sidebars where the panels will live
+		var sidebar1Div = document.createElement("DIV");
+		sidebar1Div.id = "sidebar1";
+		sidebar1Div.className = "sidebar";
+		document.body.appendChild(sidebar1Div);
+		var sidebar2Div = document.createElement("DIV");
+		sidebar2Div.id = "sidebar2";
+		sidebar2Div.className = "sidebar";
+		document.body.appendChild(sidebar2Div);
+		var sidebar3Div = document.createElement("DIV");
+		sidebar3Div.id = "sidebar3";
+		sidebar3Div.className = "sidebar";
+		document.body.appendChild(sidebar3Div);
+		var sidebar4Div = document.createElement("DIV");
+		sidebar4Div.id = "sidebar4";
+		sidebar4Div.className = "sidebar";
+		document.body.appendChild(sidebar4Div);
 
 		// create the tools panel
-		toolsPanel = document.createElement("DIV");
-		toolsPanel.className = "panel";
-		sidePanel.appendChild(toolsPanel);
-		var openImageButton = ctl("button", "tools", "✎ open spriter", null, toolsPanel, function() {
+		toolsPanel = ctlPanel("tools", "toolsPanel", "", "sidebar4");
+		var toolsSection = ctlSection("", "", "", toolsPanel);
+		var openImageButton = ctl("button", null, "✎ open spriter", null, toolsSection, function() {
 			ASTRAL.spriter.activate("assets/0x72_DungeonTilesetII_v1.1.png");
 		});
-		var thing = ctl("button buttonicon message", "network", "netcodestuff", "netcodestuff", toolsPanel, null);
-		var thing = ctl("dropdown", "resolution", "Dynamic,3840x2160,2560x1440,1920x1080,1366x768,1280x720,720x480,-,2048x1536,1600x1200,1280x1024,1024x768,640x480,320x240,320x200,-,1000x1000,500x500,250x250,100x100", "resolution", toolsPanel, null);
+
+		// create the display panel
+		displayPanel = ctlPanel("display", "displayPanel", "", "sidebar4");
+		var displaySection = ctlSection("", "", "", displayPanel);
+		var thing = ctl("dropdown", "resolution", "Dynamic,3840x2160,2560x1440,1920x1080,1366x768,1280x720,720x480,-,2048x1536,1600x1200,1280x1024,1024x768,640x480,320x240,320x200,-,1000x1000,500x500,250x250,100x100", "resolution", displaySection, null);
 		resolution.onchange = function() {screenResolutionChange()}
 		resolution.value = "Dynamic";
-		var thing = ctl("dropdown", "scaling", "Stretch,3840x2160,2560x1440,1920x1080,1366x768,1280x720,720x480,-,2048x1536,1600x1200,1280x1024,1024x768,640x480,320x240,320x200,-,1000x1000,500x500,250x250,100x100", "scaling", toolsPanel, null);
+		var thing = ctl("dropdown", "scaling", "Stretch,3840x2160,2560x1440,1920x1080,1366x768,1280x720,720x480,-,2048x1536,1600x1200,1280x1024,1024x768,640x480,320x240,320x200,-,1000x1000,500x500,250x250,100x100", "scaling", displaySection, null);
 		scaling.onchange = function() {screenScalingChange()}
-		var thing = ctl("dropdown", "resampling", "Nearest,Bilinear", "resampling", toolsPanel, null);
+		var thing = ctl("dropdown", "resampling", "Nearest,Bilinear", "resampling", displaySection, null);
 		resampling.onchange = function() {screenResamplingChange()}
 
+		// create the diagnostics panel
+		diagnosticsPanel = ctlPanel("diagnostics", "diagnosticsPanel", "", "sidebar4");
+		var diagnosticsSection = ctlSection("", "", "", diagnosticsPanel);
+		var thing = ctl("button buttonicon message", "network", "netcodestuff", "netcodestuff", diagnosticsSection, null);
+		var thing = ctl("button buttonicon message", "memory", "memorystuff", "memorystuff", diagnosticsSection, null);
+
 		// create the scene panel
-		scenePanel = document.createElement("DIV");
-		scenePanel.className = "panel";
-		sidePanel.appendChild(scenePanel);
-		var thing = ctl("button icon diskette", "scene", "", "scenesave", scenePanel, function() {saveScene()});
+		scenePanel = ctlPanel("scene", "scenePanel", "", "sidebar1");
+		sceneSection = ctlSection("", "sceneSection", "", scenePanel);
+		var thing = ctl("button icon diskette", null, "", "scenesave", sceneSection, function() {saveScene()});
 		scenesave.dataset.tip = "Save changes to the current scene.";
-		var thing = ctl("button icon openexternal", null, "", "sceneopenexternal", scenePanel, function() {viewSceneData()});
+		var thing = ctl("button icon openexternal", null, "", "sceneopenexternal", sceneSection, function() {viewSceneData()});
 		sceneopenexternal.dataset.tip = "View the scene data in a new tab.";
-		var thing = ctl("button icon download", null, "", "scenedownload", scenePanel, function() {downloadScene()});
+		var thing = ctl("button icon download", null, "", "scenedownload", sceneSection, function() {downloadScene()});
 		scenedownload.dataset.tip = "Download the scene data to disk.";
-		var thing = ctl("button sceneobjectbutton", null, "scene stuff here", null, scenePanel, null);
+		var thing = ctl("button sceneobjectbutton", null, "scene stuff here", null, sceneSection, null);
+		
+		// // create the brush panel
+		// brushPanel = document.createElement("DIV");
+		// brushPanel.className = "panel";
+		// sidebar1Div.appendChild(brushPanel);
+		// var thing = ctl("button", "brushes", "brushes here", null, brushPanel, null);
 
 		// create the inspector panel
-		inspectorPanel = document.createElement("DIV");
-		inspectorPanel.className = "panel";
-		sidePanel.appendChild(inspectorPanel);
-		var thing = ctl("button", "inspector", "(nothing selected)", "inspectoritem", inspectorPanel, null);
-		var thing = ctl("input pair", "position", "0", "posx", inspectorPanel, null);
-		var thing = ctl("input pair", null, "0", "posy", inspectorPanel, null);
+		inspectorPanel = ctlPanel("inspector", "inspectorPanel", "", "sidebar4");
+		inspectorSection = ctlSection("", "", "", inspectorPanel);
+		var thing = ctl("button", null, "(nothing selected)", "inspectoritem", inspectorSection, null);
+		var thing = ctl("input pair", "position", "0", "posx", inspectorSection, null);
+		var thing = ctl("input pair", null, "0", "posy", inspectorSection, null);
 		posx.addEventListener("mousewheel", function(event) {
+			event.preventDefault();
 			posx.innerHTML = parseInt(posx.innerHTML) - event.deltaY / 5;
 			posx.dispatchEvent(new Event('input'));
 		});
 		posy.addEventListener("mousewheel", function(event) {
+			event.preventDefault();
 			posy.innerHTML = parseInt(posy.innerHTML) - event.deltaY / 5;
 			posy.dispatchEvent(new Event('input'));
 		});
-		// var thing = ctl("input pair", "rotation", "0", "rotx", inspectorPanel, null);
-		// var thing = ctl("input pair", null, "0", "roty", inspectorPanel, null);
-		// var thing = ctl("input pair", "scale", "0", "scalex", inspectorPanel, null);
-		// var thing = ctl("input pair", null, "0", "scaley", inspectorPanel, null);
-		var thing = ctl("input pair", "rotation / scale", "0", "rot", inspectorPanel, null);
-		var thing = ctl("input pair", null, "0", "scale", inspectorPanel, null);
+		var thing = ctl("input pair", "rotation / scale", "0", "rot", inspectorSection, null);
+		var thing = ctl("input pair", null, "0", "scale", inspectorSection, null);
 		rot.addEventListener("mousewheel", function(event) {
+			event.preventDefault();
 			rot.innerHTML = (parseFloat(rot.innerHTML) - event.deltaY / 5).toFixed(2);
 			rot.dispatchEvent(new Event('input'));
 		});
 		scale.addEventListener("mousewheel", function(event) {
+			event.preventDefault();
 			scale.innerHTML = (parseFloat(scale.innerHTML) - event.deltaY / 500).toFixed(2);
 			scale.dispatchEvent(new Event('input'));
 		});
 
-		// TODO: need a container for the object components...might need containers for each type of object
-
-		// create the brush panel
-		brushPanel = document.createElement("DIV");
-		brushPanel.className = "panel";
-		sidePanel.appendChild(brushPanel);
-		var thing = ctl("button", "brushes", "brushes here", null, brushPanel, null);
-
 		// create the project panel
-		projectPanel = document.createElement("DIV");
-		projectPanel.className = "panel";
-		sidePanel.appendChild(projectPanel);
-		homeButton = ctl("button icon home", "project", "", null, projectPanel, function() {getDir("../client/assets")});
+		projectPanel = ctlPanel("project", "projectPanel", "", "sidebar1");
+		projectSection = ctlSection("", "projectSection", "", projectPanel);
+		homeButton = ctl("button icon home", null, "", null, projectSection, function() {getDir("../client/assets")});
 		homeButton.dataset.tip = "Return to the root assets folder";
-		upButton = ctl("button icon moveup", null, "", null, projectPanel, function() {});
+		upButton = ctl("button icon moveup", null, "", null, projectSection, function() {});
 		upButton.dataset.tip = "Go back to the previous folder";
-		folderButton = ctl("button icon folderadd", null, "", null, projectPanel, function() {});
+		//folderButton = ctl("button icon folderadd", null, "", null, projectSection, function() {});
 		currentPath = "../client/assets";
 
 		// ??
@@ -207,6 +226,52 @@ ASTRAL.editor = new function() {
 		ASTRAL.downloadData(sceneData, "myscene.scene");
 	}
 
+	function ctlPanel(title, id, extraClassNames, sidebarId) {
+		var panelDiv = document.createElement("DIV");
+		panelDiv.id = id;
+		panelDiv.className = "panel " + extraClassNames;
+		if (title) {
+			var titleDiv = document.createElement("DIV");
+			titleDiv.className = "title";
+			titleDiv.innerHTML = title;
+			titleDiv.onclick = function() {
+				var secs = document.querySelectorAll("#" + id + " .section");
+				secs.forEach(function(sec) {
+					if (sec.style.display == "none") {
+						sec.style.display = "block";
+					}
+					else {
+						sec.style.display = "none";
+					}
+					// if (sec.style.display == "block") {
+					// 	sec.style.display = "none";
+					// }
+					// else {
+					// 	sec.style.display = "block";
+					// }
+				});
+				//document.querySelector("#" + id + " .section").style.display = "none";
+			}
+			panelDiv.appendChild(titleDiv);
+		}
+		document.getElementById(sidebarId).appendChild(panelDiv);
+		return panelDiv;
+	}
+
+	function ctlSection(title, id, extraClassNames, panel) {
+		var sectionDiv = document.createElement("DIV");
+		sectionDiv.id = id;
+		sectionDiv.className = "section " + extraClassNames;
+		if (title) {
+			var titleDiv = document.createElement("DIV");
+			titleDiv.className = "sectiontitle";
+			titleDiv.innerHTML = title;
+			panel.appendChild(titleDiv);
+		}
+		panel.appendChild(sectionDiv);
+		return sectionDiv;
+	}
+
 ///////////////////////////////////////
 //
 //	TOOLS PANEL
@@ -275,6 +340,7 @@ ASTRAL.editor = new function() {
 	function populateProjectPanel(payload) {
 		// this clears the PROJECT panel and populates it with a new list of items
 
+		// clear the panel
 		var currentList = document.querySelectorAll(".projectfolder, .projectfile");
 		for (var i = 0; i < currentList.length; i++) {
 			currentList[i].remove();
@@ -296,7 +362,7 @@ ASTRAL.editor = new function() {
 						label,
 						folderName,
 						null,
-						projectPanel,
+						projectSection,
 						function() {getDir(path)}
 					);
 					// https://stackoverflow.com/questions/22438002/dealing-with-loops-in-javascript-only-last-item-gets-affected
@@ -321,7 +387,7 @@ ASTRAL.editor = new function() {
 						label,
 						fileName,
 						path,
-						projectPanel,
+						projectSection,
 						function(event) {openProjectFile(event, path)}
 					);
 				}).call(this, path);
@@ -362,10 +428,11 @@ ASTRAL.editor = new function() {
 			null,
 			fi.nameNoExt,
 			null,
-			scenePanel,
+			sceneSection,
 			function() {populateInspectorPanel(obj)}
 		);
 
+		// visual feedback
 		flashDomElement(objectButton);
 		
 		console.log("added asset to scene as new gameobject:", obj);
@@ -413,9 +480,6 @@ ASTRAL.editor = new function() {
 
 	function populateScenePanel(objects, level) {
 		// this populates the SCENE panel adding gameobjects and their children recursively
-		// TODO: we need to actually create the game objects here too - ASTRAL.createGameObject()
-		//	should take an existing object and use/return that one, so that it gets added to the
-		//	game.objects collection
 
 		if (!level) {
 			var currentList = document.querySelectorAll(".sceneobjectbutton");
@@ -437,7 +501,7 @@ ASTRAL.editor = new function() {
 					null,
 					objectName,
 					null,
-					scenePanel,
+					sceneSection,
 					function() {populateInspectorPanel(obj)}
 				);
 			}).call(this, obj);
@@ -458,30 +522,33 @@ ASTRAL.editor = new function() {
 	function populateInspectorPanel(obj) {
 		// this populates the INSPECTOR with the given object's properties
 
+		// set a global to track the object being inspected
 		inspectedObject = obj;
-		inspectoritem.innerHTML = obj.name;
 
+		// since the inspector reuses some controls, we need to rebind their listeners
+		// TODO: do we really need to do this??
+		// TODO: or we can add these props here too, so that we can show an empty inspector until it gets
+		//	populated
 		posx.removeEventListener("input", posChange);
 		posx.addEventListener("input", posChange);
 		posx.removeEventListener("blur", posChange);
 		posx.addEventListener("blur", posChange);
 		posx.focus();
-
 		posy.removeEventListener("blur", posChange);
 		posy.addEventListener("blur", posChange);
 		posy.removeEventListener("input", posChange);
 		posy.addEventListener("input", posChange);
-
 		rot.removeEventListener("input", rotChange);
 		rot.addEventListener("input", rotChange);
 		rot.removeEventListener("blur", rotChange);
 		rot.addEventListener("blur", rotChange);
-
 		scale.removeEventListener("input", scaleChange);
 		scale.addEventListener("input", scaleChange);
 		scale.removeEventListener("blur", scaleChange);
 		scale.addEventListener("blur", scaleChange);
 
+		// populate some basic props
+		inspectoritem.innerHTML = obj.name;
 		if (obj.x) {
 			posx.innerHTML = obj.x;
 		}
@@ -494,10 +561,8 @@ ASTRAL.editor = new function() {
 		else {
 			posy.innerHTML = "null";
 		}
-
 		if (!obj.scale) obj.scale = 1;
 		scale.innerHTML = obj.scale;
-
 		if (!obj.rot) obj.rot = 0;
 		rot.innerHTML = obj.rot;
 
@@ -506,39 +571,80 @@ ASTRAL.editor = new function() {
 			a.remove()
 		});
 
+		// redo the drop event
+		// TODO: this selector could get sloppy since it uses a class which might get used more than once
+		//	so just make a #inspectorTitle element
+		var inspectorTitle = document.querySelector("#inspectorPanel .title");
+		inspectorTitle.removeEventListener("drop", titleDrop);
+		inspectorTitle.addEventListener("drop", titleDrop);
+
 		// list the components
 		for (var i = 0; i < obj.components.length; i++) {
 			var component = obj.components[i];
-			var componentDiv = document.createElement("DIV");
-			componentDiv.className = "componentDiv";
-			var componentLabel = document.createElement("DIV");
-			componentLabel.innerHTML = component.type + " component";
-			componentLabel.className = "componentlabel";
-			componentDiv.appendChild(componentLabel);
-			inspectorPanel.appendChild(componentDiv);
-
-			// if (component.type == "image") {
-			// 	var thing = ctl("button", "path", component.path, null, componentDiv, null);
-			// }
-			// else if (component.type == "atlas") {
-			// 	var thing = ctl("button", "path", component.path, null, componentDiv, null);
-			// 	var thing = ctl("button", "state", component.state, null, componentDiv, null);
-			// }
-
-			Object.keys(component).forEach(function(key,index) {
-				if (key != "type") {
-					var thing = ctl("button", key, component[key], null, componentDiv, null);	
-				}
-			});
+			ctlComponent(component);
 		}
 		
-		flashDomElement(inspectorPanel);
-
+		// refresh the inspector if the object properties have changed
 		// clearTimeout(refreshInspector);
 		// setTimeout(refreshInspector, 1000);
+
+		// visual feedback
+		flashDomElement(inspectorPanel);
+	}
+
+	function ctlComponent(component) {
+		// create the wrapper div and label
+		var componentDiv = document.createElement("DIV");
+		componentDiv.className = "componentDiv";
+		var componentLabel = document.createElement("DIV");
+		componentLabel.innerHTML = component.type; // + " component";
+		componentLabel.className = "componentlabel";
+		componentDiv.appendChild(componentLabel);
+		inspectorSection.appendChild(componentDiv);
+		// create a control for each prop
+		Object.keys(component).forEach(function(key,index) {
+			if (key != "type") {
+				if (key == "path") {
+					var thing = ctl("button filetarget", key, component[key], null, componentDiv, null);
+					thing.addEventListener("drop", function(e) {
+						var path = e.dataTransfer.getData("text").replace("../client/", "");
+						component[key] = path;
+						thing.innerHTML = path;
+						ASTRAL.loadImage(path);
+					});
+				}
+				else {
+					var thing = ctl("button", key, component[key], null, componentDiv, null);
+				}
+			}
+		});
+	}
+
+	function titleDrop(e) {
+		// TODO: determine what was dropped and handle it
+		//	e.g. png file was dropped on title, create an image component
+		//	e.g. atlas file was dropped on title, create an atlas component
+
+		//inspectedObject.components[key] = val;
+
+		var path = e.dataTransfer.getData("text").replace("../client/", "");
+		var fi = ASTRAL.getFileInfo(path);
+
+		switch (fi.type) {
+			case "image":
+				var component = {};
+				component.type = "image";
+				component.path = path;
+				inspectedObject.components.push(component);
+				ctlComponent(component);
+				break;
+		}
+
 	}
 
 	function refreshInspector() {
+		// TODO: this forcefully refreshes and flashes the whole panel, it should take a diff and only 
+		//	refresh changed fields, then fire a flash on the changed fields only
 		populateInspectorPanel(inspectedObject);
 	}
 
@@ -609,11 +715,18 @@ ASTRAL.editor = new function() {
 		// TODO: some tight coupling here...but considering spriter is always coupled this might be fine
 		console.log("editor.js toggle()");
 		if (editorDiv.style.visibility == "hidden") {
+			document.querySelectorAll(".sidebar").forEach(function(el) {
+				el.style.display = "block";
+			});
+			ASTRAL.setPanelLayout([], [], ["scenePanel", "inspectorPanel"], ["toolsPanel", "diagnosticsPanel", "displayPanel", "projectPanel"]);
 			editorDiv.style.visibility = "visible";
 			isenabled = true;
 			getDir("../client/assets");
 		}
 		else {
+			document.querySelectorAll(".sidebar").forEach(function(el) {
+				el.style.display = "none";
+			});
 			editorDiv.style.visibility = "hidden";
 			spriterDiv.style.visibility = "hidden";
 			isenabled = false;
@@ -666,10 +779,12 @@ ASTRAL.editor = new function() {
 			el.addEventListener("dragstart", function(event) {
 				event.dataTransfer.setData("text", event.target.id);
 				event.target.style.opacity = 0.3;
-			});
+				showOverlays(["#inspectorPanel .title", "#inspectorPanel .filetarget"]);
+			}, false);
 			el.addEventListener("dragend", function(event) {
 				event.target.style.opacity = "";
-			});
+				hideOverlays();
+			}, false);
 		}
 		else if (type.indexOf("sceneobjectbutton") != -1) {
 			el.draggable = true;
@@ -706,22 +821,78 @@ ASTRAL.editor = new function() {
 		return el;
 	}
 
+	function showOverlays(elementArray) {
+		elementArray.forEach(function(id) {
+			//var el = document.getElementById(id);
+			var el = document.querySelector(id);
+			if (el) {
+				var overlay = document.createElement("DIV");
+				overlay.className = "overlay";
+				overlay.addEventListener("dragover", function(e) {
+					e.preventDefault();
+				}, false);
+				overlay.addEventListener("dragenter", function(e) {
+					e.preventDefault();
+					this.classList.add("dragenter");
+				}, false);
+				overlay.addEventListener("dragleave", function(e) {
+					e.preventDefault();
+					this.classList.remove("dragenter");
+				}, false);
+				overlay.addEventListener("drop", function(e) {
+					e.preventDefault();
+					var data = event.dataTransfer.getData("text");
+					// TODO: we need to know what to do and when...
+					//	e.g. if its a project file being dropped on the inspector title, add new component
+					//	e.g. if its a project file being dropped on a path button, set the new path
+					// 	should we set up the path controls onchange() or blur() to update the object like
+					//		we did for all the other controls?
+					//	e.g. var thing = ctl(); thing.blur = function() {...}
+					//  we also need an easy path to the object and/or component being changed
+					//	we have the inspectedObject global, but we don't track components yet
+					//	we could stuff the el with extra props that let us get to the object components
+
+					//el.innerHTML = data; // silly brute force kinda works but not really
+
+
+
+					console.log("drop event:", data, "->", el);
+				}, false);
+				el.appendChild(overlay);
+			}
+		});
+	}
+
+	function hideOverlays() {
+		document.querySelectorAll(".overlay").forEach(function(el) {
+			el.remove();
+		});
+	}
+
 	function showToolTip(text, event) {
-		console.log(text);
-		var tooltip = document.getElementById("tooltip");
-		if (tooltip) tooltip.remove();
+		// remove any existing tooltip
+		hideToolTip();
+
+		// get the hovered object's screen position
+		var panelPos = event.fromElement.getBoundingClientRect();
+		var t = event.target.getBoundingClientRect();
+
+		// create the tooltip
 		var el = document.createElement("DIV");
 		el.id = "tooltip";
 		el.style.position = "fixed";
 		el.innerHTML = text; //.toLowerCase();
 		//el.style.left = event.clientX - 160;
-		el.style.right = 200;
-		var sidebar = document.querySelector("#editorDiv .sidebar");
-		sidebar.appendChild(el);
-		el.style.top = event.clientY - el.scrollHeight / 2;
+		el.style.left = t.left - 170; //panelPos.left - 160;
+		//el.style.top = event.clientY - el.scrollHeight / 2;
 		el.style.width = "140px";
+		document.body.appendChild(el);
+		el.style.top = (t.top + (t.bottom - t.top) / 2) - (el.offsetHeight / 2); //(srcpos.top + ((srcpos.bottom - srcpos.top) / 2));
 
-		setTimeout(function() {el.style.opacity = 1; el.style.right = 180;}, 10);
+		setTimeout(function() {
+			el.style.opacity = 1;
+			el.style.left = t.left - 160;
+		}, 50);
 	}
 
 	function hideToolTip() {
@@ -753,4 +924,6 @@ ASTRAL.editor = new function() {
 	this.init = init;
 	this.toggle = toggle;
 	this.enabled = enabled; // TODO: cant make primitive refs so had to make a wrapper func...i dont like this, better way?
+	this.ctlPanel = ctlPanel;
+	this.ctlSection = ctlSection;
 }

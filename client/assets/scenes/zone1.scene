@@ -2,8 +2,8 @@
 	{
 		"id": "000001",
 		"name": "guy",
-		"x": "200",
-		"y": "200",
+		"x": "300",
+		"y": "300",
 		"components": [
 			{
 				"type": "image",
@@ -13,8 +13,8 @@
 		"objects": [
 			{
 				"name": "weapon",
-				"x": 10,
-				"y": 10,
+				"x": 320,
+				"y": 290,
 				"components": [
 					{
 						"type": "image",
@@ -27,8 +27,8 @@
 	{
 		"id": "000002",
 		"name": "spunky guy",
-		"x": "150",
-		"y": "170",
+		"x": "350",
+		"y": "370",
 		"components": [
 			{
 				"type": "atlas",

@@ -1,3 +1,9 @@
+/******************************
+	
+	LAYERS
+
+******************************/
+
 #gameDiv {
 	position: absolute; 
 	left: 0px; 
@@ -8,14 +14,31 @@
 	/*width: 720px; height: 480px;*/
 }
 
-/* SPRITER */
-
 #gameCanvas {
 	position: absolute;
 	width: 100%;
 	height: 100%;
 	background-color:gray;
 	image-rendering:pixelated;
+}
+
+#editorDiv {
+	position: absolute;
+	left: 0px;
+	right: 0px;
+	top: 0px;
+	bottom: 0px;
+	margin: auto;
+	/*width: 720px; height: 480px;*/
+}
+
+#editorCanvas {
+	position: absolute;
+	z-index: 10;
+	transform-origin: 0 0;
+	image-rendering:pixelated;
+	width: 100%;
+	height: 100%;
 }
 
 #spriterDiv {
@@ -45,6 +68,12 @@
 	border-radius:3px;
 }
 
+/******************************
+	
+	DROP ZONE
+
+******************************/
+
 .dragover .droppanel {display:block;}
 
 .droppanel {
@@ -70,66 +99,116 @@
 	transform: translate(-50%, -50%);
 }
 
-/* EDITOR */
+/******************************
+	
+	SIDEBAR
 
-#editorDiv {
-	position: absolute;
-	left: 0px;
-	right: 0px;
-	top: 0px;
-	bottom: 0px;
-	margin: auto;
-	/*width: 720px; height: 480px;*/
+******************************/
+
+#sidebar1 {
+	left:5px;
 }
 
-#editorCanvas {
-	position: absolute;
-	z-index: 10;
-	transform-origin: 0 0;
-	image-rendering:pixelated;
-	width: 100%;
-	height: 100%;
+#sidebar2 {
+	left:153px;
 }
 
-/* SHARED */
+#sidebar3 {
+	right:153px;
+}
+
+#sidebar4 {
+	right:5px;
+}
 
 .sidebar {
-	z-index: 20;
-    position: fixed;
-    right: 30px;
-    top: 11px;
-    width: 9em;
+	z-index:997;
+	position:fixed;
+	top:5px;
+	width:9em;
+	display:none;
 }
 
+/******************************
+	
+	PANEL
+
+******************************/
+
 .panel {
-	padding:6px;
+    display:none;
+    position:relative;
     background-color:#3c3c3c;
     border-radius:5px;
     margin-bottom:4px;
+    overflow:hidden;
 }
 
-.panel .input {
-	background-color: #313131; /*#585858;*/
-    color: #fff;
-    font-family: courier;
-    font-size: 0.8em;
+.panel .section {
+	padding:6px;
+	/*max-height:170px;
+	overflow:auto;*/
+	overflow:auto;
+	max-height:300px;
+}
+
+.panel *::-webkit-scrollbar-track {
+    background-color:#353535;
+}
+
+.panel *::-webkit-scrollbar-thumb {
+    background-color:#ccc;
+    cursor:pointer;
     border-radius:3px;
-    padding-left:0.2em;
 }
 
-.panel .input.pair {
-	display:inline-block;
-	width:46%;
-	margin-right:0.2em;
-	margin-bottom:0.2em;
+.panel *::-webkit-scrollbar-thumb:hover {
+    background-color:#fff;
 }
 
-.panel .label:first-child {
-	margin-top:-2px !important;
+.panel *::-webkit-scrollbar {
+    width:4px;
+}
+
+.panel .title {
+	padding:0.2em;
+	padding-left:0.5em;
+	/*color: #000;
+	background-color:#fff;*/
+	color: #909090;
+    background-color: #353535;
+	font-family:arial;
+	font-size:0.8em;
+	font-variant:small-caps;
+	/*margin-bottom:0.1em;
+	margin-top:0.2em;*/
+	user-select:none;
+	letter-spacing:1px;
+	position:relative;
+}
+.panel .title:hover {
+	cursor:pointer;
+	color:#000;
+	background-color:#fff;
+}
+
+.panel .sectiontitle {
+	padding:0.2em;
+	padding-left:0.5em;
+	color: #999;
+	background-color:#000;
+	font-family:arial;
+	font-size:0.7em;
+	font-variant:small-caps;
+	/*margin-bottom:0.1em;
+	margin-top:0.2em;*/
+	user-select:none;
+	letter-spacing:1px;
+	position:relative;
 }
 
 .panel .label {
-	color: #fff;
+	color: #aaa;
 	font-family:arial;
 	font-size:0.7em;
 	font-variant:small-caps;
@@ -137,6 +216,10 @@
 	margin-top:0.2em;
 	user-select:none;
 	letter-spacing:1px;
+	position:relative;
+}
+.panel .label:first-child {
+	margin-top:-2px !important;
 }
 
 .panel .button {
@@ -152,11 +235,11 @@
 	text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
+    position:relative;
 }
 
 .panel .button.level2 {margin-left:1em;}
 .panel .button.level3 {margin-left:2em;}
-
 
 .panel .button.disabled {
 	background-color: transparent;
@@ -170,21 +253,22 @@
 	padding-right:0.5em;
 }
 
-.mainControl {
-	position: fixed;
-    right: 3px;
-    top: 11px;
-    width: 24px;
-    height: 24px;
-    background-color: #3c3c3c;
-    color: white;
-    border-radius: 5px;
-    text-align: center;
-    font-size: 1.3em;
-    cursor:pointer;
+.panel .input {
+	background-color: #313131; /*#585858;*/
+    color: #fff;
+    font-family: courier;
+    font-size: 0.8em;
+    border-radius:3px;
+    padding-left:0.2em;
+    position:relative;
 }
 
-.mainControl:hover {background-color:white; color:black;}
+.panel .input.pair {
+	display:inline-block;
+	width:46%;
+	margin-right:0.2em;
+	margin-bottom:0.2em;
+}
 
 .panel .button.bgaqua {background-color:#00FFFF; color:#00FFFF;}
 .panel .button.bgfuchsia {background-color:#FF00FF; color:#FF00FF;}
@@ -250,13 +334,38 @@
 	color:#aaa;
 }
 
-.pulsestart {
-	background-color:#0099ff !important;
+.componentlabel {
+	font-family:arial;
+    font-size:0.8em;
+    font-style:italic;
+    color:#fff; /*#ff9b00; /*#929292;*/
+    /*margin-top: 0.5em;
+    border-top: 1px dashed;*/
+    padding-top:2px;
+    font-variant:small-caps;
 }
 
-.pulsing {
-	transition:background 1s;
+.mainControl {
+	position: fixed;
+    right: 3px;
+    top: 11px;
+    width: 24px;
+    height: 24px;
+    background-color: #3c3c3c;
+    color: white;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 1.3em;
+    cursor:pointer;
 }
+
+.mainControl:hover {background-color:white; color:black;}
+
+/******************************
+	
+	VISUAL FEEDBACK
+
+******************************/
 
 #tooltip {
 	position:absolute;
@@ -279,15 +388,28 @@
 	background:#ff0000;
 }
 
-.componentlabel {
-	font-family: arial;
-    font-size: 0.7em;
-    font-style: italic;
-    color: gray; /*#ff9b00; /*#929292;*/
-    /*margin-top: 0.5em;
-    border-top: 1px dashed;*/
-    padding-top: 2px;
-    font-variant: small-caps;
+.overlay { /* NOTE: this only works if parent element has position:relative */
+	position:absolute;
+    left:0;
+    right:0;
+    top:0;
+    bottom:0;
+    background-color:#00ff00;
+    width:100%;
+    height:100%;
+    opacity:0.5;
+}
+
+.dragenter {
+	background-color:#ff0000;
+}
+
+.pulsestart {
+	background-color:#0099ff !important;
+}
+
+.pulsing {
+	transition:background 1s;
 }
 
 .error {

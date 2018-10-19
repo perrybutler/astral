@@ -30,7 +30,8 @@ ASTRAL.spriter = new function() {
 	var spriterLayer;
 	var spriterDiv;
 	var sidePanel;
-	var animsPanel;
+	var atlasPanel;
+	var atlasSection;
 	var propsPanel;
 	var controlsPanel;
 	var previewPanel;
@@ -62,104 +63,76 @@ ASTRAL.spriter = new function() {
 		dropPanel.className = "droppanel";
 		spriterDiv.appendChild(dropPanel);
 
-		// create the sidebar
-		sidePanel = document.createElement("DIV");
-		sidePanel.className = "sidebar";
-		spriterDiv.appendChild(sidePanel);
-
-		// spriter controls
-		var closeButton = document.createElement("DIV");
-		closeButton.innerHTML = "&times;";
-		closeButton.className = "mainControl";
-		closeButton.onclick = function() {deactivate();}
-		sidePanel.appendChild(closeButton);
-
 		// create the tools panel
-		toolsPanel = document.createElement("DIV");
-		toolsPanel.className = "panel";
-		sidePanel.appendChild(toolsPanel);
-		var openImageButton = ctl("button", "file", "open image", null, toolsPanel, openImage);
-		var openDataButton = ctl("button", null, "open data", null, toolsPanel, openData);
-		var viewButton = ctl("button", "data", "view", null, toolsPanel, viewAtlasData);
-		var downloadButton = ctl("button", null, "download", null, toolsPanel, downloadAtlas);
-		var saveButton = ctl("button", null, "save", null, toolsPanel, saveAtlas);
-		var gridInputX = ctl("input pair", "grid", "16", "gridx", toolsPanel, setGrid);
-		var gridInputY = ctl("input pair", null, "16", "gridy", toolsPanel, setGrid);
-		// var snapButton = ctl("button pill", "snap", "1", null, toolsPanel, function() {});
-		// var snapButton = ctl("button pill", null, "4", null, toolsPanel, function() {});
-		// var snapButton = ctl("button pill", null, "8", null, toolsPanel, function() {});
-		// var snapButton = ctl("button pill", null, "16", null, toolsPanel, function() {});
-		// var snapButton = ctl("button pill", null, "32", null, toolsPanel, function() {});
-		var zoomButton = ctl("button pill", "zoom", "1x", null, toolsPanel, function() {setZoom(0)});
-		var zoomButton = ctl("button pill", null, "2x", null, toolsPanel, function() {setZoom(1)});
-		var zoomButton = ctl("button pill", null, "3x", null, toolsPanel, function() {setZoom(2)});
-		var zoomButton = ctl("button pill", null, "4x", null, toolsPanel, function() {setZoom(3)});
-		var bgButton = ctl("button pill bgaqua", "background", "-", null, toolsPanel, function() {setBackground("#00FFFF")});
-		var bgButton = ctl("button pill bgfuchsia", null, "-", null, toolsPanel, function() {setBackground("#FF00FF")});
-		var bgButton = ctl("button pill bggray", null, "-", null, toolsPanel, function() {setBackground("#808080")});
-		var bgButton = ctl("button pill bgblack", null, "-", null, toolsPanel, function() {setBackground("#000")});
-		var bgButton = ctl("button pill bgwhite", null, "-", null, toolsPanel, function() {setBackground("#FFF")});
-		var moveleftButton = ctl("button icon moveleft", "adjust selection", "", null, toolsPanel, function() {moveSelection(-1, 0)});
-		var moverightButton = ctl("button icon moveright", null, "", null, toolsPanel, function() {moveSelection(1, 0)});
-		var moveupButton = ctl("button icon moveup", null, "", null, toolsPanel, function() {moveSelection(0, -1)});
-		var movedownButton = ctl("button icon movedown", null, "", null, toolsPanel, function() {moveSelection(0, 1)});
-		var shrinkleftButton = ctl("button icon shrinkleft", null, "", null, toolsPanel, function() {resizeSelection(-1, 0, 0, 0)});
-		var shrinkrightButton = ctl("button icon shrinkright", null, "", null, toolsPanel, function() {resizeSelection(0, 0, -1, 0)});
-		var shrinktopButton = ctl("button icon shrinktop", null, "", null, toolsPanel, function() {resizeSelection(0, -1, 0, 0)});
-		var shrinkbottomButton = ctl("button icon shrinkbottom", null, "", null, toolsPanel, function() {resizeSelection(0, 0, 0, -1)});
-		var growleftButton = ctl("button icon growleft", null, "", null, toolsPanel, function() {resizeSelection(1, 0, 0, 0)});
-		var growrightButton = ctl("button icon growright", null, "", null, toolsPanel, function() {resizeSelection(0, 0, 1, 0)});
-		var growtopButton = ctl("button icon growtop", null, "", null, toolsPanel, function() {resizeSelection(0, 1, 0, 0)});
-		var growbottomButton = ctl("button icon growbottom", null, "", null, toolsPanel, function() {resizeSelection(0, 0, 0, 1)});
+		spriterToolsPanel = ASTRAL.editor.ctlPanel("tools", "spriterToolsPanel", "", "sidebar4");
+		var spriterToolsSection = ASTRAL.editor.ctlSection("", "", "", spriterToolsPanel);
+		var openImageButton = ctl("button", "file", "open image", null, spriterToolsSection, openImage);
+		var openDataButton = ctl("button", null, "open data", null, spriterToolsSection, openData);
+		var saveButton = ctl("button icon diskette", "data", "", null, spriterToolsSection, saveAtlas);
+		saveButton.dataset.tip = "Save changes to the current atlas file.";
+		var viewButton = ctl("button icon openexternal", null, "", null, spriterToolsSection, viewAtlasData);
+		viewButton.dataset.tip = "View the atlas data in a new tab.";
+		var downloadButton = ctl("button icon download", null, "", null, spriterToolsSection, downloadAtlas);
+		downloadButton.dataset.tip = "Download the atlas data to disk.";
+		var gridInputX = ctl("input pair", "grid", "16", "gridx", spriterToolsSection, setGrid);
+		var gridInputY = ctl("input pair", null, "16", "gridy", spriterToolsSection, setGrid);
+		var zoomButton = ctl("button pill", "zoom", "1x", null, spriterToolsSection, function() {setZoom(0)});
+		var zoomButton = ctl("button pill", null, "2x", null, spriterToolsSection, function() {setZoom(1)});
+		var zoomButton = ctl("button pill", null, "3x", null, spriterToolsSection, function() {setZoom(2)});
+		var zoomButton = ctl("button pill", null, "4x", null, spriterToolsSection, function() {setZoom(3)});
+		var bgButton = ctl("button pill bgaqua", "background", "-", null, spriterToolsSection, function() {setBackground("#00FFFF")});
+		var bgButton = ctl("button pill bgfuchsia", null, "-", null, spriterToolsSection, function() {setBackground("#FF00FF")});
+		var bgButton = ctl("button pill bggray", null, "-", null, spriterToolsSection, function() {setBackground("#808080")});
+		var bgButton = ctl("button pill bgblack", null, "-", null, spriterToolsSection, function() {setBackground("#000")});
+		var bgButton = ctl("button pill bgwhite", null, "-", null, spriterToolsSection, function() {setBackground("#FFF")});
+		var moveleftButton = ctl("button icon moveleft", "adjust selection", "", null, spriterToolsSection, function() {moveSelection(-1, 0)});
+		var moverightButton = ctl("button icon moveright", null, "", null, spriterToolsSection, function() {moveSelection(1, 0)});
+		var moveupButton = ctl("button icon moveup", null, "", null, spriterToolsSection, function() {moveSelection(0, -1)});
+		var movedownButton = ctl("button icon movedown", null, "", null, spriterToolsSection, function() {moveSelection(0, 1)});
+		var shrinkleftButton = ctl("button icon shrinkleft", null, "", null, spriterToolsSection, function() {resizeSelection(-1, 0, 0, 0)});
+		var shrinkrightButton = ctl("button icon shrinkright", null, "", null, spriterToolsSection, function() {resizeSelection(0, 0, -1, 0)});
+		var shrinktopButton = ctl("button icon shrinktop", null, "", null, spriterToolsSection, function() {resizeSelection(0, -1, 0, 0)});
+		var shrinkbottomButton = ctl("button icon shrinkbottom", null, "", null, spriterToolsSection, function() {resizeSelection(0, 0, 0, -1)});
+		var growleftButton = ctl("button icon growleft", null, "", null, spriterToolsSection, function() {resizeSelection(1, 0, 0, 0)});
+		var growrightButton = ctl("button icon growright", null, "", null, spriterToolsSection, function() {resizeSelection(0, 0, 1, 0)});
+		var growtopButton = ctl("button icon growtop", null, "", null, spriterToolsSection, function() {resizeSelection(0, 1, 0, 0)});
+		var growbottomButton = ctl("button icon growbottom", null, "", null, spriterToolsSection, function() {resizeSelection(0, 0, 0, 1)});
 
 		// create the animations panel
-		animsPanel = document.createElement("DIV");
-		animsPanel.className = "panel";
-		sidePanel.appendChild(animsPanel);
-		var newButton = ctl("button pill", "anims", "(new)", null, animsPanel, function() {newAnimation();});
-		var deleteButton = ctl("button pill", null, "(delete)", null, animsPanel, function() {deleteAnimation();});
+		atlasPanel = ASTRAL.editor.ctlPanel("atlas", "atlasPanel", "", "sidebar4");
+		atlasSection = ASTRAL.editor.ctlSection("", "", "", atlasPanel);
+		var newButton = ctl("button pill", null, "(new)", null, atlasSection, function() {newAnimation();});
+		var deleteButton = ctl("button pill", null, "(delete)", null, atlasSection, function() {deleteAnimation();});
 
 		// create the properties panel
-		propsPanel = document.createElement("DIV");
-		propsPanel.className = "panel";
-		sidePanel.appendChild(propsPanel);
-		nameInput = ctl("input", "name", "new", "props-name", propsPanel, null);
-		rowsInput = ctl("input", "rows", "1", "props-rows", propsPanel, null);
-		colsInput = ctl("input", "cols", "1", "props-cols", propsPanel, null);
-
+		propsPanel = ASTRAL.editor.ctlPanel("properties", "propsPanel", "", "sidebar4");
+		var propsSection = ASTRAL.editor.ctlSection("", "", "", propsPanel);
+		nameInput = ctl("input", "name", "new", "props-name", propsSection, null);
+		rowsInput = ctl("input", "rows", "1", "props-rows", propsSection, null);
+		colsInput = ctl("input", "cols", "1", "props-cols", propsSection, null);
 		var regionLabel = document.createElement("DIV");
 		regionLabel.className = "label";
 		regionLabel.innerHTML = "region";
-		propsPanel.appendChild(regionLabel);
-
+		propsSection.appendChild(regionLabel);
 		regionInput = document.createElement("DIV");
 		regionInput.className = "input";
 		regionInput.style.color = "#999";
 		regionInput.id = "props-region";
-		propsPanel.appendChild(regionInput);
+		propsSection.appendChild(regionInput);
 
 		// create the preview panel
-		previewPanel = document.createElement("DIV");
-		previewPanel.className = "panel";
-		sidePanel.appendChild(previewPanel);
-
-		var previewLabel = document.createElement("DIV");
-		previewLabel.className = "label";
-		previewLabel.innerHTML = "preview";
-		previewPanel.appendChild(previewLabel);
-
+		previewPanel = ASTRAL.editor.ctlPanel("preview", "previewPanel", "", "sidebar4");
+		var previewSection = ASTRAL.editor.ctlSection("", "", "", previewPanel);
 		previewCanvas = document.createElement("CANVAS");
 		previewCanvas.id = "previewCanvas";
 		previewCanvas.width = 128;
 		previewCanvas.height = 128;
-		previewPanel.appendChild(previewCanvas);
-
-		var speedButton = ctl("button pill", "speed", "1x", null, previewPanel, function() {setSpeed(1)});
-		var speedButton = ctl("button pill", null, "2x", null, previewPanel, function() {setSpeed(2)});
-		var speedButton = ctl("button pill", null, "3x", null, previewPanel, function() {setSpeed(3)});
-		var speedButton = ctl("button pill", null, "4x", null, previewPanel, function() {setSpeed(4)});
-		var speedButton = ctl("button pill", null, "8x", null, previewPanel, function() {setSpeed(8)});
-
+		previewSection.appendChild(previewCanvas);
+		var speedButton = ctl("button pill", "speed", "1x", null, previewSection, function() {setSpeed(1)});
+		var speedButton = ctl("button pill", null, "2x", null, previewSection, function() {setSpeed(2)});
+		var speedButton = ctl("button pill", null, "3x", null, previewSection, function() {setSpeed(3)});
+		var speedButton = ctl("button pill", null, "4x", null, previewSection, function() {setSpeed(4)});
+		var speedButton = ctl("button pill", null, "8x", null, previewSection, function() {setSpeed(8)});
 		spriterLayer.can.style.width = "auto";
 		spriterLayer.can.style.height = "auto";
 		spriterLayer.can.style.border = padding + "px solid";
@@ -213,6 +186,7 @@ ASTRAL.spriter = new function() {
 			spriterLayer.can.width = img.width;
 			spriterLayer.can.height = img.height;
 		});
+		ASTRAL.setPanelLayout([], [], ["previewPanel", "atlasPanel", "propsPanel"], ["spriterToolsPanel", "projectPanel"]);
 	}
 
 	function deactivate() {
@@ -225,6 +199,8 @@ ASTRAL.spriter = new function() {
 	}
 
 	function ctl(type, label, value, id, parent, click) {
+		// TODO: we have a more extensive version of this function in editor.js we should be using...
+
 		var el = document.createElement("DIV");
 		if (value.indexOf("#") != -1) {
 			el.innerHTML = "";
@@ -618,7 +594,7 @@ ASTRAL.spriter = new function() {
 		animButton.innerHTML = anim.name;
 		animButton.id = selectedId;
 		animButton.onclick = function() {selectAnimation(animButton.id);}
-		animsPanel.appendChild(animButton);
+		atlasSection.appendChild(animButton);
 		highlightAnimationButton(selectedId);
 
 		// populate the name prop with the new animation name and set events on it
