@@ -24,6 +24,8 @@ After a long hiatus, I returned to this project to continue where I left off, bu
 
 ----
 
+![](https://thumbs.gfycat.com/CalmReflectingCamel-size_restricted.gif)
+
 ![](https://thumbs.gfycat.com/InsidiousLeadingBighorn-size_restricted.gif)
 
 Once I had a prototype canvas engine working I decided to take things to the next level by doing the Breakouts project and carrying over the inspector/editor ideas from the previous work.
@@ -36,6 +38,12 @@ Testing object collisions, sorting, and shadows. Started adding an inspector/edi
 
 ----
 
-![](https://thumbs.gfycat.com/DemandingPlumpHatchetfish-size_restricted.gif)
+![](https://thumbs.gfycat.com/RequiredAlarmedBanteng-size_restricted.gif)
 
-Very early prototype testing out sprite animations and roaming AI to see what's possible with HTML5 canvas. Apologies for the poor GIF, the file was large so it got doinked.
+Trying out some push physics.
+
+----
+
+![](https://thumbs.gfycat.com/HopefulGlaringEeve-size_restricted.gif)
+
+Very early prototype testing out sprite animations, roaming AI and collisions to see what's possible with HTML5 canvas.
