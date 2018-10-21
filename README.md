@@ -34,7 +34,9 @@ After a long hiatus, I returned to this project to continue where I left off, bu
 
 ![](https://thumbs.gfycat.com/InsidiousLeadingBighorn-size_restricted.gif)
 
-Once I had a prototype canvas engine working I decided to take things to the next level by doing the Breakouts project and carrying over the inspector/editor ideas from the previous work.
+![](https://thumbs.gfycat.com/GrossAgileHippopotamus-size_restricted.gif)
+
+Once I had a prototype canvas engine working I decided to take things to the next level by doing the Breakouts project and carrying over the inspector/editor ideas from the previous work. The last image shows the custom async loader/modules.
 
 ----
 
