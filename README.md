@@ -38,5 +38,4 @@ Once I had a prototype canvas engine working I decided to take things to the nex
 
 ![](https://thumbs.gfycat.com/YellowishKindheartedCopperhead-size_restricted.gif)
 
-Very early prototype testing out sprite animations, roaming AI, shadows/opacity, object sorting, collisions and push physics to see what's possible with HTML5 canvas. Testing object collisions, sorting, and shadows. The inspector/editor thing started early into the project.
-
+Very early prototype testing out sprite animations, roaming AI, shadows/opacity, object sorting, collisions and push physics to see what's possible with HTML5 canvas. The inspector/editor thing was an early incantation.
