@@ -32,18 +32,11 @@ Once I had a prototype canvas engine working I decided to take things to the nex
 
 ----
 
-![](https://thumbs.gfycat.com/YellowishKindheartedCopperhead-size_restricted.gif)
-
-Testing object collisions, sorting, and shadows. Started adding an inspector/editor thing.
-
-----
+![](https://thumbs.gfycat.com/HopefulGlaringEeve-size_restricted.gif)
 
 ![](https://thumbs.gfycat.com/RequiredAlarmedBanteng-size_restricted.gif)
 
-Trying out some push physics.
+![](https://thumbs.gfycat.com/YellowishKindheartedCopperhead-size_restricted.gif)
 
-----
+Very early prototype testing out sprite animations, roaming AI, shadows/opacity, object sorting, collisions and push physics to see what's possible with HTML5 canvas. Testing object collisions, sorting, and shadows. The inspector/editor thing started early into the project.
 
-![](https://thumbs.gfycat.com/HopefulGlaringEeve-size_restricted.gif)
-
-Very early prototype testing out sprite animations, roaming AI and collisions to see what's possible with HTML5 canvas.
