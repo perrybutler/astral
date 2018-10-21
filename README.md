@@ -2,6 +2,8 @@
 
 A game framework in vanilla JavaScript.
 
+It is a combination of my previous game engine projects and UI designs.
+
 **Disclaimer:** the graphics depicted on this page (in the screen captures) are for demonstration purposes only and remain copyrighted by their respective owners/publishers. Specifically Gravity/Ragnarok Online and Gamesys/Here Be Monsters.
 
 ----
@@ -18,11 +20,15 @@ Netcode is coming along well. This also shows a Chromium wrapper being used to l
 
 ----
 
+"Astral"
+
 ![](https://thumbs.gfycat.com/PreciousMiniatureCorydorascatfish-size_restricted.gif)
 
 After a long hiatus, I returned to this project to continue where I left off, but I wanted to rewrite the code from the ground up and apply what I learned from the previous prototypes. This time around, I tackled the netcode first, so that a client/server model would be part of the core from the very beginning, without having to overhaul a single player engine into a multiplayer one later.
 
 ----
+
+"Rapid Engine"
 
 ![](https://thumbs.gfycat.com/CalmReflectingCamel-size_restricted.gif)
 
@@ -31,6 +37,8 @@ After a long hiatus, I returned to this project to continue where I left off, bu
 Once I had a prototype canvas engine working I decided to take things to the next level by doing the Breakouts project and carrying over the inspector/editor ideas from the previous work.
 
 ----
+
+"Adventure Toolkit"
 
 ![](https://thumbs.gfycat.com/HopefulGlaringEeve-size_restricted.gif)
 
