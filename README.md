@@ -16,7 +16,7 @@ Realtime inspector/editor functionality. This is the framework in its most recen
 
 ![](https://thumbs.gfycat.com/FocusedEnormousAnemone-size_restricted.gif)
 
-Netcode is coming along well. This also shows a Chromium wrapper being used to launch the game like a native Windows app.
+Netcode is coming along well. This also shows a Chromium wrapper being used to launch the game like a native Windows app. This is a custom .NET app which will have its own repo and can optionally be bundled with the finished game for a turn-key product.
 
 ----
 
