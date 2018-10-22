@@ -32,9 +32,11 @@ ASTRAL.editor = new function() {
 ///////////////////////////////////////
 	
 	function init() {
+		// initializes the editor, this gets called as soon as editor.js is loaded by the browser
 		console.log("editor.js init()");
 
 		// create a layer
+		// TODO: dont think we need a layer, overhaul this...
 		editorLayer = ASTRAL.createLayer("editor", 2, draw);
 		editorCanvas = editorLayer.can;
 		editorDiv = document.getElementById("editorDiv");
@@ -134,6 +136,10 @@ ASTRAL.editor = new function() {
 			scale.innerHTML = (parseFloat(scale.innerHTML) - event.deltaY / 500).toFixed(2);
 			scale.dispatchEvent(new Event('input'));
 		});
+		var componentsTitle = document.createElement("DIV");
+		componentsTitle.className = "label";
+		componentsTitle.innerHTML = "components";
+		inspectorSection.appendChild(componentsTitle);
 
 		// create the project panel
 		projectPanel = ctlPanel("project", "projectPanel", "", "sidebar1");
@@ -219,57 +225,12 @@ ASTRAL.editor = new function() {
 	}
 
 	function viewSceneData() {
+		// TODO: this is not carrying over new objects...only initial objects and their changed data
 		ASTRAL.openDataInNewTab(sceneData);
 	}
 
 	function downloadScene() {
 		ASTRAL.downloadData(sceneData, "myscene.scene");
-	}
-
-	function ctlPanel(title, id, extraClassNames, sidebarId) {
-		var panelDiv = document.createElement("DIV");
-		panelDiv.id = id;
-		panelDiv.className = "panel " + extraClassNames;
-		if (title) {
-			var titleDiv = document.createElement("DIV");
-			titleDiv.className = "title";
-			titleDiv.innerHTML = title;
-			titleDiv.onclick = function() {
-				var secs = document.querySelectorAll("#" + id + " .section");
-				secs.forEach(function(sec) {
-					if (sec.style.display == "none") {
-						sec.style.display = "block";
-					}
-					else {
-						sec.style.display = "none";
-					}
-					// if (sec.style.display == "block") {
-					// 	sec.style.display = "none";
-					// }
-					// else {
-					// 	sec.style.display = "block";
-					// }
-				});
-				//document.querySelector("#" + id + " .section").style.display = "none";
-			}
-			panelDiv.appendChild(titleDiv);
-		}
-		document.getElementById(sidebarId).appendChild(panelDiv);
-		return panelDiv;
-	}
-
-	function ctlSection(title, id, extraClassNames, panel) {
-		var sectionDiv = document.createElement("DIV");
-		sectionDiv.id = id;
-		sectionDiv.className = "section " + extraClassNames;
-		if (title) {
-			var titleDiv = document.createElement("DIV");
-			titleDiv.className = "sectiontitle";
-			titleDiv.innerHTML = title;
-			panel.appendChild(titleDiv);
-		}
-		panel.appendChild(sectionDiv);
-		return sectionDiv;
 	}
 
 ///////////////////////////////////////
@@ -465,6 +426,7 @@ ASTRAL.editor = new function() {
 		}
 	}
 
+	// TODO: this should be somewhere else
 	function imageComponent(path) {
 		var component = {};
 		component.type = "image";
@@ -592,34 +554,6 @@ ASTRAL.editor = new function() {
 		flashDomElement(inspectorPanel);
 	}
 
-	function ctlComponent(component) {
-		// create the wrapper div and label
-		var componentDiv = document.createElement("DIV");
-		componentDiv.className = "componentDiv";
-		var componentLabel = document.createElement("DIV");
-		componentLabel.innerHTML = component.type; // + " component";
-		componentLabel.className = "componentlabel";
-		componentDiv.appendChild(componentLabel);
-		inspectorSection.appendChild(componentDiv);
-		// create a control for each prop
-		Object.keys(component).forEach(function(key,index) {
-			if (key != "type") {
-				if (key == "path") {
-					var thing = ctl("button filetarget", key, component[key], null, componentDiv, null);
-					thing.addEventListener("drop", function(e) {
-						var path = e.dataTransfer.getData("text").replace("../client/", "");
-						component[key] = path;
-						thing.innerHTML = path;
-						ASTRAL.loadImage(path);
-					});
-				}
-				else {
-					var thing = ctl("button", key, component[key], null, componentDiv, null);
-				}
-			}
-		});
-	}
-
 	function titleDrop(e) {
 		// TODO: determine what was dropped and handle it
 		//	e.g. png file was dropped on title, create an image component
@@ -628,17 +562,43 @@ ASTRAL.editor = new function() {
 		//inspectedObject.components[key] = val;
 
 		var path = e.dataTransfer.getData("text").replace("../client/", "");
-		var fi = ASTRAL.getFileInfo(path);
+		addComponentToGameObject(inspectedObject, path);
 
+	}
+
+	function addComponentToGameObject(obj, path) {
+		var fi = ASTRAL.getFileInfo(path);
+		var componentDiv;
 		switch (fi.type) {
 			case "image":
 				var component = {};
 				component.type = "image";
 				component.path = path;
 				inspectedObject.components.push(component);
-				ctlComponent(component);
+				componentDiv = ctlComponent(component);
+				break;
+			case "atlas":
+				var component = {};
+				component.type = "atlas";
+				component.path = path;
+				inspectedObject.components.push(component);
+				componentDiv = ctlComponent(component);
+				break;
+			case "script":
+				var component = {};
+				component.type = fi.nameNoExt;
+				component.path = path;
+				// TODO: here we need to expose any public props/vals in the custom script component
+				//	e.g. the script might have a global "speed" prop and we want to be able to modify
+				//	that value in the editor here
+				inspectedObject.components.push(component);
+				componentDiv = ctlComponent(component);
 				break;
 		}
+		flashDomElement(componentDiv);
+	}
+
+	function removeComponent() {
 
 	}
 
@@ -663,77 +623,9 @@ ASTRAL.editor = new function() {
 
 ///////////////////////////////////////
 //
-//	HELPERS & GENERICS
+//	UI BUILDERS
 //
 ///////////////////////////////////////
-
-	function getDir(path) {
-		// this requests a directory listing from the server
-
-		var parentPath = path.split("/").slice(0, -1).join("/");
-		if (parentPath == "../client") {
-			upButton.classList.add("disabled");
-		}
-		else {
-			upButton.classList.remove("disabled");
-		}
-		upButton.onclick = function() {
-			var prev = parentPath;
-			getDir(prev);
-		}
-		ASTRAL.netcode.sendNow("*getdir," + path);
-		currentPath = path;
-	}
-
-	function getIconForFile(path) {
-		// this gets an icon (css classname) to use for the given path
-
-		path = path.toLowerCase();
-		if (path.includes("png")) {
-			return "png";
-		}
-		else if (path.includes("jpg")) {
-			return "jpg";
-		}
-		else if (path.includes("prefab")) {
-			return "prefab";
-		}
-		else if (path.includes("scene")) {
-			return "scene";
-		}
-		else if (path.includes("mp3") || path.includes("wav")) {
-			return "sound";
-		}
-		else if (path.includes("atlas")) {
-			return "atlas";
-		}
-	}
-
-	function toggle() {
-		// this toggles visibility of the editor
-
-		// TODO: some tight coupling here...but considering spriter is always coupled this might be fine
-		console.log("editor.js toggle()");
-		if (editorDiv.style.visibility == "hidden") {
-			document.querySelectorAll(".sidebar").forEach(function(el) {
-				el.style.display = "block";
-			});
-			ASTRAL.setPanelLayout([], [], ["scenePanel", "inspectorPanel"], ["toolsPanel", "diagnosticsPanel", "displayPanel", "projectPanel"]);
-			editorDiv.style.visibility = "visible";
-			isenabled = true;
-			getDir("../client/assets");
-		}
-		else {
-			document.querySelectorAll(".sidebar").forEach(function(el) {
-				el.style.display = "none";
-			});
-			editorDiv.style.visibility = "hidden";
-			spriterDiv.style.visibility = "hidden";
-			isenabled = false;
-		}
-	}
-
-	var lastMouseEvent;
 
 	function ctl(type, label, value, id, parent, click) {
 		// this is a universal control factory for making buttons, labels, inputs, etc on a panel
@@ -820,6 +712,179 @@ ASTRAL.editor = new function() {
 		parent.appendChild(el);
 		return el;
 	}
+
+	function ctlPanel(title, id, extraClassNames, sidebarId) {
+		var panelDiv = document.createElement("DIV");
+		panelDiv.id = id;
+		panelDiv.className = "panel " + extraClassNames;
+		if (title) {
+			var titleDiv = document.createElement("DIV");
+			titleDiv.className = "title";
+			titleDiv.innerHTML = title;
+			titleDiv.onclick = function() {
+				var secs = document.querySelectorAll("#" + id + " .section");
+				secs.forEach(function(sec) {
+					if (sec.style.display == "none") {
+						sec.style.display = "block";
+					}
+					else {
+						sec.style.display = "none";
+					}
+					// if (sec.style.display == "block") {
+					// 	sec.style.display = "none";
+					// }
+					// else {
+					// 	sec.style.display = "block";
+					// }
+				});
+				//document.querySelector("#" + id + " .section").style.display = "none";
+			}
+			panelDiv.appendChild(titleDiv);
+		}
+		document.getElementById(sidebarId).appendChild(panelDiv);
+		return panelDiv;
+	}
+
+	function ctlSection(title, id, extraClassNames, panel) {
+		var sectionDiv = document.createElement("DIV");
+		sectionDiv.id = id;
+		sectionDiv.className = "section " + extraClassNames;
+		if (title) {
+			var titleDiv = document.createElement("DIV");
+			titleDiv.className = "sectiontitle";
+			titleDiv.innerHTML = title;
+			panel.appendChild(titleDiv);
+		}
+		panel.appendChild(sectionDiv);
+		return sectionDiv;
+	}
+
+	function ctlComponent(component) {
+		// create the wrapper div and label
+		var componentDiv = document.createElement("DIV");
+		componentDiv.className = "componentDiv";
+		inspectorSection.appendChild(componentDiv);
+
+		var componentButton = document.createElement("DIV");
+		componentButton.className = "componentButton component button icon expander";
+		componentButton.style.cssFloat = "left";
+		componentDiv.appendChild(componentButton);
+
+		var componentButton = document.createElement("DIV");
+		componentButton.className = "componentButton component button icon remove";
+		componentDiv.appendChild(componentButton);
+
+		// var componentButton = document.createElement("DIV");
+		// componentButton.className = "componentButton component button icon menu";
+		// componentDiv.appendChild(componentButton);
+
+		var componentButton = document.createElement("DIV");
+		componentButton.className = "componentButton component button icon movedown";
+		componentDiv.appendChild(componentButton);
+
+		var componentButton = document.createElement("DIV");
+		componentButton.className = "componentButton component button icon moveup";
+		componentDiv.appendChild(componentButton);
+
+		var componentLabel = document.createElement("DIV");
+		componentLabel.innerHTML = component.type; // + " component";
+		componentLabel.className = "componentlabel";
+		componentDiv.appendChild(componentLabel);
+
+		// create a control for each prop
+		Object.keys(component).forEach(function(key,index) {
+			if (key != "type") {
+				if (key == "path") {
+					var thing = ctl("button filetarget", key, component[key], null, componentDiv, null);
+					thing.addEventListener("drop", function(e) {
+						var path = e.dataTransfer.getData("text").replace("../client/", "");
+						component[key] = path;
+						thing.innerHTML = path;
+						ASTRAL.loadImage(path);
+					});
+				}
+				else {
+					var thing = ctl("button", key, component[key], null, componentDiv, null);
+				}
+			}
+		});
+
+		return componentDiv;
+	}
+
+///////////////////////////////////////
+//
+//	HELPERS & GENERICS
+//
+///////////////////////////////////////
+
+	function getDir(path) {
+		// this requests a directory listing from the server
+
+		var parentPath = path.split("/").slice(0, -1).join("/");
+		if (parentPath == "../client") {
+			upButton.classList.add("disabled");
+		}
+		else {
+			upButton.classList.remove("disabled");
+		}
+		upButton.onclick = function() {
+			var prev = parentPath;
+			getDir(prev);
+		}
+		ASTRAL.netcode.sendNow("*getdir," + path);
+		currentPath = path;
+	}
+
+	function getIconForFile(path) {
+		// this gets an icon (css classname) to use for the given path
+
+		path = path.toLowerCase();
+		if (path.includes("png")) {
+			return "png";
+		}
+		else if (path.includes("jpg")) {
+			return "jpg";
+		}
+		else if (path.includes("prefab")) {
+			return "prefab";
+		}
+		else if (path.includes("scene")) {
+			return "scene";
+		}
+		else if (path.includes("mp3") || path.includes("wav")) {
+			return "sound";
+		}
+		else if (path.includes("atlas")) {
+			return "atlas";
+		}
+	}
+
+	function toggle() {
+		// this toggles visibility of the editor
+
+		// TODO: some tight coupling here...but considering spriter is always coupled this might be fine
+		console.log("editor.js toggle()");
+		if (editorDiv.style.visibility == "hidden") {
+			document.querySelectorAll(".sidebar").forEach(function(el) {
+				el.style.display = "block";
+			});
+			ASTRAL.setPanelLayout([], [], ["scenePanel", "inspectorPanel"], ["toolsPanel", "diagnosticsPanel", "displayPanel", "projectPanel"]);
+			editorDiv.style.visibility = "visible";
+			isenabled = true;
+			getDir("../client/assets");
+		}
+		else {
+			document.querySelectorAll(".sidebar").forEach(function(el) {
+				el.style.display = "none";
+			});
+			editorDiv.style.visibility = "hidden";
+			spriterDiv.style.visibility = "hidden";
+			isenabled = false;
+		}
+	}
+
+	var lastMouseEvent;
 
 	function showOverlays(elementArray) {
 		elementArray.forEach(function(id) {

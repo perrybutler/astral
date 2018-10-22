@@ -145,7 +145,10 @@
 }
 
 .panel .section {
-	padding:6px;
+	padding-left:6px;
+	padding-right:6px;
+	padding-top:6px;
+	padding-bottom:4px;
 	/*max-height:170px;
 	overflow:auto;*/
 	overflow:auto;
@@ -253,6 +256,17 @@
 	padding-right:0.5em;
 }
 
+.panel .button.component.icon {
+	background-color:transparent;
+	float:right;
+	top:2px;
+	margin-right:0;
+}
+
+.panel .button.component:hover {
+	background-color:#333;
+}
+
 .panel .input {
 	background-color: #313131; /*#585858;*/
     color: #fff;
@@ -294,6 +308,9 @@
 .panel .button.icon.diskette {background-image:url('assets/diskette.png');}
 .panel .button.icon.openexternal {background-image:url('assets/openexternal.png');}
 .panel .button.icon.download {background-image:url('assets/download.png');}
+.panel .button.icon.remove {background-image:url('assets/remove.png');}
+.panel .button.icon.expander {background-image:url('assets/expander.png');}
+.panel .button.icon.menu {background-image:url('assets/menu.png');}
 
 .panel .button.buttonicon {background-repeat:no-repeat; padding-left:18px;}
 .panel .button.buttonicon.file {background-image:url('assets/file.png'); background-position-x:right; padding-left:0.2em; padding-right:18px;}
@@ -307,6 +324,10 @@
 .panel .button.buttonicon.sound {background-image:url('assets/sound.png');}
 .panel .button.buttonicon.atlas {background-image:url('assets/atlas.png');}
 .panel .button.buttonicon.message {background-image:url('assets/message.png');}
+
+.componentButton.button.icon:hover {
+	background-color:#989898;
+}
 
 .panel .button.new {
 	margin-bottom:0.2em;
@@ -338,11 +359,30 @@
 	font-family:arial;
     font-size:0.8em;
     font-style:italic;
-    color:#fff; /*#ff9b00; /*#929292;*/
-    /*margin-top: 0.5em;
-    border-top: 1px dashed;*/
-    padding-top:2px;
+    color:#fff;
     font-variant:small-caps;
+    border-radius: 10px;
+    clear:both;
+}
+
+.componentDiv {
+    margin-top:2px;
+    margin-bottom:5px;
+    margin-left:-2px;
+    margin-right:-2px;
+    border-radius:4px;
+   	padding-left:4px;
+    padding-right:4px;
+    padding-bottom:4px;
+    background-color:#6f6f6f;
+}
+
+.panel .button:last-child {
+	margin-bottom:0;
+}
+
+.panel .componentDiv:last-child {
+	margin-bottom:0;
 }
 
 .mainControl {

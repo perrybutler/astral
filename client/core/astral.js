@@ -637,11 +637,30 @@ var ASTRAL = new function() {
 		info.name = path.split("/").pop();
 		info.ext = path.split(".").pop().toLowerCase();
 		info.nameNoExt = info.name.split(".").slice(0, -1).join(".");
-		console.log("got file info:", info);
+		console.log("got file info for " + info.name + ":", info);
 		switch (info.ext) {
 			case "png":
 			case "jpg":
 				info.type = "image";
+				break;
+			case "js":
+				info.type = "script";
+				break;
+			case "atlas":
+				info.type = "atlas";
+				break;
+			case "scene":
+				info.type = "scene";
+				break;
+			case "prefab":
+				info.type = "prefab";
+				break;
+			case "mp3":
+			case "wav":
+				info.type = "sound";
+				break;
+			case "json":
+				info.type = "data";
 				break;
 		}
 		return info;
