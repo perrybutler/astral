@@ -22,7 +22,7 @@ ASTRAL.editor = new function() {
 	var homePath = "../client/assets";
 	var currentPath;
 
-	var sceneData;
+	//var sceneData;
 	var inspectedObject;
 
 ///////////////////////////////////////
@@ -143,7 +143,11 @@ ASTRAL.editor = new function() {
 
 		// create the project panel
 		projectPanel = ctlPanel("project", "projectPanel", "", "sidebar1");
+		var connectionSection = ctlSection("", "connectionSection", "", projectPanel);
+		connectionSection.className = "connectionmsg";
+		connectionSection.innerHTML = "Establish a connection to the server to use this feature, or use Windows Explorer as an alternative.";
 		projectSection = ctlSection("", "projectSection", "", projectPanel);
+		projectSection.classList.add("connectionreq");
 		homeButton = ctl("button icon home", null, "", null, projectSection, function() {getDir("../client/assets")});
 		homeButton.dataset.tip = "Return to the root assets folder";
 		upButton = ctl("button icon moveup", null, "", null, projectSection, function() {});
@@ -176,6 +180,21 @@ ASTRAL.editor = new function() {
 			addProjectFileToScene(path, e);
 		}, false);
 
+		ASTRAL.netcode.on("connect", function() {
+			// document.querySelectorAll(".connectionRequired").forEach(function(el) {
+			// 	el.display = "block";
+			// });
+			console.log("GETDIR");
+			getDir("../client/assets");
+		});
+
+		ASTRAL.netcode.on("close", function() {
+			// document.querySelectorAll(".connectionRequired").forEach(function(el) {
+			// 	el.display = "none";
+			// });
+			//getDir("../client/assets");
+		});
+
 		// subscribe to netcode dirlist which we use to update the PROJECT panel
 		ASTRAL.netcode.on("*dirlist", function(payload) {
 			populateProjectPanel(payload);
@@ -197,16 +216,28 @@ ASTRAL.editor = new function() {
 			}
 		});
 
-		// subscribe to loadscene which we use to update the SCENE panel
-		ASTRAL.on("loadscene", function(scenedata) {
-			populateScenePanel(scenedata);
-		});
+		// // subscribe to loadscene which we use to update the SCENE panel
+		// ASTRAL.on("loadscene", function(scenedata) {
+		// 	populateScenePanel(scenedata);
+		// });
 
 		window.addEventListener("resize", function() {
 			if (resolution.value == "Dynamic") {
 				scaling.value = "Stretch";
 				screenScalingChange();
 			}
+		});
+
+		ASTRAL.on("beforesceneload", function() {
+			// clear the scene panel object list
+			var currentList = document.querySelectorAll(".sceneobjectbutton");
+			for (var i = 0; i < currentList.length; i++) {
+				currentList[i].remove();
+			}
+		});
+
+		ASTRAL.on("objectloaded", function(obj) {
+			addGameObjectToScenePanel(obj);
 		});
 
 		// setInterval(function() {
@@ -218,6 +249,8 @@ ASTRAL.editor = new function() {
 		//	with a 10ms timeout, sometimes the code will work fine sometimes the race condition
 		//	occurs
 		//setTimeout(function() {screenScalingChange()}, 10);
+		
+		//console.log("ASTRAL", ASTRAL);
 	}
 
 	function saveScene() {
@@ -226,7 +259,8 @@ ASTRAL.editor = new function() {
 
 	function viewSceneData() {
 		// TODO: this is not carrying over new objects...only initial objects and their changed data
-		ASTRAL.openDataInNewTab(sceneData);
+		//ASTRAL.openDataInNewTab(ASTRAL.sceneData);
+		console.log(ASTRAL.sceneData);
 	}
 
 	function downloadScene() {
@@ -354,6 +388,23 @@ ASTRAL.editor = new function() {
 				}).call(this, path);
 			}
 		}
+	}
+
+	function addGameObjectToScenePanel(obj) {
+		// add a button for this gameobject to the SCENE panel
+		var objectButton = ctl(
+			"button sceneobjectbutton level" + obj.level,
+			null,
+			obj.name,
+			null,
+			sceneSection,
+			function() {populateInspectorPanel(obj)}
+		);
+
+		// visual feedback
+		flashDomElement(objectButton);
+		
+		console.log("created scenegraph node:", obj);
 	}
 
 	function addProjectFileToScene(path, mouseevent) {
@@ -872,7 +923,7 @@ ASTRAL.editor = new function() {
 			ASTRAL.setPanelLayout([], [], ["scenePanel", "inspectorPanel"], ["toolsPanel", "diagnosticsPanel", "displayPanel", "projectPanel"]);
 			editorDiv.style.visibility = "visible";
 			isenabled = true;
-			getDir("../client/assets");
+			//getDir("../client/assets");
 		}
 		else {
 			document.querySelectorAll(".sidebar").forEach(function(el) {

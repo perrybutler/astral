@@ -1,6 +1,7 @@
 console.log("netcode.js entry point");
 
 ASTRAL.netcode = new function() {
+	var host = "ws://localhost:33333/echo";
 	var connection;
 	var onHandlers = [];
 	var receiveQueue = [];
@@ -15,36 +16,42 @@ ASTRAL.netcode = new function() {
 	}	
 
 	function onHandler(name, func) {
-		onHandlers[name] = func;
+		if (!onHandlers[name]) {
+			onHandlers[name] = [];
+		}
+		onHandlers[name].push(func);
 	}
 
 	function doHandler(name, payload) {
-		var func = onHandlers[name];
-		if (func) func(payload);
+		var handler = onHandlers[name];
+		if (handler) {
+			for (var i = 0; i < handler.length; i++) {
+				var func = handler[i];
+				func(payload);
+			}
+		}
 	}
 
 	function connect() {
-		var host = "ws://localhost:33333/echo";
-		//var host = "ws://172.89.46.7:33333/echo";
-
 		console.log("connecting to host " + host);
-
 		connection = new WebSocket(host);
 
 		connection.onclose = function() {
-			ASTRAL.error("Connection to " + host + " failed. Make sure the NodeJS server is running, then reload this page.");
+			//ASTRAL.error("Connection to " + host + " failed. Make sure the NodeJS server is running, then reload this page.");
+			document.body.classList.remove("connected");
 			connection = null;
 		}
 
 		connection.onopen = function() {
 			console.log("connected successfully");
-			doHandler("connect");
+			document.body.classList.add("connected");
+			doHandler("connect"); // notify listeners of the event
 			pingTime = Date.parse(new Date().toUTCString());
 			queueSend("*keepalive,ping?," + pingTime);
 		}
 
 		connection.onerror = function(error) {
-			console.log("connection error: " + error);
+			console.log("connection error:", error);
 		}
 
 		connection.onmessage = function(msg) {
@@ -58,8 +65,13 @@ ASTRAL.netcode = new function() {
 		totalOut++;
 		totalMessages++;
 		console.log("<-", payload);
-		connection.send(JSON.stringify(payload));
-		doHandler("aftersend");
+		if (connection) {
+			connection.send(JSON.stringify(payload));
+			doHandler("aftersend");
+		}
+		else {
+			console.log("failed to send message to server because connection is not established");
+		}
 	}
 
 	function receive(data) {

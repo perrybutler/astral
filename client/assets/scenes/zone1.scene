@@ -2,8 +2,8 @@
 	{
 		"id": "000001",
 		"name": "guy",
-		"x": "300",
-		"y": "300",
+		"x": 300,
+		"y": 300,
 		"components": [
 			{
 				"type": "image",
@@ -22,14 +22,40 @@
 						"path": "assets/sword.png"
 					}
 				]
+			},
+			{
+				"id": "000004",
+				"name": "weapon",
+				"x": 320,
+				"y": 290,
+				"components": [
+					{
+						"type": "image",
+						"path": "assets/sword.png"
+					}
+				],
+				"objects": [
+					{
+						"id": "000005",
+						"name": "weapon",
+						"x": 320,
+						"y": 290,
+						"components": [
+							{
+								"type": "image",
+								"path": "assets/sword.png"
+							}
+						]
+					}
+				]
 			}
 		]
 	},
 	{
 		"id": "000002",
 		"name": "spunky guy",
-		"x": "350",
-		"y": "370",
+		"x": 350,
+		"y": 370,
 		"components": [
 			{
 				"type": "atlas",

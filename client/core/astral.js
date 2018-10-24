@@ -4,24 +4,25 @@ console.log("astral.js entry point");
 // 	//resizeWindow();
 // }
 
-var ASTRAL = new function() {
+var ASTRAL = {
 	// async loader stuff
 	var requires = [
 		{name: "netcode", path: "core/netcode.js"},
 		{name: "entity", path: "core/entity.js"},
 		{name: "editor", path: "core/editor.js"},
-		{name: "spriter", path: "core/spriter.js"},
-		{name: "game", path: "game.js"}
+		{name: "spriter", path: "core/spriter.js"}
+		//{name: "game", path: "game.js"}
 		//{name: "world", path: "world.js"}
 	];
 	var loaded = 0;
 	var loadcount = 0;
 	var finalCallback = null;
 
-	// pubsub handlers
+	// observer handlers (callbacks)
 	var onHandlers = [];
 
 	// graphics stuff
+	var sceneData = [];
 	var layers = [];
 	var images = [];
 	var imgMissing;
@@ -130,16 +131,19 @@ var ASTRAL = new function() {
 			}
 		});
 
-		// connect
 		// TODO: put this on a button or background timer, dont halt execution or fail out when connect fails
 		ASTRAL.netcode.on("connect", function(){
 			console.log("connect handler fired");
 			requestAnimationFrame(gameLoop);
 		});
+
+		// try to connect connect
 		ASTRAL.netcode.connect();
 
 		// load a scene
 		loadScene("assets/scenes/zone1.scene");
+
+		requestAnimationFrame(gameLoop);
 
 		// fire a window resize once to make editor resolution setting take effect (we can't call this in
 		//	editor due to race condition see the TODO there)
@@ -220,7 +224,7 @@ var ASTRAL = new function() {
     		images[path] = img;
     		if (callback) callback(img);
     	}
-	    img.onerror = function() {console.log("FAIL"); img = null;}
+	    img.onerror = function() {console.log("failed to load image " + path); img = null;}
 	}
 
 	function loadJson(name, callback) {
@@ -247,12 +251,50 @@ var ASTRAL = new function() {
 	}
 
 	function loadScene(path) {
-		ASTRAL.game.objects = [];
+		ASTRAL.do("beforesceneload"); // e.g. editor can listen to this and clear its scene list
+		sceneData = [];
 		loadJson(path, function(scenedata) {
-			//console.log("DATA", data);
-			// iterate gameobjects in data and put them in the scene panel / canvas
-			ASTRAL.do("loadscene", JSON.parse(scenedata));
+			sceneData = JSON.parse(scenedata);
+			loadObjects(sceneData);
 		});
+	}
+
+	function loadObjects(objects, path, level) {
+		// walks the objects array recursively and calls loadObject() on each object
+		if (!path) path = "";
+		if (!level) level = 0;
+		level++;
+		var levelRoot = path;
+		for (var key in objects) {
+			var obj = objects[key];
+			obj.path = levelRoot + "/" + obj.name;
+			obj.level = level;
+			loadObject(obj);
+			if (obj.objects) {
+				loadObjects(obj.objects, obj.path, level);
+			}
+		}
+		level = 1;
+	}
+
+	function loadObject(obj) {
+		if (!obj.vx) obj.vx = 0;
+		if (!obj.vy) obj.vy = 0;
+		if (!obj.rot) obj.rot = 0;
+		if (!obj.scale) obj.scale = 1;
+		obj.speed = 0.088;
+		obj.channels = [];
+		for (var key in obj.components) {
+			var component = obj.components[key];
+			if (component.type == "image") {
+				// TODO: we don't want to call loadImage() for images already loaded...
+				loadImage(component.path);
+			}
+			else if (component.type == "atlas") {
+				loadImage(component.path);
+			}
+		}
+		ASTRAL.do("objectloaded", obj); // e.g. editor can listen to this and create an item in the scene list
 	}
 
 	function playSound(path) {
@@ -371,8 +413,8 @@ var ASTRAL = new function() {
 		ASTRAL.netcode.handleSendQueue();
 
 		// update the objects by incrementing their state
-		for (var key in ASTRAL.game.objects) {
-			var obj = ASTRAL.game.objects[key];
+		for (var key in sceneData) {
+			var obj = sceneData[key];
 			obj.x += obj.vx * obj.speed * delta;
 			obj.y += obj.vy * obj.speed * delta;
 		}
@@ -398,51 +440,42 @@ var ASTRAL = new function() {
 		ctx.imageSmoothingEnabled = false; // TODO: not sure why we have to call this here but it only works if called here
 
 		// draw the visible graphics
-		for (var key in ASTRAL.game.objects) {
-			var obj = ASTRAL.game.objects[key];
+		for (var key in sceneData) {
+			var obj = sceneData[key];
+			drawObject(obj, ctx);
+		}
+	}
 
-			// TODO: here we need to get all renderable components and render them
-			//console.log(obj.components);
-			if (obj.components) {
-				for (var i = 0; i < obj.components.length; i++) {
-					var component = obj.components[i];
-					if (component.type == "image") {
-						var img = images[component.path];
-						if (!img) img = imgMissing;
-
-						// if the image isnt set, try to load it now
-						// TODO: this could hide mistakes...lets put this back in later
-						// if (!img) {
-						// 	loadImage(path);
-						// }
-						//console.log(component, img);
-						drawImage(img, obj, ctx);
-
-					}
-					else if (component.type == "atlas") {
-						var img = images[component.path];
-						if (!img) img = imgMissing;
-						//ctx.drawImage(img, obj.x, obj.y);
-						drawImage(img, obj, ctx);
-					}
-					else if (component.type == "rotator") {
-						obj.rot += parseInt(component.speed);
-					}
+	function drawObject(obj, ctx, parent) {
+		// draw the object using its renderable components
+		if (obj.components) {
+			for (var i = 0; i < obj.components.length; i++) {
+				var component = obj.components[i];
+				if (component.type == "image") {
+					var img = images[component.path];
+					if (!img) img = imgMissing;
+					drawImage(img, obj, ctx);
+				}
+				else if (component.type == "atlas") {
+					var img = images[component.path];
+					if (!img) img = imgMissing;
+					//ctx.drawImage(img, obj.x, obj.y);
+					drawImage(img, obj, ctx);
+				}
+				else if (component.type == "rotator") {
+					obj.rot += parseInt(component.speed);
 				}
 			}
-			else {
-				//ctx.drawImage(imgMissing, obj.x, obj.y);
-				drawImage(imgMissing, obj, ctx);
+		}
+		else {
+			//ctx.drawImage(imgMissing, obj.x, obj.y);
+			drawImage(imgMissing, obj, ctx);
+		}
+		if (obj.objects) {
+			for (var key in obj.objects) {
+				var childObj = obj.objects[key];
+				drawObject(childObj, ctx, obj);
 			}
-
-			// // draw the sprite
-			// var img = images[obj.imageid];
-			// if (!img) {
-			// 	img = imgMissing;
-			// }
-			// ctx.drawImage(img, obj.x, obj.y);
-
-
 		}
 	}
 
@@ -456,6 +489,7 @@ var ASTRAL = new function() {
 		ctx.drawImage(img, obj.x, obj.y);
 
 		// draw the editor hints/helpers
+		// TODO: tight coupling here...
 		if (ASTRAL.editor.enabled()) {
 			// TODO: move this code to the editor using a pubsub message...then we can check inspectorObject
 			//	there and change the rect color
@@ -493,7 +527,7 @@ var ASTRAL = new function() {
 				loadImage(component.path);
 			}
 		}
-		ASTRAL.game.objects[obj.id] = obj;
+		sceneData[obj.id] = obj;
 		console.log("loaded object " + obj.name + " with id " + obj.id, obj);
 		return obj;
 	}
@@ -520,7 +554,7 @@ var ASTRAL = new function() {
 		else if (name.includes("pup")) {
 			obj.imageid = "pup.png";
 		}
-		ASTRAL.game.objects[obj.id] = obj;
+		sceneData[obj.id] = obj;
 		console.log("created object " + obj.name + " with id " + obj.id);
 		return obj;
 	}
@@ -558,46 +592,6 @@ var ASTRAL = new function() {
 ///////////////////////////////////////
 
 	function setPanelLayout(panels1, panels2, panels3, panels4) {
-		// var p1 = document.querySelectorAll("#sidebar1 .panel");
-		// p1.forEach(function(p) {
-		// 	if (panels1.includes(p)) {
-		// 		p.style.display = "block";
-		// 	}
-		// 	else {
-		// 		p.style.display = "none";
-		// 	}
-		// });
-
-		// var p2 = document.querySelectorAll("#sidebar2 .panel");
-		// p2.forEach(function(p) {
-		// 	if (panels2.includes(p)) {
-		// 		p.style.display = "block";
-		// 	}
-		// 	else {
-		// 		p.style.display = "none";
-		// 	}
-		// });
-
-		// var p3 = document.querySelectorAll("#sidebar3 .panel");
-		// p3.forEach(function(p) {
-		// 	if (panels3.includes(p)) {
-		// 		p.style.display = "block";
-		// 	}
-		// 	else {
-		// 		p.style.display = "none";
-		// 	}
-		// });
-
-		// var p4 = document.querySelectorAll("#sidebar4 .panel");
-		// p4.forEach(function(p) {
-		// 	if (panels4.includes(p)) {
-		// 		p.style.display = "block";
-		// 	}
-		// 	else {
-		// 		p.style.display = "none";
-		// 	}
-		// });
-
 		var panels = document.querySelectorAll(".sidebar .panel");
 		panels.forEach(function(p) {
 			p.style.display = "none";
@@ -737,6 +731,7 @@ var ASTRAL = new function() {
 	this.on = onHandler;
 	this.do = doHandler;
 	this.init = init;
+	this.sceneData = sceneData;
 	this.layers = layers;
 	this.images = images;
 	this.tester = tester;

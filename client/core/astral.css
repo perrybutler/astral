@@ -135,6 +135,25 @@
 
 ******************************/
 
+.connectionmsg {
+	color:#999;
+	font-family:arial;
+	font-size:0.7em;
+	padding:5px;
+}
+
+.connectionreq {
+	display:none;
+}
+
+.connected .connectionmsg {
+	display:none;
+}
+
+.connected .connectionreq {
+	display:block;
+}
+
 .panel {
     display:none;
     position:relative;
