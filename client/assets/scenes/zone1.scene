@@ -63,7 +63,7 @@
 				"state": "knight_walk"
 			},
 			{
-				"type": "rotator",
+				"type": "rotate",
 				"speed": "1"
 			},
 			{

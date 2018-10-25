@@ -275,13 +275,6 @@
 	padding-right:0.5em;
 }
 
-.panel .button.component.icon {
-	background-color:transparent;
-	float:right;
-	top:2px;
-	margin-right:0;
-}
-
 .panel .button.component:hover {
 	background-color:#333;
 }
@@ -328,8 +321,11 @@
 .panel .button.icon.openexternal {background-image:url('assets/openexternal.png');}
 .panel .button.icon.download {background-image:url('assets/download.png');}
 .panel .button.icon.remove {background-image:url('assets/remove.png');}
-.panel .button.icon.expander {background-image:url('assets/expander.png');}
+.panel .button.icon.expanded {background-image:url('assets/expanded.png');}
+.panel .button.icon.collapsed {background-image:url('assets/collapsed.png');}
 .panel .button.icon.menu {background-image:url('assets/menu.png');}
+.panel .button.icon.basic {background-image:url('assets/basic.png');}
+.panel .button.icon.advanced {background-image:url('assets/advanced.png');}
 
 .panel .button.buttonicon {background-repeat:no-repeat; padding-left:18px;}
 .panel .button.buttonicon.file {background-image:url('assets/file.png'); background-position-x:right; padding-left:0.2em; padding-right:18px;}
@@ -343,10 +339,8 @@
 .panel .button.buttonicon.sound {background-image:url('assets/sound.png');}
 .panel .button.buttonicon.atlas {background-image:url('assets/atlas.png');}
 .panel .button.buttonicon.message {background-image:url('assets/message.png');}
-
-.componentButton.button.icon:hover {
-	background-color:#989898;
-}
+.panel .button.buttonicon.edit {background-image:url('assets/edit.png');}
+.panel .button.buttonicon.connect {background-image:url('assets/connect.png');}
 
 .panel .button.new {
 	margin-bottom:0.2em;
@@ -374,7 +368,25 @@
 	color:#aaa;
 }
 
-.componentlabel {
+.panel .button.component.icon {
+	background-color:transparent;
+	float:right;
+	top:2px;
+	margin-right:0;
+}
+
+.componentButton.button.icon:hover {
+	background-color:#989898;
+}
+
+.componentText {
+	color:#999;
+	font-family:arial;
+	font-size:0.7em;
+	padding:5px;
+}
+
+.componentLabel {
 	font-family:arial;
     font-size:0.8em;
     font-style:italic;
@@ -382,9 +394,12 @@
     font-variant:small-caps;
     border-radius: 10px;
     clear:both;
+    padding-left:1px;
 }
 
 .componentDiv {
+	position:relative;
+	overflow:hidden;
     margin-top:2px;
     margin-bottom:5px;
     margin-left:-2px;
@@ -394,11 +409,24 @@
     padding-right:4px;
     padding-bottom:4px;
     background-color:#6f6f6f;
+    transition:all 1.5s ease;
 }
 
-.panel .button:last-child {
+.componentDiv .input {
+	background-color:#585858;
+}
+
+.componentDiv .button {
+	background-color:#909090;
+}
+
+.panel .componentSection .button {
 	margin-bottom:0;
 }
+
+/*.panel .button:last-child {
+	margin-bottom:0;
+}*/
 
 .panel .componentDiv:last-child {
 	margin-bottom:0;
@@ -440,11 +468,17 @@
 	/*font-variant:small-caps;*/
 	opacity:0;
 	transition:all 1s ease;
+	height:auto;
 }
 
-#tooltip.animate {
+/*#tooltip.animate {
 	right:220px;
 	background:#ff0000;
+}*/
+
+.fadeout {
+	opacity:0;
+	/*transform:scaleY(0);*/
 }
 
 .overlay { /* NOTE: this only works if parent element has position:relative */
@@ -487,9 +521,10 @@
     width: 100%;*/
     /*text-align: center;
     font-size: 2em;*/
+    top:0;
 }
 
 .error.errorfade {
-	/*opacity:0;
-	top:-10;*/
+	opacity:0;
+	top:-10;
 }

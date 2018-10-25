@@ -1,0 +1,9 @@
+{
+	"name": "My Super Fun Game",
+	"modules": [
+		{"name": "netcode", "path": "core/netcode.js"},
+		{"name": "editor", "path": "core/editor.js"},
+		{"name": "spriter", "path": "core/spriter.js"}
+	],
+	"startup": "assets/scenes/zone1.scene"
+}

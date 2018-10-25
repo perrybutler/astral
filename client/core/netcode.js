@@ -1,6 +1,9 @@
 console.log("netcode.js entry point");
 
 ASTRAL.netcode = new function() {
+
+	console.log("netcode.js constructor");
+
 	var host = "ws://localhost:33333/echo";
 	var connection;
 	var onHandlers = [];

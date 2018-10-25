@@ -1,22 +1,16 @@
 console.log("astral.js entry point");
 
-// window.onload = window.onresize = function() {
-// 	//resizeWindow();
-// }
+var ASTRAL = (function() {
 
-var ASTRAL = {
-	// async loader stuff
-	var requires = [
-		{name: "netcode", path: "core/netcode.js"},
-		{name: "entity", path: "core/entity.js"},
-		{name: "editor", path: "core/editor.js"},
-		{name: "spriter", path: "core/spriter.js"}
-		//{name: "game", path: "game.js"}
-		//{name: "world", path: "world.js"}
-	];
-	var loaded = 0;
-	var loadcount = 0;
-	var finalCallback = null;
+	console.log("astral.js constructor");
+
+	///////////////////////////////////////
+	//
+	//	PRIVATE LOCAL VARS
+	//
+	///////////////////////////////////////
+
+	var gameInfo = [];
 
 	// observer handlers (callbacks)
 	var onHandlers = [];
@@ -28,6 +22,7 @@ var ASTRAL = {
 	var imgMissing;
 	var atlases = [];
 	var prefabs = [];
+	var components = [];
 
 	// timing stuff
 	var lastFrameTime = Date.now();
@@ -41,21 +36,27 @@ var ASTRAL = {
 	var lastInput = "0,0";
 	var finalInput = "0,0";
 
-	function onHandler(name, func) {
-		onHandlers[name] = func;
-	}
+	///////////////////////////////////////
+	//
+	//	STARTUP SHUTDOWN
+	//
+	///////////////////////////////////////
 
-	function doHandler(name, payload) {
-		var func = onHandlers[name];
-		if (func) func(payload);
+	window.onload = function() {
+		ASTRAL.init();
 	}
 
 	function init() {
-		console.log("astral initializing...");
-		loadRequirements(requires, function() {
-			console.log("astral was initialized successfully");
-			console.log("###################################");
-			ready();
+		console.log("astral.js init()");
+
+		loadJson("game.json", function(val) {
+			gameInfo = JSON.parse(val);
+			console.log("got game info:", gameInfo);
+			loadBatch(gameInfo.modules, function() {
+				console.log("astral was initialized successfully");
+				console.log("###################################");
+				ready();
+			});
 		});
 	}
 
@@ -64,9 +65,6 @@ var ASTRAL = {
 
 		imgMissing = new Image();
 		imgMissing.src = "core/assets/missing.png";
-
-		// preload assets (for testing...later we will detect what to load based on proximity to cells)
-		loadImage("assets/guy.png");
 
 		// create layers
 		var gameLayer = createLayer("game", 1, drawGameLayer);
@@ -131,23 +129,36 @@ var ASTRAL = {
 			}
 		});
 
-		// TODO: put this on a button or background timer, dont halt execution or fail out when connect fails
-		ASTRAL.netcode.on("connect", function(){
-			console.log("connect handler fired");
-			requestAnimationFrame(gameLoop);
-		});
+		if (ASTRAL.netcode) {
+			// TODO: tight coupling here...
+			// TODO: put this on a button or background timer, dont halt execution or fail out when connect fails
+			ASTRAL.netcode.on("connect", function(){
+				console.log("connect handler fired");
+				//requestAnimationFrame(gameLoop);
+			});
 
-		// try to connect connect
-		ASTRAL.netcode.connect();
+			// try to connect now
+			ASTRAL.netcode.connect();
+		}
 
-		// load a scene
-		loadScene("assets/scenes/zone1.scene");
+		// load the startup scene
+		ASTRAL.loadScene(gameInfo.startup);
 
-		requestAnimationFrame(gameLoop);
+		// start the gameloop
+		start();
 
 		// fire a window resize once to make editor resolution setting take effect (we can't call this in
 		//	editor due to race condition see the TODO there)
 		window.dispatchEvent(new Event('resize'));
+	}
+
+	function start() {
+		enabled = true;
+		requestAnimationFrame(gameLoop);
+	}
+
+	function stop() {
+		enabled = false;
 	}
 
 ///////////////////////////////////////
@@ -156,20 +167,37 @@ var ASTRAL = {
 //
 ///////////////////////////////////////
 
+	function loadGame(callback) {
+		// loads the game.js file and fires a callback when game.js is done loading all deps
+		console.log("loading game.js");
+		var script = document.createElement("SCRIPT");
+		script.src = path;
+		script.onload = function() {
+			console.log("loading game.js fired its onload callback");
+			callback();
+			script.remove();
+		}
+		document.body.appendChild(script);
+	}
+
 	function loadScript(path, callback) {
 		// loads a script file from the given path
-
 		console.log("loading script at path " + path);
 		var script = document.createElement("SCRIPT");
 		script.src = path;
 		script.onload = function() {
+			console.log("loading script at path " + path  + " fired its onload callback");
 			callback();
 			script.remove();
 		}
 		document.body.appendChild(script);
 	}
 	
-	function loadRequirements(requires, callback) {
+	var loaded = 0;
+	var loadcount = 0;
+	var finalCallback = null;
+
+	function loadBatch(requires, callback) {
 		// loads multiple files
 
 		// if we just started a load chain, save the initial callback as the final callback 
@@ -191,7 +219,7 @@ var ASTRAL = {
 				var module = ASTRAL[r.name];
 				if (module && module.requires) {
 					console.log(r.name + " module has " + module.requires.length + " dependencies");
-					loadRequirements(module.requires, function() {
+					loadBatch(module.requires, function() {
 						if (module.init) {
 							module.init();
 						}
@@ -199,7 +227,7 @@ var ASTRAL = {
 				}
 				else {
 					console.log(r.name + " module has 0 dependencies");
-					if (module.init) {
+					if (module && module.init) {
 						module.init();
 					}
 				}
@@ -253,14 +281,18 @@ var ASTRAL = {
 	function loadScene(path) {
 		ASTRAL.do("beforesceneload"); // e.g. editor can listen to this and clear its scene list
 		sceneData = [];
-		loadJson(path, function(scenedata) {
-			sceneData = JSON.parse(scenedata);
+		loadJson(path, function(data) {
+			sceneData = JSON.parse(data);
+			ASTRAL.sceneData = sceneData;
+			console.log("loaded scene " + path + ", contains " + sceneData.length + " root nodes");
 			loadObjects(sceneData);
 		});
 	}
 
 	function loadObjects(objects, path, level) {
-		// walks the objects array recursively and calls loadObject() on each object
+		console.log("LOADING", objects);
+		// walks the objects array recursively to get the object path/level and calls loadObject() 
+		//	on each object to massage the cold json data into runtime data
 		if (!path) path = "";
 		if (!level) level = 0;
 		level++;
@@ -295,11 +327,6 @@ var ASTRAL = {
 			}
 		}
 		ASTRAL.do("objectloaded", obj); // e.g. editor can listen to this and create an item in the scene list
-	}
-
-	function playSound(path) {
-		var snd = new Audio(path);
-		snd.play();
 	}
 
 ///////////////////////////////////////
@@ -404,13 +431,15 @@ var ASTRAL = {
 
 	function update(delta) {
 		// handle messages from the server
-		ASTRAL.netcode.handleReceiveQueue();
+		// TODO: tight coupling...
+		if (ASTRAL.netcode) ASTRAL.netcode.handleReceiveQueue();
 
 		// update user input state
 		input();
 
 		// handle messages to the server
-		ASTRAL.netcode.handleSendQueue();
+		// TODO: tight coupling...
+		if (ASTRAL.netcode) ASTRAL.netcode.handleSendQueue();
 
 		// update the objects by incrementing their state
 		for (var key in sceneData) {
@@ -435,11 +464,10 @@ var ASTRAL = {
 		var ctx = layer.ctx;
 
 		// clear the canvas
-		ctx.clearRect(0, 0, can.width, can.height);
-		//can.width = can.width;
+		ctx.clearRect(0, 0, can.width, can.height); // alternative not recommended: can.width = can.width;
 		ctx.imageSmoothingEnabled = false; // TODO: not sure why we have to call this here but it only works if called here
 
-		// draw the visible graphics
+		// draw the objects
 		for (var key in sceneData) {
 			var obj = sceneData[key];
 			drawObject(obj, ctx);
@@ -462,7 +490,7 @@ var ASTRAL = {
 					//ctx.drawImage(img, obj.x, obj.y);
 					drawImage(img, obj, ctx);
 				}
-				else if (component.type == "rotator") {
+				else if (component.type == "rotate") {
 					obj.rot += parseInt(component.speed);
 				}
 			}
@@ -471,6 +499,24 @@ var ASTRAL = {
 			//ctx.drawImage(imgMissing, obj.x, obj.y);
 			drawImage(imgMissing, obj, ctx);
 		}
+		// draw debug/editor hints
+		// TODO: tight coupling here...
+		if (ASTRAL.editor.enabled) {
+			// draw a cross for the object's position
+			ctx.beginPath();
+			ctx.moveTo(obj.x - 4, obj.y - 4);
+			ctx.lineTo(obj.x + 4, obj.y + 4);
+			ctx.moveTo(obj.x - 4, obj.y + 4);
+			ctx.lineTo(obj.x + 4, obj.y - 4);
+			ctx.strokeStyle = "red";
+			ctx.stroke();
+			ctx.closePath();
+
+			// draw the object name and props
+			ctx.font = "12px Arial";
+			ctx.fillText(obj.name + " - " + obj.id, obj.x, obj.y - 6);
+		}
+		// call drawObject() recursively for children
 		if (obj.objects) {
 			for (var key in obj.objects) {
 				var childObj = obj.objects[key];
@@ -490,17 +536,16 @@ var ASTRAL = {
 
 		// draw the editor hints/helpers
 		// TODO: tight coupling here...
-		if (ASTRAL.editor.enabled()) {
+		if (ASTRAL.editor.enabled) {
 			// TODO: move this code to the editor using a pubsub message...then we can check inspectorObject
 			//	there and change the rect color
 			// draw the outlines and hints
 			ctx.beginPath();
 			ctx.rect(obj.x - 0.5, obj.y - 0.5, img.width, img.height);
+			ctx.strokeStyle = "blue";
 			ctx.stroke();
 			ctx.closePath();
-			// draw the object name and props
-			ctx.font = "12px Arial";
-			ctx.fillText(obj.name + " - " + obj.id, obj.x, obj.y - 6);
+
 			//ctx.fillText(obj.id, obj.x, obj.y - 6);
 		}
 		ctx.restore();
@@ -591,6 +636,20 @@ var ASTRAL = {
 //
 ///////////////////////////////////////
 
+	function onHandler(name, func) {
+		onHandlers[name] = func;
+	}
+
+	function doHandler(name, payload) {
+		var func = onHandlers[name];
+		if (func) func(payload);
+	}
+
+	function component(name, func) {
+		var component = func();
+		components[name] = component;
+	}
+
 	function setPanelLayout(panels1, panels2, panels3, panels4) {
 		var panels = document.querySelectorAll(".sidebar .panel");
 		panels.forEach(function(p) {
@@ -670,6 +729,11 @@ var ASTRAL = {
 		return color;
 	}
 
+	function playSound(path) {
+		var snd = new Audio(path);
+		snd.play();
+	}
+
 	function moveDomElement(el, offsetX, offsetY) {
 		// moves a dom element using its top/left style
 		var x = parseInt(el.style.left.replace("px", ""));
@@ -709,46 +773,37 @@ var ASTRAL = {
 	    x.document.close();
 	}
 
-	function error(msg) {
+	function error(msg, duration) {
 		var el = document.createElement("DIV");
 		el.className = "error";
 		el.innerHTML = msg;
 		document.body.appendChild(el);
-		setTimeout(function() {el.classList.add("errorfade")}, 10);
+		setTimeout(function() {el.classList.add("errorfade")}, duration);
 		//setTimeout(function() {el.remove()}, 1000);
 	}
 
-	// resizes the canvas layers when the browser resizes:
-	function resizeWindow() {
-		// TODO: need to determine whether to snap width or height...
-		// get viewport ratio and compare to canvas ratio to determine this
-
-		// var zoomFit = window.innerHeight / 480;
-		// document.getElementById("gameDiv").style.transform = "scale(" + zoomFit + ")";
-		// console.log(zoomFit);
+	return {
+		on:onHandler,
+		do:doHandler,
+		init:init,
+		sceneData:sceneData,
+		layers:layers,
+		images:images,
+		createLayer:createLayer,
+		createGameObject:createGameObject,
+		loadGameObject:loadGameObject,
+		loadImage:loadImage,
+		loadScene:loadScene,
+		loadBatch:loadBatch,
+		playSound:playSound,
+		getFileInfo:getFileInfo,
+		formatData:formatData,
+		downloadData:downloadData,
+		openDataInNewTab:openDataInNewTab,
+		error:error,
+		setPanelLayout:setPanelLayout,
+		component:component,
+		gameInfo:gameInfo
 	}
 
-	this.on = onHandler;
-	this.do = doHandler;
-	this.init = init;
-	this.sceneData = sceneData;
-	this.layers = layers;
-	this.images = images;
-	this.tester = tester;
-	this.createLayer = createLayer;
-	this.createGameObject = createGameObject;
-	this.loadGameObject = loadGameObject;
-	this.loadImage = loadImage;
-	this.loadScene = loadScene;
-	this.playSound = playSound;
-	this.getFileInfo = getFileInfo;
-	this.formatData = formatData;
-	this.downloadData = downloadData;
-	this.openDataInNewTab = openDataInNewTab;
-	this.error = error;
-	this.setPanelLayout = setPanelLayout;
-}
-
-document.addEventListener("DOMContentLoaded", function() {
-	ASTRAL.init();
-});
+}());
