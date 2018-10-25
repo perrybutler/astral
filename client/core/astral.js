@@ -12,7 +12,7 @@ var ASTRAL = (function() {
 
 	var gameInfo = [];
 
-	// observer handlers (callbacks)
+	// observer pattern
 	var onHandlers = [];
 
 	// graphics stuff
@@ -52,7 +52,7 @@ var ASTRAL = (function() {
 		loadJson("game.json", function(val) {
 			gameInfo = JSON.parse(val);
 			console.log("got game info:", gameInfo);
-			loadBatch(gameInfo.modules, function() {
+			loadBatch(gameInfo.preload, function() {
 				console.log("astral was initialized successfully");
 				console.log("###################################");
 				ready();
@@ -490,9 +490,15 @@ var ASTRAL = (function() {
 					//ctx.drawImage(img, obj.x, obj.y);
 					drawImage(img, obj, ctx);
 				}
-				else if (component.type == "rotate") {
-					obj.rot += parseInt(component.speed);
+				else {
+					var componentBase = components[component.type];
+					if (componentBase && componentBase.update) componentBase.update(obj);
 				}
+				// else if (component.type == "rotate") {
+				// 	//obj.rot += parseInt(component.speed);
+				// 	var componentBase = components[component.type];
+				// 	componentBase.update(obj);
+				// }
 			}
 		}
 		else {
@@ -645,10 +651,10 @@ var ASTRAL = (function() {
 		if (func) func(payload);
 	}
 
-	function component(name, func) {
-		var component = func();
-		components[name] = component;
-	}
+	// function component(name, func) {
+	// 	var component = func();
+	// 	components[name] = component;
+	// }
 
 	function setPanelLayout(panels1, panels2, panels3, panels4) {
 		var panels = document.querySelectorAll(".sidebar .panel");
@@ -802,7 +808,7 @@ var ASTRAL = (function() {
 		openDataInNewTab:openDataInNewTab,
 		error:error,
 		setPanelLayout:setPanelLayout,
-		component:component,
+		components:components,
 		gameInfo:gameInfo
 	}
 

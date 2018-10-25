@@ -1,7 +1,7 @@
-ASTRAL.components.rotate = (function() {
+ASTRAL.components.mover = (function() {
 	var speed = 1;
 	function update(obj) {
-		obj.rot += speed;
+		obj.x += speed;
 	}
 	return {
 		set speed(val) {

@@ -1,9 +1,11 @@
 {
 	"name": "My Super Fun Game",
-	"modules": [
+	"preload": [
 		{"name": "netcode", "path": "core/netcode.js"},
 		{"name": "editor", "path": "core/editor.js"},
-		{"name": "spriter", "path": "core/spriter.js"}
+		{"name": "spriter", "path": "core/spriter.js"},
+		{"name": "rotate", "path": "assets/scripts/rotate.js"},
+		{"name": "mover", "path": "assets/scripts/mover.js"}
 	],
 	"startup": "assets/scenes/zone1.scene"
 }

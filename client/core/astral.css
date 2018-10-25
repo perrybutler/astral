@@ -409,7 +409,7 @@
     padding-right:4px;
     padding-bottom:4px;
     background-color:#6f6f6f;
-    transition:all 1.5s ease;
+    transition:opacity 1.5s ease;
 }
 
 .componentDiv .input {

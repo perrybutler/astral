@@ -1113,9 +1113,14 @@ ASTRAL.editor = (function() {
 	}
 
 	return {
+		set enabled(val) {
+			enabled = val;
+		},
+		get enabled() {
+			return enabled;
+		},
 		init: init,
 		toggle: toggle,
-		enabled: enabled,
 		ctlPanel: ctlPanel,
 		ctlSection: ctlSection
 	}
