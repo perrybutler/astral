@@ -56,4 +56,4 @@ Very early prototype testing out sprite animations, roaming AI, shadows/opacity,
 
 ![](https://thumbs.gfycat.com/SentimentalNeedyArctichare-size_restricted.gif)
 
-It turns out I've been making and scrapping game engines for a while. What can I say? It's fun. This was made many years ago when Nokia phones were the hot ticket. (See graphics disclaimer at top of this page)
+It turns out I've been making and scrapping game engines for a while. What can I say? It's fun. This was made many years ago when Nokia phones were the hot ticket. It had a scrolling tiled background and animated sprite character, and ran smoothly on my Nokia 6230. (See graphics disclaimer at top of this page)
