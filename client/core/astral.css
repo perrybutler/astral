@@ -268,6 +268,11 @@
 	pointer-events:none;
 }
 
+.panel .button.on {
+	background-color:#bdbdbd;
+	color:#000;
+}
+
 .panel .button.pill {
 	display:inline-block;
 	margin-right:0.2em;

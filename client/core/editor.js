@@ -29,6 +29,14 @@ ASTRAL.editor = (function() {
 	//var sceneData;
 	var inspectedObject;
 
+	var drawObjectName = true;
+	var drawObjectId = true;
+	var drawObjectPos = false;
+	var drawObjectSize = false;
+	var drawObjectRot = false;
+	var drawObjectOrigin = true;
+	var drawObjectBorders = true;
+
 ///////////////////////////////////////
 //
 //	STARTUP
@@ -103,6 +111,15 @@ ASTRAL.editor = (function() {
 		var diagnosticsSection = ctlSection("", "", "", diagnosticsPanel);
 		var thing = ctl("button buttonicon message", "network", "netcodestuff", "netcodestuff", diagnosticsSection, null);
 		var thing = ctl("button buttonicon message", "memory", "memorystuff", "memorystuff", diagnosticsSection, null);
+		var thing = ctl("button pill toggle on", "draw object info", "name", null, diagnosticsSection, function() {toggleDrawObjectName()});
+		var thing = ctl("button pill toggle on", "", "id", null, diagnosticsSection, function() {toggleDrawObjectId()});
+		var thing = ctl("button pill toggle", "", "pos", null, diagnosticsSection, function() {toggleDrawObjectPos()});
+		var thing = ctl("button pill toggle", "", "size", null, diagnosticsSection, function() {toggleDrawObjectSize()});
+		var thing = ctl("button pill toggle", "", "rot", null, diagnosticsSection, function() {toggleDrawObjectRot()});
+		var thing = ctl("button pill toggle on", "", "origin", null, diagnosticsSection, function() {toggleDrawObjectOrigin()});
+		var thing = ctl("button pill toggle on", "", "borders", null, diagnosticsSection, function() {toggleDrawObjectBorders()});
+		var thing = ctl("button pill", "", "frameid", null, diagnosticsSection, function() {});
+		var thing = ctl("button pill", "", "p.count", null, diagnosticsSection, function() {});
 
 		// create the scene panel
 		scenePanel = ctlPanel("scene", "scenePanel", "", "sidebar1");
@@ -348,6 +365,75 @@ ASTRAL.editor = (function() {
 		}
 		else if (val == "Bilinear") {
 			gameCanvas.style.imageRendering = "auto";
+		}
+	}
+
+///////////////////////////////////////
+//
+//	DIAGNOSTICS PANEL
+//
+///////////////////////////////////////
+
+	function toggleDrawObjectName() {
+		if (drawObjectName == false) {
+			drawObjectName = true;
+		}
+		else {
+			drawObjectName = false;
+		}
+	}
+
+	function toggleDrawObjectId() {
+		if (drawObjectId == false) {
+			drawObjectId = true;
+		}
+		else {
+			drawObjectId = false;
+		}
+	}
+
+	function toggleDrawObjectPos() {
+		if (drawObjectPos == false) {
+			drawObjectPos = true;
+		}
+		else {
+			drawObjectPos = false;
+		}
+	}
+
+	function toggleDrawObjectSize() {
+		if (drawObjectSize == false) {
+			drawObjectSize = true;
+		}
+		else {
+			drawObjectSize = false;
+		}
+	}
+
+	function toggleDrawObjectRot() {
+		if (drawObjectRot == false) {
+			drawObjectRot = true;
+		}
+		else {
+			drawObjectRot = false;
+		}
+	}
+
+	function toggleDrawObjectOrigin() {
+		if (drawObjectOrigin == false) {
+			drawObjectOrigin = true;
+		}
+		else {
+			drawObjectOrigin = false;
+		}
+	}
+
+	function toggleDrawObjectBorders() {
+		if (drawObjectBorders == false) {
+			drawObjectBorders = true;
+		}
+		else {
+			drawObjectBorders = false;
 		}
 	}
 
@@ -788,6 +874,16 @@ ASTRAL.editor = (function() {
 			}
 			el.appendChild(dd);
 		}
+		else if (type.indexOf("toggle") != -1) {
+			el.addEventListener("click", function() {
+				if (this.classList.contains("on")) {
+					this.classList.remove("on");
+				}
+				else {
+					this.classList.add("on");
+				}
+			});
+		}
 
 		// create a header label
 		if (label) {
@@ -1122,7 +1218,28 @@ ASTRAL.editor = (function() {
 		init: init,
 		toggle: toggle,
 		ctlPanel: ctlPanel,
-		ctlSection: ctlSection
+		ctlSection: ctlSection,
+		get drawObjectName() {
+			return drawObjectName;
+		},
+		get drawObjectId() {
+			return drawObjectId;
+		},
+		get drawObjectPos() {
+			return drawObjectPos;
+		},
+		get drawObjectRot() {
+			return drawObjectRot;
+		},
+		get drawObjectSize() {
+			return drawObjectSize;
+		},
+		get drawObjectOrigin() {
+			return drawObjectOrigin;
+		},
+		get drawObjectBorders() {
+			return drawObjectBorders;
+		}
 	}
 
 }());

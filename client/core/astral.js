@@ -320,7 +320,12 @@ var ASTRAL = (function() {
 			var component = obj.components[key];
 			if (component.type == "image") {
 				// TODO: we don't want to call loadImage() for images already loaded...
-				loadImage(component.path);
+				loadImage(component.path, function(img) {
+					obj.baseWidth = img.width;
+					obj.baseHeight = img.height;
+					obj.width = obj.baseHeight * obj.scale;
+					obj.height = obj.baseHeight * obj.scale;
+				});
 			}
 			else if (component.type == "atlas") {
 				loadImage(component.path);
@@ -449,6 +454,15 @@ var ASTRAL = (function() {
 		}
 	}
 
+	function findComponentByType(obj, type) {
+		for (var i = 0; i < obj.components.length; i++) {
+			var component = obj.components[i];
+			if (component.type == type) {
+				return component;
+			}
+		}
+	}
+
 	function draw(delta) {
 		for (var key in layers) {
 			var layer = layers[key];
@@ -492,7 +506,7 @@ var ASTRAL = (function() {
 				}
 				else {
 					var componentBase = components[component.type];
-					if (componentBase && componentBase.update) componentBase.update(obj);
+					if (componentBase && componentBase.update) componentBase.update(obj, ctx);
 				}
 				// else if (component.type == "rotate") {
 				// 	//obj.rot += parseInt(component.speed);
@@ -508,19 +522,27 @@ var ASTRAL = (function() {
 		// draw debug/editor hints
 		// TODO: tight coupling here...
 		if (ASTRAL.editor.enabled) {
-			// draw a cross for the object's position
-			ctx.beginPath();
-			ctx.moveTo(obj.x - 4, obj.y - 4);
-			ctx.lineTo(obj.x + 4, obj.y + 4);
-			ctx.moveTo(obj.x - 4, obj.y + 4);
-			ctx.lineTo(obj.x + 4, obj.y - 4);
-			ctx.strokeStyle = "red";
-			ctx.stroke();
-			ctx.closePath();
+			if (ASTRAL.editor.drawObjectOrigin == true) {
+				// draw a cross for the object's position
+				ctx.beginPath();
+				ctx.moveTo(obj.x - 4, obj.y - 4);
+				ctx.lineTo(obj.x + 4, obj.y + 4);
+				ctx.moveTo(obj.x - 4, obj.y + 4);
+				ctx.lineTo(obj.x + 4, obj.y - 4);
+				ctx.strokeStyle = "red";
+				ctx.stroke();
+				ctx.closePath();
+			}
 
-			// draw the object name and props
+			// draw the object info
 			ctx.font = "12px Arial";
-			ctx.fillText(obj.name + " - " + obj.id, obj.x, obj.y - 6);
+			var arrtext = [];
+			if (ASTRAL.editor.drawObjectName == true) arrtext.push(obj.name);
+			if (ASTRAL.editor.drawObjectId == true) arrtext.push(obj.id);
+			if (ASTRAL.editor.drawObjectPos == true) arrtext.push(obj.x + "," + obj.y);
+			if (ASTRAL.editor.drawObjectSize == true) arrtext.push(obj.width + "x" + obj.height);
+			if (ASTRAL.editor.drawObjectRot == true) arrtext.push(obj.rot);
+			ctx.fillText(arrtext.join(" - "), obj.x, obj.y - 6);
 		}
 		// call drawObject() recursively for children
 		if (obj.objects) {
@@ -545,12 +567,13 @@ var ASTRAL = (function() {
 		if (ASTRAL.editor.enabled) {
 			// TODO: move this code to the editor using a pubsub message...then we can check inspectorObject
 			//	there and change the rect color
-			// draw the outlines and hints
-			ctx.beginPath();
-			ctx.rect(obj.x - 0.5, obj.y - 0.5, img.width, img.height);
-			ctx.strokeStyle = "blue";
-			ctx.stroke();
-			ctx.closePath();
+			if (ASTRAL.editor.drawObjectBorders == true) {
+				ctx.beginPath();
+				ctx.rect(obj.x - 0.5, obj.y - 0.5, img.width, img.height);
+				ctx.strokeStyle = "blue";
+				ctx.stroke();
+				ctx.closePath();
+			}
 
 			//ctx.fillText(obj.id, obj.x, obj.y - 6);
 		}
