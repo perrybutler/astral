@@ -42,7 +42,7 @@ ASTRAL.editor = (function() {
 //	STARTUP
 //
 ///////////////////////////////////////
-	
+
 	function init() {
 		// initializes the editor, this gets called as soon as editor.js is loaded by the browser
 		console.log("editor.js init()");
@@ -131,7 +131,7 @@ ASTRAL.editor = (function() {
 		var thing = ctl("button icon download", null, "", "scenedownload", sceneSection, function() {downloadScene()});
 		scenedownload.dataset.tip = "Download the scene data to disk.";
 		var thing = ctl("button sceneobjectbutton", null, "scene stuff here", null, sceneSection, null);
-		
+
 		// // create the brush panel
 		// brushPanel = document.createElement("DIV");
 		// brushPanel.className = "panel";
@@ -193,6 +193,15 @@ ASTRAL.editor = (function() {
 		//folderButton = ctl("button icon folderadd", null, "", null, projectSection, function() {});
 		currentPath = "../client/assets";
 
+		// create fps counter
+		var fpsDiv = document.createElement("DIV");
+		fpsDiv.id = "fps";
+		document.body.appendChild(fpsDiv);
+
+		ASTRAL.on("fps", function(fps) {
+			fpsDiv.innerHTML = fps;
+		});
+
 		// ??
 		editorCanvas.addEventListener("dragover", function(e) {
 			e.preventDefault();
@@ -225,7 +234,7 @@ ASTRAL.editor = (function() {
 				// document.querySelectorAll(".connectionRequired").forEach(function(el) {
 				// 	el.display = "block";
 				// });
-				console.log("GETDIR");
+				//console.log("GETDIR");
 				getDir("../client/assets");
 			});
 
@@ -264,7 +273,7 @@ ASTRAL.editor = (function() {
 		// });
 
 		window.addEventListener("resize", function() {
-			console.log("RESIZE");
+			//console.log("RESIZE");
 			if (resolution.value == "Dynamic") {
 				scaling.value = "Stretch";
 				screenScalingChange();
@@ -292,7 +301,7 @@ ASTRAL.editor = (function() {
 		//	with a 10ms timeout, sometimes the code will work fine sometimes the race condition
 		//	occurs
 		//setTimeout(function() {screenScalingChange()}, 10);
-		
+
 		//console.log("ASTRAL", ASTRAL);
 	}
 
@@ -483,7 +492,7 @@ ASTRAL.editor = (function() {
 				var fileName = files[i];
 				var label = null;
 				var path = currentPath + "/" + fileName;
-				console.log("PATH", fileName, path);
+				//console.log("PATH", fileName, path);
 				//var fi = ASTRAL.getFileInfo(path);
 				// TODO: the path we use here is server formatted not url formatted...
 				(function(path) {
@@ -514,7 +523,7 @@ ASTRAL.editor = (function() {
 
 		// visual feedback
 		flashDomElement(objectButton);
-		
+
 		console.log("created scenegraph node:", obj);
 	}
 
@@ -532,7 +541,7 @@ ASTRAL.editor = (function() {
 		var ry = ch / window.innerHeight;
 		obj.x = mouseevent.pageX * rx;
 		obj.y = mouseevent.pageY * ry;
-		
+
 		// if its an image, add image component to gameobject and center image at the mouse position
 		if (fi.type == "image") {
 			ASTRAL.loadImage(path, function(img) {
@@ -541,8 +550,12 @@ ASTRAL.editor = (function() {
 				obj.y -= img.height / 2;
 				objectButton.click(); // TODO: this is some magic...is var objectButton being hoisted?
 			});
+			// TODO: we are using imageComponent() here but nowhere else, and only for image..normalize this with addComponentToGameObject()
 			var component = imageComponent(fi.path);
 			obj.components.push(component);
+		}
+		else if (fi.type == "script") {
+			addComponentToGameObject(obj, path);
 		}
 
 		// add a button for this gameobject to the SCENE panel
@@ -557,10 +570,10 @@ ASTRAL.editor = (function() {
 
 		// visual feedback
 		flashDomElement(objectButton);
-		
+
 		console.log("added asset to scene as new gameobject:", obj);
 	}
-	
+
 	function openProjectFile(event, path) {
 		// this controls what to do when a file/folder is clicked in the PROJECT panel
 
@@ -629,7 +642,7 @@ ASTRAL.editor = (function() {
 	// 				function() {populateInspectorPanel(obj)}
 	// 			);
 	// 		}).call(this, obj);
-			
+
 	// 		if (obj.objects) {
 	// 			populateScenePanel(obj.objects, level);
 	// 		}
@@ -679,7 +692,7 @@ ASTRAL.editor = (function() {
 		else {
 			posx.innerHTML = "null";
 		}
-		if (obj.y) { 
+		if (obj.y) {
 			posy.innerHTML = obj.y;
 		}
 		else {
@@ -713,12 +726,12 @@ ASTRAL.editor = (function() {
 		else {
 			componentsPlaceholder.style.display = "block";
 		}
-		
+
 		// if (!obj.components || obj.components.length == 0) {
 		// 	//var msg = ctlText("None", componentDiv);
-			
+
 		// }
-		
+
 		// refresh the inspector if the object properties have changed
 		// clearTimeout(refreshInspector);
 		// setTimeout(refreshInspector, 1000);
@@ -740,34 +753,68 @@ ASTRAL.editor = (function() {
 	}
 
 	function addComponentToGameObject(obj, path) {
+		// adds an instance of a component.js to a gameobject
 		var fi = ASTRAL.getFileInfo(path);
 		var componentDiv;
-		switch (fi.type) {
-			case "image":
-				var component = {};
-				component.type = "image";
-				component.path = path;
-				inspectedObject.components.push(component);
-				componentDiv = ctlComponent(component, obj);
-				break;
-			case "atlas":
-				var component = {};
-				component.type = "atlas";
-				component.path = path;
-				inspectedObject.components.push(component);
-				componentDiv = ctlComponent(component, obj);
-				break;
-			case "script":
-				var component = {};
-				component.type = fi.nameNoExt;
-				// TODO: here we need to expose any public props/vals in the custom script component
-				//	e.g. the script might have a global "speed" prop and we want to be able to modify
-				//	that value in the editor here
-				component.speed = "1"; // TODO: HACK, see above TODO. and if this is an integer we get an error with ctl()...
-				inspectedObject.components.push(component);
-				componentDiv = ctlComponent(component, obj);
-				break;
-		}
+
+		// TODO: we can't use this switch here because components could be any type and we won't know
+		//	instead we should iterate the componentBase props and add them to the component instance
+		//	here
+
+		// switch (fi.type) {
+		// 	case "image":
+		// 		var component = {};
+		// 		component.type = "image";
+		// 		component.path = path;
+		// 		obj.components.push(component);
+		// 		componentDiv = ctlComponent(component, obj);
+		// 		break;
+		// 	case "atlas":
+		// 		var component = {};
+		// 		component.type = "atlas";
+		// 		component.path = path;
+		// 		obj.components.push(component);
+		// 		componentDiv = ctlComponent(component, obj);
+		// 		break;
+		// 	case "script":
+		// 		var component = {};
+		// 		component.type = fi.nameNoExt;
+		// 		// TODO: here we need to expose any public props/vals in the custom script component
+		// 		//	e.g. the script might have a global "speed" prop and we want to be able to modify
+		// 		//	that value in the editor here
+		// 		component.speed = "1"; // TODO: HACK, see above TODO. and if this is an integer we get an error with ctl()...
+		// 		obj.components.push(component);
+		// 		componentDiv = ctlComponent(component, obj);
+		// 		break;
+		// }
+
+
+		// TODO: we need to load (cache) the component at the specified path, obtain it, and then clone
+		//	its props for the component instance used here by the gameobject
+
+		// console.log("COMPONENT", ASTRAL.components);
+		// console.log("COMPONENT", path);
+
+		// var componentBase = ASTRAL.components[fi.nameNoExt]; // TODO: acquire the loaded component base
+		// var component = {};
+		// component.type = fi.nameNoExt;
+		// Object.keys(componentBase).forEach(function(key,index) {
+		// 	console.log("COMPONENT", key, index);
+		// 	var val = componentBase[key];
+		// 	if (!ASTRAL.isFunction(val)) component[key] = val; //.toString(); // TODO: had to add toString() here because an int was causing errors down the road...feels brittle
+		// });
+
+		// console.log("COMPONENT", component);
+
+		// obj.components.push(component);
+		// componentDiv = ctlComponent(component, obj);
+
+
+		var componentBase = ASTRAL.components[fi.nameNoExt]; // TODO: acquire the loaded component base
+		var component = componentBase.instance();
+		obj.components.push(component);
+		componentDiv = ctlComponent(component, obj);
+		
 		console.log("added '" + fi.nameNoExt + "' component to gameobject '" + obj.name + "'");
 		flashDomElement(componentDiv);
 	}
@@ -777,7 +824,7 @@ ASTRAL.editor = (function() {
 	}
 
 	function refreshInspector() {
-		// TODO: this forcefully refreshes and flashes the whole panel, it should take a diff and only 
+		// TODO: this forcefully refreshes and flashes the whole panel, it should take a diff and only
 		//	refresh changed fields, then fire a flash on the changed fields only
 		populateInspectorPanel(inspectedObject);
 	}
@@ -806,11 +853,11 @@ ASTRAL.editor = (function() {
 		// TODO: this is also in spriter.js with a different makeup...
 
 		var el = document.createElement("DIV");
-		if (value.indexOf("#") != -1) {
+		if (value.toString().indexOf("#") != -1) {
 			el.innerHTML = "";
 		}
 		else {
-			el.innerHTML = value;	
+			el.innerHTML = value;
 		}
 		if (id) el.id = id;
 		el.className = type;
@@ -956,10 +1003,10 @@ ASTRAL.editor = (function() {
 		componentDiv.className = "componentDiv";
 		inspectorSection.appendChild(componentDiv);
 
-		var btnShowHideComponent = document.createElement("DIV");
-		btnShowHideComponent.className = "componentButton component button icon expanded";
-		btnShowHideComponent.style.cssFloat = "left";
-		componentDiv.appendChild(btnShowHideComponent);
+		// var btnShowHideComponent = document.createElement("DIV");
+		// btnShowHideComponent.className = "componentButton component button icon expanded";
+		// btnShowHideComponent.style.cssFloat = "left";
+		// componentDiv.appendChild(btnShowHideComponent);
 
 		var btnRemoveComponent = document.createElement("DIV");
 		btnRemoveComponent.className = "componentButton component button icon remove";
@@ -979,29 +1026,47 @@ ASTRAL.editor = (function() {
 
 		var componentLabel = document.createElement("DIV");
 		componentLabel.innerHTML = component.type; // + " component";
-		componentLabel.className = "componentLabel";
+		componentLabel.className = "componentLabel collapsed";
 		componentDiv.appendChild(componentLabel);
 
 		var componentSection = document.createElement("DIV");
 		componentSection.className = "componentSection";
+		componentSection.style.display = "none";
 		componentDiv.appendChild(componentSection);
 
-		btnShowHideComponent.onclick = function() {
-			if (btnShowHideComponent.className.includes("expanded")) {
-				btnShowHideComponent.classList.remove("expanded");
-				btnShowHideComponent.classList.add("collapsed");
+		componentLabel.onclick = function() {
+			if (componentLabel.className.includes("expanded")) {
+				componentLabel.classList.remove("expanded");
+				componentLabel.classList.add("collapsed");
 				componentSection.style.display = "none";
-				componentLabel.style.clear = "none";
-				componentLabel.style.paddingTop = "2px";
+				//componentLabel.style.clear = "none";
+				//componentLabel.style.paddingTop = "2px";
 			}
 			else {
-				btnShowHideComponent.classList.remove("collapsed");
-				btnShowHideComponent.classList.add("expanded");
+				componentLabel.classList.remove("collapsed");
+				componentLabel.classList.add("expanded");
 				componentSection.style.display = "block";
-				componentLabel.style.clear = "both";
-				componentLabel.style.paddingTop = "0";
+				//componentLabel.style.clear = "both";
+				//componentLabel.style.paddingTop = "0";
 			}
 		}
+
+		// btnShowHideComponent.onclick = function() {
+		// 	if (btnShowHideComponent.className.includes("expanded")) {
+		// 		btnShowHideComponent.classList.remove("expanded");
+		// 		btnShowHideComponent.classList.add("collapsed");
+		// 		componentSection.style.display = "none";
+		// 		componentLabel.style.clear = "none";
+		// 		componentLabel.style.paddingTop = "2px";
+		// 	}
+		// 	else {
+		// 		btnShowHideComponent.classList.remove("collapsed");
+		// 		btnShowHideComponent.classList.add("expanded");
+		// 		componentSection.style.display = "block";
+		// 		componentLabel.style.clear = "both";
+		// 		componentLabel.style.paddingTop = "0";
+		// 	}
+		// }
 
 		btnRemoveComponent.onclick = function() {
 			// remove the component from the object
@@ -1032,6 +1097,22 @@ ASTRAL.editor = (function() {
 				}
 				else {
 					var thing = ctl("input", key, component[key], null, componentSection, null);
+					thing.addEventListener("input", function() {
+						component[key] = this.innerHTML;
+					});
+					thing.addEventListener("blur", function() {
+						component[key] = this.innerHTML;
+					});
+					thing.addEventListener("mousewheel", function() {
+						event.preventDefault();
+						if (event.deltaY > 0) {
+							thing.innerHTML = parseInt(thing.innerHTML) - 1;
+						}
+						else if (event.deltaY < 0) {
+							thing.innerHTML = parseInt(thing.innerHTML) + 1;
+						}
+						thing.dispatchEvent(new Event('input'));
+					});
 				}
 			}
 		});

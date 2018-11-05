@@ -398,8 +398,14 @@
     color:#fff;
     font-variant:small-caps;
     border-radius: 10px;
-    clear:both;
+    /*clear:both;*/
     padding-left:1px;
+    padding-top:2px;
+    cursor:pointer;
+}
+
+.componentLabel:hover {
+	color:#ccc;
 }
 
 .componentDiv {
@@ -532,4 +538,36 @@
 .error.errorfade {
 	opacity:0;
 	top:-10;
+}
+
+
+
+
+
+#fps {
+	z-index:99;
+	color:#fff;
+	background-color:#000;
+	font-size:1em;
+	position:absolute;
+	left:4px;
+	top:4px;
+	border-radius:5px;
+	padding:3px;
+}
+
+#fps .max {
+	background-color:#00ff00;
+}
+
+#fps .stable {
+	background-color:#ffff00;
+}
+
+#fps .low {
+	background-color:#FFA500;
+}
+
+#fps .bad {
+	background-color:#ff0000;
 }

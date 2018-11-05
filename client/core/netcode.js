@@ -81,7 +81,7 @@ ASTRAL.netcode = new function() {
 		doHandler("beforeReceive");
 		totalIn++;
 		totalMessages++;
-		console.log(totalMessages);
+		//console.log(totalMessages);
 		receiveQueue.push({data: data});
 		doHandler("afterreceive");
 	}

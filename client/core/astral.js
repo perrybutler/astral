@@ -4,11 +4,11 @@ var ASTRAL = (function() {
 
 	console.log("astral.js constructor");
 
-	///////////////////////////////////////
-	//
-	//	PRIVATE LOCAL VARS
-	//
-	///////////////////////////////////////
+///////////////////////////////////////
+//
+//	PRIVATE LOCAL VARS
+//
+///////////////////////////////////////
 
 	var gameInfo = [];
 
@@ -27,6 +27,7 @@ var ASTRAL = (function() {
 	// timing stuff
 	var lastFrameTime = Date.now();
 	var pingTime = null;
+	var fps = 0;
 
 	// controls
 	var moveUp = false;
@@ -36,11 +37,11 @@ var ASTRAL = (function() {
 	var lastInput = "0,0";
 	var finalInput = "0,0";
 
-	///////////////////////////////////////
-	//
-	//	STARTUP SHUTDOWN
-	//
-	///////////////////////////////////////
+///////////////////////////////////////
+//
+//	STARTUP SHUTDOWN
+//
+///////////////////////////////////////
 
 	window.onload = function() {
 		ASTRAL.init();
@@ -85,7 +86,6 @@ var ASTRAL = (function() {
 		// handle mousedown
 		gameLayer.can.addEventListener("mousedown", function(e) {
 			console.log("mousedown: " + e.button);
-			shoot();
 		});
 
 		// handle keydown
@@ -105,7 +105,7 @@ var ASTRAL = (function() {
 					moveDown = true;
 					break;
 				case "`":
-					// TODO: handle state and draw debugs for editor visible
+					// TODO: tight coupling...
 					ASTRAL.editor.toggle();
 			}
 		});
@@ -129,8 +129,9 @@ var ASTRAL = (function() {
 			}
 		});
 
+		// try connecting to the server
+		// TODO: tight coupling here...
 		if (ASTRAL.netcode) {
-			// TODO: tight coupling here...
 			// TODO: put this on a button or background timer, dont halt execution or fail out when connect fails
 			ASTRAL.netcode.on("connect", function(){
 				console.log("connect handler fired");
@@ -163,240 +164,6 @@ var ASTRAL = (function() {
 
 ///////////////////////////////////////
 //
-//	LOADERS
-//
-///////////////////////////////////////
-
-	function loadGame(callback) {
-		// loads the game.js file and fires a callback when game.js is done loading all deps
-		console.log("loading game.js");
-		var script = document.createElement("SCRIPT");
-		script.src = path;
-		script.onload = function() {
-			console.log("loading game.js fired its onload callback");
-			callback();
-			script.remove();
-		}
-		document.body.appendChild(script);
-	}
-
-	function loadScript(path, callback) {
-		// loads a script file from the given path
-		console.log("loading script at path " + path);
-		var script = document.createElement("SCRIPT");
-		script.src = path;
-		script.onload = function() {
-			console.log("loading script at path " + path  + " fired its onload callback");
-			callback();
-			script.remove();
-		}
-		document.body.appendChild(script);
-	}
-	
-	var loaded = 0;
-	var loadcount = 0;
-	var finalCallback = null;
-
-	function loadBatch(requires, callback) {
-		// loads multiple files
-
-		// if we just started a load chain, save the initial callback as the final callback 
-		//	because callback will get overwritten by recursive calls to loadRequirements
-		//	for any sub-dependencies
-		if (loadcount == 0) {
-			finalCallback = callback;
-			console.log("load chain started with " + requires.length + " modules pending");
-		}
-		// keep track of the total number of modules being loaded
-		loadcount += requires.length;
-		// start the load chain
-		requires.forEach(function(r) {
-			loadScript(r.path, function() {
-				// this file has been loaded
-				loaded++;
-				console.log(r.name + " module finished loading");
-				// we can now grab the module that was loaded and load any of its dependencies too
-				var module = ASTRAL[r.name];
-				if (module && module.requires) {
-					console.log(r.name + " module has " + module.requires.length + " dependencies");
-					loadBatch(module.requires, function() {
-						if (module.init) {
-							module.init();
-						}
-					});
-				}
-				else {
-					console.log(r.name + " module has 0 dependencies");
-					if (module && module.init) {
-						module.init();
-					}
-				}
-				console.log("loaded " + loaded + " of " + loadcount + " modules");
-				// if all dependencies have been loaded we are done!
-				if (loaded == loadcount) {
-					finalCallback();
-				}
-			});
-		});
-	}
-
-	function loadImage(path, callback) {
-		// loads an image dynamically and fires a callback returning the js image object
-		console.log("loading image at path " + path);
-		var img = new Image();
-		img.src = path;
-		img.crossOrigin = "Anonymous";
-    	img.onload = function() {
-    		// TODO: this gets fired a second time if we set img.src from spriter.js...
-    		//	switch back to addEventListener()
-    		images[path] = img;
-    		if (callback) callback(img);
-    	}
-	    img.onerror = function() {console.log("failed to load image " + path); img = null;}
-	}
-
-	function loadJson(name, callback) {
-		// loads a json-formatted file (doesn't have to be .json) and fires callback returning a string,
-		//	sometimes you just want the string and not the json.parse() object, so we don't parse here,
-		//	but you can parse in your callback
-
-	    var req = new XMLHttpRequest();
-	    //req.overrideMimeType("application/json");
-	    req.open("GET", name, true);
-	    req.onreadystatechange = function() {
-	    	var statusPassing = "200";
-	    	// if working from the filesystem, override statusPassing to "0" since
-	    	//	a json file returns req.status == "0" on success
-			if (window.location.protocol == "file:") {
-				statusPassing = "0";
-			}
-			if (req.readyState == 4 && req.status == statusPassing) {
-				// TODO: we need to load the deps here or in kit.sprite...
-				callback(req.responseText);
-			}
-	    };
-	    req.send(null);  
-	}
-
-	function loadScene(path) {
-		ASTRAL.do("beforesceneload"); // e.g. editor can listen to this and clear its scene list
-		sceneData = [];
-		loadJson(path, function(data) {
-			sceneData = JSON.parse(data);
-			ASTRAL.sceneData = sceneData;
-			console.log("loaded scene " + path + ", contains " + sceneData.length + " root nodes");
-			loadObjects(sceneData);
-		});
-	}
-
-	function loadObjects(objects, path, level) {
-		console.log("LOADING", objects);
-		// walks the objects array recursively to get the object path/level and calls loadObject() 
-		//	on each object to massage the cold json data into runtime data
-		if (!path) path = "";
-		if (!level) level = 0;
-		level++;
-		var levelRoot = path;
-		for (var key in objects) {
-			var obj = objects[key];
-			obj.path = levelRoot + "/" + obj.name;
-			obj.level = level;
-			loadObject(obj);
-			if (obj.objects) {
-				loadObjects(obj.objects, obj.path, level);
-			}
-		}
-		level = 1;
-	}
-
-	function loadObject(obj) {
-		if (!obj.vx) obj.vx = 0;
-		if (!obj.vy) obj.vy = 0;
-		if (!obj.rot) obj.rot = 0;
-		if (!obj.scale) obj.scale = 1;
-		obj.speed = 0.088;
-		obj.channels = [];
-		for (var key in obj.components) {
-			var component = obj.components[key];
-			if (component.type == "image") {
-				// TODO: we don't want to call loadImage() for images already loaded...
-				loadImage(component.path, function(img) {
-					obj.baseWidth = img.width;
-					obj.baseHeight = img.height;
-					obj.width = obj.baseHeight * obj.scale;
-					obj.height = obj.baseHeight * obj.scale;
-				});
-			}
-			else if (component.type == "atlas") {
-				loadImage(component.path);
-			}
-		}
-		ASTRAL.do("objectloaded", obj); // e.g. editor can listen to this and create an item in the scene list
-	}
-
-///////////////////////////////////////
-//
-//	INPUT
-//
-///////////////////////////////////////
-
-// TODO: make it pub/sub and let gamedev control more of this
-
-	function input() {
-		var vx = 0
-		var vy = 0;
-		if (moveUp == true) {
-			if (moveDown == true) {
-				vy = 0;
-			}
-			else {
-				vy = -1;
-			}
-		}
-		if (moveDown == true) {
-			if (moveUp == true) {
-				vy = 0;
-			}
-			else {
-				vy = 1;
-			}
-		}
-		if (moveLeft == true) {
-			if (moveRight == true) {
-				vx = 0;
-			}
-			else {
-				vx = -1;
-			}
-		}
-		if (moveRight == true) {
-			if (moveLeft == true) {
-				vx = 0;
-			}
-			else {
-				vx = 1;
-			}
-		}
-
-		// if the input state changed since last time we checked, notify the server
-		finalInput = vx + "," + vy;
-		if (finalInput != lastInput) {
-			lastInput = finalInput;
-			//send({event: "move", data: {vx: vx, vy: vy}});
-			ASTRAL.netcode.queueSend("*move," + vx + "," + vy + "," + ASTRAL.game.myObject.x + "," + ASTRAL.game.myObject.y);
-		}
-	}
-
-	function shoot() {
-
-	}
-
-	function tester() {
-		var pup = createGameObject(Date.parse(new Date().toUTCString()), "pup", "zone1");
-	}
-
-///////////////////////////////////////
-//
 //	CORE
 //
 ///////////////////////////////////////
@@ -406,6 +173,7 @@ var ASTRAL = (function() {
 	var step = 1000 / 60; // * 5 to simulate 5x slower loop
 
 	function gameLoop(timestamp) {
+		computeFps();
 		delta += timestamp - last;
 		last = timestamp;
 		while (delta >= step) {
@@ -414,36 +182,35 @@ var ASTRAL = (function() {
 		}
 		draw();
 		requestAnimationFrame(gameLoop);
-		
-		// https://gamedev.stackexchange.com/questions/83786/why-cap-game-loop-delta-time
-		// 1) current implementation, works ok (but no server):
-		//		https://codeincomplete.com/posts/javascript-game-foundations-the-game-loop/
-		// 2) store 2 most recent game states summary (but not server):
-		//		https://gamedev.stackexchange.com/questions/132831/what-is-the-point-of-update-independent-rendering-in-a-game-loop
-		// 3) highly detailed explanation with graphics:
-		//		https://www.cakesolutions.net/teamblogs/how-does-multiplayer-game-sync-their-state-part-2
-		// 4) fixed update timestep, variable rendering (but no server):
-		//		http://gameprogrammingpatterns.com/game-loop.html
-		// 5) red moving square tutorial, spiral of death:
-		//		https://isaacsukin.com/news/2015/01/detailed-explanation-javascript-game-loops-and-timing#solution
-		// 6) valve netcode explanation:
-		//		https://developer.valvesoftware.com/wiki/Latency_Compensating_Methods_in_Client/Server_In-game_Protocol_Design_and_Optimization
-		// 7) valve netcode summary:
-		//		https://developer.valvesoftware.com/wiki/Source_Multiplayer_Networking
-		// 8) great summary of terms comparing interp to extrap
-		//		https://www.reddit.com/r/Overwatch/comments/3u5kfg/everything_you_need_to_know_about_tick_rate/
+	}
+
+	var fpsFrames = 0;
+	var fps = 0;
+	var fpsLastUpdate = Date.now();
+
+	function computeFps() {
+		// start count fps:
+		fpsFrames++;
+		var now = Date.now();
+		var diff = now - fpsLastUpdate;
+		if (diff > 1000) {
+			fps = fpsFrames;
+			fpsFrames = 0;
+			fpsLastUpdate = Date.now();
+			ASTRAL.do("fps", fps);
+		}
 	}
 
 	function update(delta) {
 		// handle messages from the server
-		// TODO: tight coupling...
+		// TODO: tight coupling...maybe fire an ASTRAL.do("beforeinput") so other modules can hook in
 		if (ASTRAL.netcode) ASTRAL.netcode.handleReceiveQueue();
 
 		// update user input state
 		input();
 
 		// handle messages to the server
-		// TODO: tight coupling...
+		// TODO: tight coupling...maybe fire an ASTRAL.do("afterinput") so other modules can hook in
 		if (ASTRAL.netcode) ASTRAL.netcode.handleSendQueue();
 
 		// update the objects by incrementing their state
@@ -506,7 +273,7 @@ var ASTRAL = (function() {
 				}
 				else {
 					var componentBase = components[component.type];
-					if (componentBase && componentBase.update) componentBase.update(obj, ctx);
+					if (componentBase && componentBase.update) componentBase.update(obj, ctx, component);
 				}
 				// else if (component.type == "rotate") {
 				// 	//obj.rot += parseInt(component.speed);
@@ -580,35 +347,38 @@ var ASTRAL = (function() {
 		ctx.restore();
 	}
 
-	function loadGameObject(obj) {
-		// creates a gameobject in memory based on a game object which was loaded from file/data,
-		//	this is necessary because when we load a gameobject we should load its components etc
-		obj.x = parseInt(obj.x);
-		obj.y = parseInt(obj.y);
-		obj.vx = 0;
-		obj.vy = 0;
-		if (!obj.rot) obj.rot = 0;
-		if (!obj.scale) obj.scale = 1;
-		obj.speed = 0.088;
-		obj.channels = [];
-		for (var key in obj.components) {
-			var component = obj.components[key];
-			if (component.type == "image") {
-				// TODO: we don't want to call loadImage() for images already loaded...
-				loadImage(component.path);
-			}
-			else if (component.type == "atlas") {
-				loadImage(component.path);
-			}
-		}
-		sceneData[obj.id] = obj;
-		console.log("loaded object " + obj.name + " with id " + obj.id, obj);
-		return obj;
-	}
+	// function loadGameObject(obj) {
+	// 	// creates a gameobject in memory based on a game object which was loaded from file/data,
+	// 	//	this is necessary because when we load a gameobject we should load its components etc
+	// 	obj.x = parseInt(obj.x);
+	// 	obj.y = parseInt(obj.y);
+	// 	obj.vx = 0;
+	// 	obj.vy = 0;
+	// 	if (!obj.rot) obj.rot = 0;
+	// 	if (!obj.scale) obj.scale = 1;
+	// 	obj.speed = 0.088;
+	// 	obj.channels = [];
+	// 	// if the gameobject uses a component which uses an image, load that image now
+	// 	for (var key in obj.components) {
+	// 		var component = obj.components[key];
+	// 		// TODO: call componentBase.applyRuntimeProps() here???
+	// 		if (component.applyRuntimeProps) component.applyRuntimeProps(component);
+	// 		if (component.type == "image") {
+	// 			// TODO: we don't want to call loadImage() for images already loaded...
+	// 			loadImage(component.path);
+	// 		}
+	// 		else if (component.type == "atlas") {
+	// 			loadImage(component.path);
+	// 		}
+	// 	}
+	// 	sceneData[obj.id] = obj;
+	// 	console.log("loaded object " + obj.name + " with id " + obj.id, obj);
+	// 	return obj;
+	// }
 
 	function createGameObject(id, name, sector) {
 		// creates a game object in memory and immediately returns it for further use
-		//	the attributes are supplied by the server because the server creates objects 
+		//	the attributes are supplied by the server because the server creates objects
 		//	and the client mimics
 		var obj = {};
 		obj.id = id;
@@ -661,6 +431,248 @@ var ASTRAL = (function() {
 
 ///////////////////////////////////////
 //
+//	LOADERS
+//
+///////////////////////////////////////
+
+	function loadGame(callback) {
+		// loads the game.js file and fires a callback when game.js is done loading all deps
+		console.log("loading game.js");
+		var script = document.createElement("SCRIPT");
+		script.src = path;
+		script.onload = function() {
+			console.log("loading game.js fired its onload callback");
+			callback();
+			script.remove();
+		}
+		document.body.appendChild(script);
+	}
+
+	function loadScript(path, callback) {
+		// loads a script file from the given path
+		console.log("loading script at path " + path);
+		var script = document.createElement("SCRIPT");
+		script.src = path;
+		script.onload = function() {
+			console.log("loading script at path " + path  + " fired its onload callback");
+			callback();
+			script.remove();
+		}
+		document.body.appendChild(script);
+	}
+
+	var loaded = 0;
+	var loadcount = 0;
+	var finalCallback = null;
+
+	function loadBatch(requires, callback) {
+		// loads multiple files
+		// if we just started a load chain, save the initial callback as the final callback
+		//	because callback will get overwritten by recursive calls to loadRequirements
+		//	for any sub-dependencies
+		if (loadcount == 0) {
+			finalCallback = callback;
+			console.log("load chain started with " + requires.length + " modules pending");
+		}
+		// keep track of the total number of modules being loaded
+		loadcount += requires.length;
+		// start the load chain
+		requires.forEach(function(r) {
+			loadScript(r.path, function() {
+				// this file has been loaded
+				loaded++;
+				console.log(r.name + " module finished loading");
+				// we can now grab the module that was loaded and load any of its dependencies too
+				var module = ASTRAL[r.name];
+				if (module && module.requires) {
+					console.log(r.name + " module has " + module.requires.length + " dependencies");
+					loadBatch(module.requires, function() {
+						if (module.init) {
+							module.init();
+						}
+					});
+				}
+				else {
+					console.log(r.name + " module has 0 dependencies");
+					if (module && module.init) {
+						module.init();
+					}
+				}
+				console.log("loaded " + loaded + " of " + loadcount + " modules");
+				// if all dependencies have been loaded we are done!
+				if (loaded == loadcount) {
+					finalCallback();
+				}
+			});
+		});
+	}
+
+	function loadImage(path, callback) {
+		// loads an image dynamically and fires a callback returning the js image object
+		console.log("loading image at path " + path);
+		var img = new Image();
+		img.src = path;
+		img.crossOrigin = "Anonymous";
+    	img.onload = function() {
+    		// TODO: this gets fired a second time if we set img.src from spriter.js...
+    		//	switch back to addEventListener()
+    		images[path] = img;
+    		if (callback) callback(img);
+    	}
+	    img.onerror = function() {console.log("failed to load image " + path); img = null;}
+	}
+
+	function loadJson(name, callback) {
+		// loads a json-formatted file (doesn't have to be .json) and fires callback returning a string,
+		//	sometimes you just want the string and not the json.parse() object, so we don't parse here,
+		//	but you can parse in your callback
+	    var req = new XMLHttpRequest();
+	    //req.overrideMimeType("application/json");
+	    req.open("GET", name, true);
+	    req.onreadystatechange = function() {
+	    	var statusPassing = "200";
+	    	// if working from the filesystem, override statusPassing to "0" since
+	    	//	a json file returns req.status == "0" on success
+			if (window.location.protocol == "file:") {
+				statusPassing = "0";
+			}
+			if (req.readyState == 4 && req.status == statusPassing) {
+				// TODO: we need to load the deps here or in kit.sprite...
+				callback(req.responseText);
+			}
+	    };
+	    req.send(null);
+	}
+
+	function loadScene(path) {
+		ASTRAL.do("beforesceneload"); // e.g. editor can listen to this and clear its scene list
+		sceneData = [];
+		loadJson(path, function(data) {
+			sceneData = JSON.parse(data);
+			ASTRAL.sceneData = sceneData;
+			console.log("loaded scene " + path + ", contains " + sceneData.length + " root nodes");
+			loadObjects(sceneData);
+		});
+	}
+
+	function loadObjects(objects, path, level) {
+		//console.log("LOADING", objects);
+		// walks the objects array recursively to get the object path/level and calls loadObject()
+		//	on each object to massage the cold json data into runtime data
+		if (!path) path = "";
+		if (!level) level = 0;
+		level++;
+		var levelRoot = path;
+		for (var key in objects) {
+			var obj = objects[key];
+			obj.path = levelRoot + "/" + obj.name;
+			obj.level = level;
+			loadObject(obj);
+			if (obj.objects) {
+				loadObjects(obj.objects, obj.path, level);
+			}
+		}
+		level = 1;
+	}
+
+	function loadObject(obj) {
+		// loads an object from disk/json
+		if (!obj.vx) obj.vx = 0;
+		if (!obj.vy) obj.vy = 0;
+		if (!obj.rot) obj.rot = 0;
+		if (!obj.scale) obj.scale = 1;
+		obj.speed = 0.088;
+		obj.channels = [];
+		for (var key in obj.components) {
+			var component = obj.components[key];
+			// if the component uses any required resources, load them now
+			if (component.type == "image") {
+				// TODO: we don't want to call loadImage() for images already loaded...
+				loadImage(component.path, function(img) {
+					obj.baseWidth = img.width;
+					obj.baseHeight = img.height;
+					obj.width = obj.baseHeight * obj.scale;
+					obj.height = obj.baseHeight * obj.scale;
+				});
+			}
+			else if (component.type == "atlas") {
+				// TODO: this is wrong...we need to load the image referenced by the atlas, not the atlas itself
+				loadImage(component.path);
+			}
+			else {
+				// merge the saved component data with the runtime props
+				var componentBase = components[component.type];
+				//console.log("COMPONENT", component, componentBase, components);
+				if (componentBase) {
+					if (componentBase.applyRuntimeProps) {
+						componentBase.applyRuntimeProps(component);
+						console.log("applied component instance runtime props to", component);
+					}
+				}
+				else {
+					console.log("WARNING: could not find componentBase '" + component.type + "', this means an object is using a component which hasn't been loaded or does not exist");
+				}
+			}
+		}
+		ASTRAL.do("objectloaded", obj); // e.g. editor can listen to this and create an item in the scene list
+	}
+
+///////////////////////////////////////
+//
+//	INPUT
+//
+///////////////////////////////////////
+
+// TODO: make it pub/sub and let gamedev control more of this
+
+	function input() {
+		var vx = 0
+		var vy = 0;
+		if (moveUp == true) {
+			if (moveDown == true) {
+				vy = 0;
+			}
+			else {
+				vy = -1;
+			}
+		}
+		if (moveDown == true) {
+			if (moveUp == true) {
+				vy = 0;
+			}
+			else {
+				vy = 1;
+			}
+		}
+		if (moveLeft == true) {
+			if (moveRight == true) {
+				vx = 0;
+			}
+			else {
+				vx = -1;
+			}
+		}
+		if (moveRight == true) {
+			if (moveLeft == true) {
+				vx = 0;
+			}
+			else {
+				vx = 1;
+			}
+		}
+
+		// if the input state changed since last time we checked, notify the server
+		finalInput = vx + "," + vy;
+		if (finalInput != lastInput) {
+			lastInput = finalInput;
+			//send({event: "move", data: {vx: vx, vy: vy}});
+			// TODO: tight coupling...this was for testing client/server but should be moved into a game script since it is game specific
+			ASTRAL.netcode.queueSend("*move," + vx + "," + vy + "," + ASTRAL.game.myObject.x + "," + ASTRAL.game.myObject.y);
+		}
+	}
+
+///////////////////////////////////////
+//
 //	HELPERS & GENERICS
 //
 ///////////////////////////////////////
@@ -679,7 +691,13 @@ var ASTRAL = (function() {
 	// 	components[name] = component;
 	// }
 
+	function isFunction(functionToCheck) {
+	 return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
+	}
+
 	function setPanelLayout(panels1, panels2, panels3, panels4) {
+		// accepts four arrays defining which panels should be moved to which of the four sidebars
+
 		var panels = document.querySelectorAll(".sidebar .panel");
 		panels.forEach(function(p) {
 			p.style.display = "none";
@@ -820,7 +838,7 @@ var ASTRAL = (function() {
 		images:images,
 		createLayer:createLayer,
 		createGameObject:createGameObject,
-		loadGameObject:loadGameObject,
+		/*loadGameObject:loadGameObject,*/
 		loadImage:loadImage,
 		loadScene:loadScene,
 		loadBatch:loadBatch,
@@ -832,7 +850,8 @@ var ASTRAL = (function() {
 		error:error,
 		setPanelLayout:setPanelLayout,
 		components:components,
-		gameInfo:gameInfo
+		gameInfo:gameInfo,
+		isFunction:isFunction
 	}
 
 }());

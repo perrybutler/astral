@@ -1,15 +1,17 @@
 ASTRAL.components.rotate = (function() {
-	var speed = 1;
-	function update(obj) {
-		obj.rot += speed;
+	function instance(obj) {
+		var component = {};
+		component.type = "rotate";
+		component.speed = 1;
+		//obj.components.push(component);
+		return component;
+	}
+	function update(obj, ctx, instance) {
+		obj.rot += parseInt(instance.speed);
+		if (obj.rot >= 360) obj.rot = 0;
 	}
 	return {
-		set speed(val) {
-			speed = val;
-		},
-		get speed() {
-			return speed;
-		},
+		instance:instance,
 		update:update
 	}
 }());
