@@ -1,3 +1,4 @@
+"use strict";
 console.log("editor.js entry point");
 
 ASTRAL.editor = (function() {
@@ -17,6 +18,8 @@ ASTRAL.editor = (function() {
 	var projectPanel;
 	var sceneSection;
 	var projectSection;
+	var displayPanel;
+	var diagnosticsPanel;
 	var componentsPlaceholder;
 
 	var homeButton;
@@ -36,6 +39,7 @@ ASTRAL.editor = (function() {
 	var drawObjectRot = false;
 	var drawObjectOrigin = true;
 	var drawObjectBorders = true;
+	var drawParticleCount = false;
 
 ///////////////////////////////////////
 //
@@ -119,11 +123,13 @@ ASTRAL.editor = (function() {
 		var thing = ctl("button pill toggle on", "", "origin", null, diagnosticsSection, function() {toggleDrawObjectOrigin()});
 		var thing = ctl("button pill toggle on", "", "borders", null, diagnosticsSection, function() {toggleDrawObjectBorders()});
 		var thing = ctl("button pill", "", "frameid", null, diagnosticsSection, function() {});
-		var thing = ctl("button pill", "", "p.count", null, diagnosticsSection, function() {});
+		var thing = ctl("button pill toggle", "", "pcount", null, diagnosticsSection, function() {toggleDrawParticleCount()});
 
 		// create the scene panel
 		scenePanel = ctlPanel("scene", "scenePanel", "", "sidebar1");
 		sceneSection = ctlSection("", "sceneSection", "", scenePanel);
+		var thing = ctl("button icon add", null, "", "inspectorCreateObject", sceneSection, function() {ASTRAL.createObject(null, "new object");});
+		inspectorCreateObject.dataset.tip = "Create a new empty object in the scene.";
 		var thing = ctl("button icon diskette", null, "", "scenesave", sceneSection, function() {saveScene()});
 		scenesave.dataset.tip = "Save changes to the current scene.";
 		var thing = ctl("button icon openexternal", null, "", "sceneopenexternal", sceneSection, function() {viewSceneData()});
@@ -145,6 +151,8 @@ ASTRAL.editor = (function() {
 		inspectorShowBasic.dataset.tip = "Show commonly used object properties.";
 		var thing = ctl("button icon advanced", null, "", "inspectorShowAdvanced", inspectorSection, function() {});
 		inspectorShowAdvanced.dataset.tip = "Show all object properties.";
+		var thing = ctl("button icon remove", null, "", "inspectorDeleteObject", inspectorSection, function() {ASTRAL.deleteInspectedObject();});
+		inspectorDeleteObject.dataset.tip = "Delete this object from the scene.";
 		var thing = ctl("button", null, "(nothing selected)", "inspectoritem", inspectorSection, null);
 		var thing = ctl("input pair", "position", "0", "posx", inspectorSection, null);
 		var thing = ctl("input pair", null, "0", "posy", inspectorSection, null);
@@ -251,7 +259,7 @@ ASTRAL.editor = (function() {
 			});
 
 			ASTRAL.netcode.on("aftersend", function(payload) {
-				info = ASTRAL.netcode.getNetcodeInfo();
+				var info = ASTRAL.netcode.getNetcodeInfo();
 				if (netcodestuff.innerHTML != info) {
 					netcodestuff.innerHTML = info;
 					flashDomElement(netcodestuff);
@@ -259,18 +267,13 @@ ASTRAL.editor = (function() {
 			});
 
 			ASTRAL.netcode.on("afterreceive", function(payload) {
-				info = ASTRAL.netcode.getNetcodeInfo();
+				var info = ASTRAL.netcode.getNetcodeInfo();
 				if (netcodestuff.innerHTML != info) {
 					netcodestuff.innerHTML = info;
 					flashDomElement(netcodestuff);
 				}
 			});
 		}
-
-		// // subscribe to loadscene which we use to update the SCENE panel
-		// ASTRAL.on("loadscene", function(scenedata) {
-		// 	populateScenePanel(scenedata);
-		// });
 
 		window.addEventListener("resize", function() {
 			//console.log("RESIZE");
@@ -288,8 +291,13 @@ ASTRAL.editor = (function() {
 			}
 		});
 
-		ASTRAL.on("objectloaded", function(obj) {
+		ASTRAL.on("objectcreated", function(obj) {
 			addGameObjectToScenePanel(obj);
+		});
+
+		ASTRAL.on("objectdeleted", function(obj) {
+			// TODO
+			deleteGameObjectFromScenePanel(obj);
 		});
 
 		// setInterval(function() {
@@ -446,6 +454,15 @@ ASTRAL.editor = (function() {
 		}
 	}
 
+	function toggleDrawParticleCount() {
+		if (drawParticleCount == false) {
+			drawParticleCount = true;
+		}
+		else {
+			drawParticleCount = false;
+		}
+	}
+
 ///////////////////////////////////////
 //
 //	PROJECT PANEL
@@ -511,76 +528,82 @@ ASTRAL.editor = (function() {
 	}
 
 	function addGameObjectToScenePanel(obj) {
+		// this normally gets called via ASTRAL.do("objectloaded") when a gameobject is created 
+		//	so it can be added to the SCENE panel
+		var level = 1;
+		if (obj.level) level = obj.level;
 		// add a button for this gameobject to the SCENE panel
-		var objectButton = ctl(
-			"button sceneobjectbutton level" + obj.level,
+		var objectButton = ctl( // arguments: type (css classnames), label (separate heading div), value, id, section, onclick
+			"button sceneobjectbutton level" + level,
 			null,
 			obj.name,
-			null,
+			"objid" + obj.id,
 			sceneSection,
 			function() {populateInspectorPanel(obj)}
 		);
-
 		// visual feedback
 		flashDomElement(objectButton);
-
 		console.log("created scenegraph node:", obj);
+	}
+
+	function deleteGameObjectFromScenePanel(obj) {
+		// get the node in the SCENE panel matching this gameobject
+		var node = document.querySelector("#objid" + obj.id);
+		node.remove();
+		// call this recursively to remove child nodes since removing an object removes all its 
+		//	children
+		if (obj.objects) {
+			for (var i = 0; i < obj.objects.length; i++) {
+				deleteGameObjectFromScenePanel(obj.objects[i]);
+			}
+		}
 	}
 
 	function addProjectFileToScene(path, mouseevent) {
 		// this handles dragging an asset from the PROJECT panel into the scene/canvas
-
-		// TODO: we need to call loadGameObject() if the asset is a .prefab...
-
 		// create the gameobject and set its position at the mouse position
 		var fi = ASTRAL.getFileInfo(path);
-		var obj = ASTRAL.createGameObject(Date.parse(new Date().toUTCString()), fi.name, "zone1");
+		var obj = ASTRAL.createObject(null, fi.nameNoExt);
 		var cw = gameCanvas.width;
 		var ch = gameCanvas.height;
 		var rx = cw / window.innerWidth;
 		var ry = ch / window.innerHeight;
 		obj.x = mouseevent.pageX * rx;
 		obj.y = mouseevent.pageY * ry;
-
 		// if its an image, add image component to gameobject and center image at the mouse position
 		if (fi.type == "image") {
 			ASTRAL.loadImage(path, function(img) {
 				//console.log(img);
 				obj.x -= img.width / 2;
 				obj.y -= img.height / 2;
-				objectButton.click(); // TODO: this is some magic...is var objectButton being hoisted?
+				obj.baseWidth = img.width;
+				obj.baseHeight = img.height;
+				obj.width = obj.baseWidth * obj.scale;
+				obj.height = obj.baseHeight * obj.scale;
+				// TODO: i redacted this because i dont think it does anything (wtf is objectButton?) and it was tripping out when i added use strict
+				//objectButton.click(); // TODO: this is some magic...is var objectButton being hoisted?
 			});
-			// TODO: we are using imageComponent() here but nowhere else, and only for image..normalize this with addComponentToGameObject()
 			var component = imageComponent(fi.path);
 			obj.components.push(component);
 		}
 		else if (fi.type == "script") {
 			addComponentToGameObject(obj, path);
 		}
-
-		// add a button for this gameobject to the SCENE panel
-		var objectButton = ctl(
-			"button sceneobjectbutton level" + 1,
-			null,
-			fi.nameNoExt,
-			null,
-			sceneSection,
-			function() {populateInspectorPanel(obj)}
-		);
-
-		// visual feedback
-		flashDomElement(objectButton);
-
 		console.log("added asset to scene as new gameobject:", obj);
 	}
 
 	function openProjectFile(event, path) {
 		// this controls what to do when a file/folder is clicked in the PROJECT panel
-
 		if (event.ctrlKey) {
+			// CTRL + Click should open the file in a new browser tab
 			window.open(path);
 		}
+		else if (event.shiftKey) {
+			// Shift + Click should open the file in its associated native app
+			ASTRAL.netcode.sendNow("*exec," + path);
+		}
 		else {
+			// plain Click should handle the file in Astral
 			//var relpath = path.replace(homePath, "");
 			path = path.toLowerCase();
 			if (path.includes(".png") || path.includes(".jpg")) {
@@ -601,8 +624,11 @@ ASTRAL.editor = (function() {
 		}
 	}
 
-	// TODO: this should be somewhere else
 	function imageComponent(path) {
+		// we have this function because the image component is not a .js file on disk its just
+		//	created dynamically here if/when used
+		// TODO: im not sure this belongs in editor.js
+		ASTRAL.loadImage(path);
 		var component = {};
 		component.type = "image";
 		component.path = path;
@@ -614,41 +640,6 @@ ASTRAL.editor = (function() {
 //	SCENE PANEL
 //
 ///////////////////////////////////////
-
-	// function populateScenePanel(objects, level) {
-	// 	// this populates the SCENE panel adding gameobjects and their children recursively
-
-	// 	if (!level) {
-	// 		var currentList = document.querySelectorAll(".sceneobjectbutton");
-	// 		for (var i = 0; i < currentList.length; i++) {
-	// 			currentList[i].remove();
-	// 		}
-	// 		sceneData = objects;
-	// 		flashDomElement(scenePanel);
-	// 		level = 0;
-	// 	}
-	// 	level++;
-	// 	for (var i = 0; i < objects.length; i++) {
-	// 		var obj = objects[i];
-	// 		ASTRAL.loadGameObject(obj);
-	// 		var objectName = obj.name;
-	// 		(function(obj) {
-	// 			var objectButton = ctl(
-	// 				"button sceneobjectbutton level" + level,
-	// 				null,
-	// 				objectName,
-	// 				null,
-	// 				sceneSection,
-	// 				function() {populateInspectorPanel(obj)}
-	// 			);
-	// 		}).call(this, obj);
-
-	// 		if (obj.objects) {
-	// 			populateScenePanel(obj.objects, level);
-	// 		}
-	// 	}
-	// 	level = 1;
-	// }
 
 ///////////////////////////////////////
 //
@@ -686,18 +677,20 @@ ASTRAL.editor = (function() {
 
 		// populate some basic props
 		inspectoritem.innerHTML = obj.name;
-		if (obj.x) {
-			posx.innerHTML = obj.x;
-		}
-		else {
-			posx.innerHTML = "null";
-		}
-		if (obj.y) {
-			posy.innerHTML = obj.y;
-		}
-		else {
-			posy.innerHTML = "null";
-		}
+		// if (obj.x) {
+		// 	posx.innerHTML = obj.x;
+		// }
+		// else {
+		// 	posx.innerHTML = "null";
+		// }
+		// if (obj.y) {
+		// 	posy.innerHTML = obj.y;
+		// }
+		// else {
+		// 	posy.innerHTML = "null";
+		// }
+		posx.innerHTML = obj.x;
+		posy.innerHTML = obj.y;
 		if (!obj.scale) obj.scale = 1;
 		scale.innerHTML = obj.scale;
 		if (!obj.rot) obj.rot = 0;
@@ -741,80 +734,36 @@ ASTRAL.editor = (function() {
 	}
 
 	function titleDrop(e) {
-		// TODO: determine what was dropped and handle it
-		//	e.g. png file was dropped on title, create an image component
-		//	e.g. atlas file was dropped on title, create an atlas component
-
-		//inspectedObject.components[key] = val;
-
 		var path = e.dataTransfer.getData("text").replace("../client/", "");
 		addComponentToGameObject(inspectedObject, path);
-
 	}
 
 	function addComponentToGameObject(obj, path) {
 		// adds an instance of a component.js to a gameobject
 		var fi = ASTRAL.getFileInfo(path);
 		var componentDiv;
+		var componentBase = ASTRAL.components[fi.nameNoExt];
+		// TODO: sometimes the component doesn't have instance() (like when adding a png to an object
+		//	by dragging it onto the inspector titlebar) so this fails
+		//var component = componentBase.instance();
 
-		// TODO: we can't use this switch here because components could be any type and we won't know
-		//	instead we should iterate the componentBase props and add them to the component instance
-		//	here
+		var component;
+		if (componentBase) {
+			if (componentBase.instance) {
+				component = componentBase.instance();
+			}
+			else {
+				console.log("WARNING: componentBase had no instance method, therefore the component is void");
+			}
+		}
+		else {
+			if (fi.type = "image") {
+				component = imageComponent(path);
+			}
+		}
 
-		// switch (fi.type) {
-		// 	case "image":
-		// 		var component = {};
-		// 		component.type = "image";
-		// 		component.path = path;
-		// 		obj.components.push(component);
-		// 		componentDiv = ctlComponent(component, obj);
-		// 		break;
-		// 	case "atlas":
-		// 		var component = {};
-		// 		component.type = "atlas";
-		// 		component.path = path;
-		// 		obj.components.push(component);
-		// 		componentDiv = ctlComponent(component, obj);
-		// 		break;
-		// 	case "script":
-		// 		var component = {};
-		// 		component.type = fi.nameNoExt;
-		// 		// TODO: here we need to expose any public props/vals in the custom script component
-		// 		//	e.g. the script might have a global "speed" prop and we want to be able to modify
-		// 		//	that value in the editor here
-		// 		component.speed = "1"; // TODO: HACK, see above TODO. and if this is an integer we get an error with ctl()...
-		// 		obj.components.push(component);
-		// 		componentDiv = ctlComponent(component, obj);
-		// 		break;
-		// }
-
-
-		// TODO: we need to load (cache) the component at the specified path, obtain it, and then clone
-		//	its props for the component instance used here by the gameobject
-
-		// console.log("COMPONENT", ASTRAL.components);
-		// console.log("COMPONENT", path);
-
-		// var componentBase = ASTRAL.components[fi.nameNoExt]; // TODO: acquire the loaded component base
-		// var component = {};
-		// component.type = fi.nameNoExt;
-		// Object.keys(componentBase).forEach(function(key,index) {
-		// 	console.log("COMPONENT", key, index);
-		// 	var val = componentBase[key];
-		// 	if (!ASTRAL.isFunction(val)) component[key] = val; //.toString(); // TODO: had to add toString() here because an int was causing errors down the road...feels brittle
-		// });
-
-		// console.log("COMPONENT", component);
-
-		// obj.components.push(component);
-		// componentDiv = ctlComponent(component, obj);
-
-
-		var componentBase = ASTRAL.components[fi.nameNoExt]; // TODO: acquire the loaded component base
-		var component = componentBase.instance();
 		obj.components.push(component);
 		componentDiv = ctlComponent(component, obj);
-		
 		console.log("added '" + fi.nameNoExt + "' component to gameobject '" + obj.name + "'");
 		flashDomElement(componentDiv);
 	}
@@ -853,12 +802,14 @@ ASTRAL.editor = (function() {
 		// TODO: this is also in spriter.js with a different makeup...
 
 		var el = document.createElement("DIV");
-		if (value.toString().indexOf("#") != -1) {
-			el.innerHTML = "";
-		}
-		else {
-			el.innerHTML = value;
-		}
+		// TODO: not sure what this was for...its interfering with color hex codes tho
+		// if (value.toString().indexOf("#") != -1) {
+		// 	el.innerHTML = "";
+		// }
+		// else {
+		// 	el.innerHTML = value;
+		// }
+		el.innerHTML = value;
 		if (id) el.id = id;
 		el.className = type;
 
@@ -961,14 +912,7 @@ ASTRAL.editor = (function() {
 					else {
 						sec.style.display = "none";
 					}
-					// if (sec.style.display == "block") {
-					// 	sec.style.display = "none";
-					// }
-					// else {
-					// 	sec.style.display = "block";
-					// }
 				});
-				//document.querySelector("#" + id + " .section").style.display = "none";
 			}
 			panelDiv.appendChild(titleDiv);
 		}
@@ -1039,34 +983,13 @@ ASTRAL.editor = (function() {
 				componentLabel.classList.remove("expanded");
 				componentLabel.classList.add("collapsed");
 				componentSection.style.display = "none";
-				//componentLabel.style.clear = "none";
-				//componentLabel.style.paddingTop = "2px";
 			}
 			else {
 				componentLabel.classList.remove("collapsed");
 				componentLabel.classList.add("expanded");
 				componentSection.style.display = "block";
-				//componentLabel.style.clear = "both";
-				//componentLabel.style.paddingTop = "0";
 			}
 		}
-
-		// btnShowHideComponent.onclick = function() {
-		// 	if (btnShowHideComponent.className.includes("expanded")) {
-		// 		btnShowHideComponent.classList.remove("expanded");
-		// 		btnShowHideComponent.classList.add("collapsed");
-		// 		componentSection.style.display = "none";
-		// 		componentLabel.style.clear = "none";
-		// 		componentLabel.style.paddingTop = "2px";
-		// 	}
-		// 	else {
-		// 		btnShowHideComponent.classList.remove("collapsed");
-		// 		btnShowHideComponent.classList.add("expanded");
-		// 		componentSection.style.display = "block";
-		// 		componentLabel.style.clear = "both";
-		// 		componentLabel.style.paddingTop = "0";
-		// 	}
-		// }
 
 		btnRemoveComponent.onclick = function() {
 			// remove the component from the object
@@ -1080,12 +1003,13 @@ ASTRAL.editor = (function() {
 			componentDiv.classList.add("fadeout");
 			setTimeout(function() {
 				componentDiv.remove();
-			}, 1500);
+			}, 800);
 		}
 
 		// create a control for each prop
 		Object.keys(component).forEach(function(key,index) {
-			if (key != "type") {
+			//console.log(key, index);
+			if (key != "type" && key != "runtime") {
 				if (key == "path") {
 					var thing = ctl("button filetarget", key, component[key], null, componentSection, null);
 					thing.addEventListener("drop", function(e) {
@@ -1171,7 +1095,7 @@ ASTRAL.editor = (function() {
 	function toggle() {
 		// this toggles visibility of the editor
 
-		// TODO: some tight coupling here...but considering spriter is always coupled this might be fine
+		// TODO: fix tight coupling (see note in Docs)...but considering spriter is always coupled this might be fine
 		console.log("editor.js toggle()");
 		if (editorDiv.style.visibility == "hidden") {
 			document.querySelectorAll(".sidebar").forEach(function(el) {
@@ -1187,7 +1111,7 @@ ASTRAL.editor = (function() {
 				el.style.display = "none";
 			});
 			editorDiv.style.visibility = "hidden";
-			spriterDiv.style.visibility = "hidden"; // TODO: tight coupling here...gets an error if spriter module not loaded
+			spriterDiv.style.visibility = "hidden"; // TODO: fix tight coupling (see note in Docs)...gets an error if spriter module not loaded
 			enabled = false;
 		}
 	}
@@ -1227,8 +1151,6 @@ ASTRAL.editor = (function() {
 
 					//el.innerHTML = data; // silly brute force kinda works but not really
 
-
-
 					console.log("drop event:", data, "->", el);
 				}, false);
 				el.appendChild(overlay);
@@ -1247,7 +1169,8 @@ ASTRAL.editor = (function() {
 		hideToolTip();
 
 		// get the hovered object's screen position
-		var panelPos = event.fromElement.getBoundingClientRect();
+		//var panel = event.fromElement;
+		//var panelPos = event.fromElement.getBoundingClientRect();
 		var t = event.target.getBoundingClientRect();
 
 		// create the tooltip
@@ -1290,16 +1213,19 @@ ASTRAL.editor = (function() {
 	}
 
 	return {
+		init: init,
+		toggle: toggle,
+		ctlPanel: ctlPanel,
+		ctlSection: ctlSection,
 		set enabled(val) {
 			enabled = val;
 		},
 		get enabled() {
 			return enabled;
 		},
-		init: init,
-		toggle: toggle,
-		ctlPanel: ctlPanel,
-		ctlSection: ctlSection,
+		get inspectedObject() {
+			return inspectedObject;
+		},
 		get drawObjectName() {
 			return drawObjectName;
 		},
@@ -1320,7 +1246,9 @@ ASTRAL.editor = (function() {
 		},
 		get drawObjectBorders() {
 			return drawObjectBorders;
+		},
+		get drawParticleCount() {
+			return drawParticleCount;
 		}
 	}
-
 }());

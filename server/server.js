@@ -13,12 +13,20 @@ var watcher = chokidar.watch("../client/assets", {ignored: /.meta/, ignoreInitia
 
 var objectCount = 0;
 var playerCount = 0;
-var players = [];		// connected players
-var objects = [];		// game objects
-var topics = [];		// send queue topics
-var sendQueue = [];		// send queue (unused see topics)
+var players = [];			// connected players
+var objects = [];			// game objects
+var topics = [];			// send queue topics
+var sendQueue = [];			// send queue (unused see topics)
 var sendCount = 0;			// send count
 var receiveQueue = [];		// receive queue
+
+var metaBlacklist = [ // don't make .meta files for these filetypes
+	"meta",
+	"license",
+	"prefab",
+	"scene",
+	"atlas"
+]
 
 /*==================
 	STARTUP
@@ -76,6 +84,8 @@ watcher.on("unlink", function(path) {
 console.log(getMetas("../client/assets"));
 
 function createMetaFile(path) {
+	console.log("WARNING: .meta function disabled for now");
+	return;
 	// var pathWithoutExt = path.split('.').slice(0, -1).join('.');
 	// var metaFilePath = pathWithoutExt + ".meta";
 	var metaFilePath = path + ".meta";
@@ -98,12 +108,22 @@ function getMetas(dir) {
 			getMetas(path);
 		}
 		else {
-			if (!file.includes(".meta") && 
-				!file.includes(".prefab") && 
-				!file.includes(".scene") && 
-				!file.includes(".atlas")
-			) {
-				// we have a raw resource, now check if it has a matching .meta file and if not create it
+			const fi = getFileInfo(path);
+
+			// if (!file.includes(".meta") && 
+			// 	!file.includes(".prefab") && 
+			// 	!file.includes(".scene") && 
+			// 	!file.includes(".atlas")
+			// ) {
+			// 	// we have a raw resource, now check if it has a matching .meta file and if not 
+			//	//	create it
+			// 	createMetaFile(path);
+			// 	fileList.push(file);
+			// }
+
+			if (metaBlacklist.includes(fi.ext) == false) {
+				// we have a raw resource, now check if it has a matching .meta file and if not
+				//	create it
 				createMetaFile(path);
 				fileList.push(file);
 			}
@@ -276,6 +296,10 @@ function handleMessage(player, payload) {
 			var zone = player.name;
 			queueSend(zone, "*dirlist," + getDir(spl[1]));
 			break;
+		case "*exec":
+			var exec = require('child_process').exec;
+			exec("start" + ' ' + spl[1]);
+			break;
 	}
 }
 
@@ -413,12 +437,50 @@ function createGameObject(name, sector) {
 	HELPERS
 ==================*/
 
+// function getFileInfo(path) {
+// 	var info = {};
+// 	info.path = path;
+// 	info.dir = path.substring(0, path.lastIndexOf("\\"));
+// 	info.name = path.split("\\").pop();
+// 	//console.log(info);
+// 	return info;
+// }
+
 function getFileInfo(path) {
+	// gets basic info about a file path
+	// TODO: this is also in server.js but paths differ by use of \\
 	var info = {};
-	info.path = path;
-	info.dir = path.substring(0, path.lastIndexOf("\\"));
-	info.name = path.split("\\").pop();
-	//console.log(info);
+	info.path = path.replace("\\", "/");
+	info.dir = path.substring(0, path.lastIndexOf("/"));
+	info.name = path.split("/").pop();
+	info.ext = path.split(".").pop().toLowerCase();
+	info.nameNoExt = info.name.split(".").slice(0, -1).join(".");
+	console.log("got file info for " + info.name + ":", info);
+	switch (info.ext) {
+		case "png":
+		case "jpg":
+			info.type = "image";
+			break;
+		case "js":
+			info.type = "script";
+			break;
+		case "atlas":
+			info.type = "atlas";
+			break;
+		case "scene":
+			info.type = "scene";
+			break;
+		case "prefab":
+			info.type = "prefab";
+			break;
+		case "mp3":
+		case "wav":
+			info.type = "sound";
+			break;
+		case "json":
+			info.type = "data";
+			break;
+	}
 	return info;
 }
 

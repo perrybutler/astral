@@ -331,6 +331,7 @@
 .panel .button.icon.menu {background-image:url('assets/menu.png');}
 .panel .button.icon.basic {background-image:url('assets/basic.png');}
 .panel .button.icon.advanced {background-image:url('assets/advanced.png');}
+.panel .button.icon.add {background-image:url('assets/add.png');}
 
 .panel .button.buttonicon {background-repeat:no-repeat; padding-left:18px;}
 .panel .button.buttonicon.file {background-image:url('assets/file.png'); background-position-x:right; padding-left:0.2em; padding-right:18px;}
@@ -420,7 +421,7 @@
     padding-right:4px;
     padding-bottom:4px;
     background-color:#6f6f6f;
-    transition:opacity 1.5s ease;
+    transition:opacity 1s ease;
 }
 
 .componentDiv .input {

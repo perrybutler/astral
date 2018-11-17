@@ -4,9 +4,11 @@
 		{"name": "netcode", "path": "core/netcode.js"},
 		{"name": "editor", "path": "core/editor.js"},
 		{"name": "spriter", "path": "core/spriter.js"},
-		{"name": "rotate", "path": "assets/scripts/rotate.js"},
-		{"name": "mover", "path": "assets/scripts/mover.js"},
-		{"name": "particle", "path": "assets/scripts/particle.js"}
+		{"name": "rotate", "path": "assets/components/rotate.js"},
+		{"name": "mover", "path": "assets/components/mover.js"},
+		{"name": "particle", "path": "assets/components/particle.js"},
+		{"name": "collider", "path": "assets/components/collider.js"},
+		{"name": "text", "path": "assets/components/text.js"}
 	],
-	"startup": "assets/scenes/zone1.scene"
+	"startup": "main.js"
 }

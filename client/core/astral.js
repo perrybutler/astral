@@ -1,3 +1,4 @@
+"use strict";
 console.log("astral.js entry point");
 
 var ASTRAL = (function() {
@@ -10,6 +11,7 @@ var ASTRAL = (function() {
 //
 ///////////////////////////////////////
 
+	var enabled = false;
 	var gameInfo = [];
 
 	// observer pattern
@@ -30,12 +32,20 @@ var ASTRAL = (function() {
 	var fps = 0;
 
 	// controls
+	var mouseX = 0;
+	var mouseY = 0;
+	var mouseB1 = false;
+	var mouseB2 = false;
 	var moveUp = false;
 	var moveDown = false;
 	var moveLeft = false;
 	var moveRight = false;
 	var lastInput = "0,0";
 	var finalInput = "0,0";
+
+	// 
+	// var objectRuntimeProps = ["on", "do"];
+	// var componentRuntimeProps = [];
 
 ///////////////////////////////////////
 //
@@ -84,13 +94,28 @@ var ASTRAL = (function() {
 		}, false);
 
 		// handle mousedown
-		gameLayer.can.addEventListener("mousedown", function(e) {
-			console.log("mousedown: " + e.button);
+		window.addEventListener("mousedown", function(e) {
+			console.log("~~ mousedown fired for button " + e.button);
+			//if (e.button == 0) mouseB1 = true;
+			//if (e.button == 1) mouseB2 = true;
+			if (e.button == 0) mouseB1 = 1;
+		});
+
+		window.addEventListener("mouseup", function(e) {
+			console.log("~~ mouseup fired for button " + e.button);
+			//if (e.button == 0) mouseB1 = false;
+			//if (e.button == 1) mouseB2 = false;
+			if (e.button == 0) mouseB1 = 2;
+		});
+
+		window.addEventListener("mousemove", function(e) {
+			mouseX = e.offsetX === undefined ? e.layerX : e.offsetX;
+			mouseY = e.offsetY === undefined ? e.layerY : e.offsetY;
 		});
 
 		// handle keydown
 		window.addEventListener("keydown", function(e) {
-			//console.log("keydown: " + e.key);
+			console.log("~~ keydown fired for key " + e.key);
 			switch (e.key) {
 				case "a":
 					moveLeft = true;
@@ -105,14 +130,14 @@ var ASTRAL = (function() {
 					moveDown = true;
 					break;
 				case "`":
-					// TODO: tight coupling...
+					// TODO: fix tight coupling (see note in Docs)
 					ASTRAL.editor.toggle();
 			}
 		});
 
 		// handle keyup
 		window.addEventListener("keyup", function(e) {
-			console.log("keyup: " + e.key);
+			console.log("~~ keyup fired for key " + e.key);
 			switch (e.key) {
 				case "a":
 					moveLeft = false;
@@ -130,7 +155,7 @@ var ASTRAL = (function() {
 		});
 
 		// try connecting to the server
-		// TODO: tight coupling here...
+		// TODO: fix tight coupling (see note in Docs)
 		if (ASTRAL.netcode) {
 			// TODO: put this on a button or background timer, dont halt execution or fail out when connect fails
 			ASTRAL.netcode.on("connect", function(){
@@ -142,14 +167,18 @@ var ASTRAL = (function() {
 			ASTRAL.netcode.connect();
 		}
 
-		// load the startup scene
-		ASTRAL.loadScene(gameInfo.startup);
+		// load the startup script that will kick things off
+		loadScript(gameInfo.startup, function() {
+			// TODO: we shouldn't have to explicitly do this here, we should have main.js
+			//	automatically call its own init() function once it has been loaded
+			ASTRAL.startGame();
+		});
 
-		// start the gameloop
+		// start the engine aka game loop
 		start();
 
-		// fire a window resize once to make editor resolution setting take effect (we can't call this in
-		//	editor due to race condition see the TODO there)
+		// fire a window resize event once to make editor resolution setting take effect 
+		//	since we can't call this in editor.js due to race condition (see the TODO there)
 		window.dispatchEvent(new Event('resize'));
 	}
 
@@ -202,30 +231,65 @@ var ASTRAL = (function() {
 	}
 
 	function update(delta) {
+		// update gets called once or more per frame to simulate the next fragment of game time
 		// handle messages from the server
-		// TODO: tight coupling...maybe fire an ASTRAL.do("beforeinput") so other modules can hook in
+		// TODO: fix tight coupling (see note in Docs)...maybe fire an ASTRAL.do("beforeinput") so other modules can hook in
 		if (ASTRAL.netcode) ASTRAL.netcode.handleReceiveQueue();
-
 		// update user input state
 		input();
-
 		// handle messages to the server
-		// TODO: tight coupling...maybe fire an ASTRAL.do("afterinput") so other modules can hook in
+		// TODO: fix tight coupling (see note in Docs)...maybe fire an ASTRAL.do("afterinput") so other modules can hook in
 		if (ASTRAL.netcode) ASTRAL.netcode.handleSendQueue();
-
 		// update the objects by incrementing their state
 		for (var key in sceneData) {
-			var obj = sceneData[key];
-			obj.x += obj.vx * obj.speed * delta;
-			obj.y += obj.vy * obj.speed * delta;
+			updateObject(sceneData[key]);
 		}
 	}
 
-	function findComponentByType(obj, type) {
-		for (var i = 0; i < obj.components.length; i++) {
-			var component = obj.components[i];
-			if (component.type == type) {
-				return component;
+	function updateObject(obj) {
+		// updates the object state, this gets called every frame for every object
+		// update the object transform by applying its physics
+		obj.x += obj.vx * obj.speed * delta;
+		obj.y += obj.vy * obj.speed * delta;
+		// update the object input state
+		updateObjectInputState(obj);
+		// update this object's child objects recursively
+		if (obj.objects) {
+			for (var key in obj.objects) {
+				var childObj = obj.objects[key];
+				updateObject(childObj);
+			}
+		}
+	}
+
+	function updateObjectInputState(obj) {
+		// determines input state for the object, this gets called every frame for every object
+		// reset the mouse state
+		obj.isMouseOver = false;
+		// detect the mouse state
+		if (ASTRAL.mouseX > obj.x && ASTRAL.mouseX < obj.x + obj.width) {
+			if (ASTRAL.mouseY > obj.y && ASTRAL.mouseY < obj.y + obj.height) {
+				//console.log(ASTRAL.mouseY, obj.y + obj.height, obj.height);
+				obj.isMouseOver = true;
+				if (mouseB1 == 3) {
+					obj.do("click");
+
+					// TODO: or instead of firing do() we could check for an existing onclick prop
+					//	and fire that instead, but the problem is that there might be multiple
+					//	components with an onclick prop so which one do we use? should we just 
+					//	have a single onclick prop handled at the object level? or we can attach
+					//	a custom script to the object, which would act as a component, but in this
+					//	script we can implement an OnMouseClick() function which gets automatically
+					//	called in any and all scripts whenever obj.do("click") is called.
+
+					var co = findComponentByType(obj, "text");
+					if (co) {
+						var func = co.onclick;
+						if (func) eval(func);
+						// TODO: find an eval alternative
+						//	https://stackoverflow.com/questions/912596/how-to-turn-a-string-into-a-javascript-function-call
+					}
+				}
 			}
 		}
 	}
@@ -246,7 +310,7 @@ var ASTRAL = (function() {
 
 		// clear the canvas
 		ctx.clearRect(0, 0, can.width, can.height); // alternative not recommended: can.width = can.width;
-		ctx.imageSmoothingEnabled = false; // TODO: not sure why we have to call this here but it only works if called here
+		ctx.imageSmoothingEnabled = false; // TODO: not sure why we have to call this here but it only works if called here, and this needs to be an option
 
 		// draw the objects
 		for (var key in sceneData) {
@@ -260,6 +324,8 @@ var ASTRAL = (function() {
 		if (obj.components) {
 			for (var i = 0; i < obj.components.length; i++) {
 				var component = obj.components[i];
+				// if the component is an image or atlas, call drawImage(), otherwise call the 
+				//	component's update()
 				if (component.type == "image") {
 					var img = images[component.path];
 					if (!img) img = imgMissing;
@@ -268,26 +334,34 @@ var ASTRAL = (function() {
 				else if (component.type == "atlas") {
 					var img = images[component.path];
 					if (!img) img = imgMissing;
-					//ctx.drawImage(img, obj.x, obj.y);
 					drawImage(img, obj, ctx);
 				}
 				else {
 					var componentBase = components[component.type];
 					if (componentBase && componentBase.update) componentBase.update(obj, ctx, component);
 				}
-				// else if (component.type == "rotate") {
-				// 	//obj.rot += parseInt(component.speed);
-				// 	var componentBase = components[component.type];
-				// 	componentBase.update(obj);
-				// }
 			}
 		}
 		else {
-			//ctx.drawImage(imgMissing, obj.x, obj.y);
+			// the object has no components, show a missing image
 			drawImage(imgMissing, obj, ctx);
 		}
+
+		// draw the editor/debug hints
+		drawObjectExtras(obj, ctx);
+
+		// call drawObject() recursively for children
+		if (obj.objects) {
+			for (var key in obj.objects) {
+				var childObj = obj.objects[key];
+				drawObject(childObj, ctx, obj);
+			}
+		}
+	}
+
+	function drawObjectExtras(obj, ctx) {
 		// draw debug/editor hints
-		// TODO: tight coupling here...
+		// TODO: fix tight coupling (see note in Docs)
 		if (ASTRAL.editor.enabled) {
 			if (ASTRAL.editor.drawObjectOrigin == true) {
 				// draw a cross for the object's position
@@ -309,13 +383,35 @@ var ASTRAL = (function() {
 			if (ASTRAL.editor.drawObjectPos == true) arrtext.push(obj.x + "," + obj.y);
 			if (ASTRAL.editor.drawObjectSize == true) arrtext.push(obj.width + "x" + obj.height);
 			if (ASTRAL.editor.drawObjectRot == true) arrtext.push(obj.rot);
+			if (ASTRAL.editor.drawParticleCount == true) {
+				// TODO: this should be refactored into a getComponent() func
+				for (var i = 0; i < obj.components.length; i++) {
+					var c = obj.components[i];
+					if (c.type == "particle" && c.runtime) {
+						arrtext.push(c.runtime.particles.length);
+					}
+				}
+			}
 			ctx.fillText(arrtext.join(" - "), obj.x, obj.y - 6);
-		}
-		// call drawObject() recursively for children
-		if (obj.objects) {
-			for (var key in obj.objects) {
-				var childObj = obj.objects[key];
-				drawObject(childObj, ctx, obj);
+
+			// draw borders
+			if (ASTRAL.editor.drawObjectBorders == true) {
+				// draw object border
+				if (obj.isMouseOver == true) {
+					ctx.strokeStyle = "white";
+				}
+				else {
+					ctx.strokeStyle = "blue";
+				}
+				ctx.strokeRect(obj.x - 0.5, obj.y - 0.5, obj.width, obj.height);
+
+				// draw collider border
+				// TODO: this is going to cause us to iterate all components for all objects...
+				var c = findComponentByType(obj, "collider");
+				if (c) {
+					ctx.strokeStyle = "red";
+					ctx.strokeRect(obj.x, obj.y, c.width, c.height);
+				}
 			}
 		}
 	}
@@ -330,77 +426,74 @@ var ASTRAL = (function() {
 		ctx.drawImage(img, obj.x, obj.y);
 
 		// draw the editor hints/helpers
-		// TODO: tight coupling here...
+		// TODO: fix tight coupling (see note in Docs)
+		// TODO: this should be part of drawObjectExtras()...
 		if (ASTRAL.editor.enabled) {
 			// TODO: move this code to the editor using a pubsub message...then we can check inspectorObject
 			//	there and change the rect color
-			if (ASTRAL.editor.drawObjectBorders == true) {
-				ctx.beginPath();
-				ctx.rect(obj.x - 0.5, obj.y - 0.5, img.width, img.height);
-				ctx.strokeStyle = "blue";
-				ctx.stroke();
-				ctx.closePath();
-			}
+			// if (ASTRAL.editor.drawObjectBorders == true) {
+			// 	ctx.beginPath();
+			// 	ctx.rect(obj.x - 0.5, obj.y - 0.5, img.width, img.height);
+			// 	if (obj.isMouseOver == true) {
+			// 		ctx.strokeStyle = "white";
+			// 	}
+			// 	else {
+			// 		ctx.strokeStyle = "blue";
+			// 	}
+			// 	ctx.stroke();
+			// 	ctx.closePath();
+			// }
 
 			//ctx.fillText(obj.id, obj.x, obj.y - 6);
 		}
 		ctx.restore();
 	}
 
-	// function loadGameObject(obj) {
-	// 	// creates a gameobject in memory based on a game object which was loaded from file/data,
-	// 	//	this is necessary because when we load a gameobject we should load its components etc
-	// 	obj.x = parseInt(obj.x);
-	// 	obj.y = parseInt(obj.y);
+	// function createGameObject(id, name, sector) {
+	// 	// creates a game object in memory and immediately returns it for further use
+	// 	//	the attributes are supplied by the server because the server creates objects
+	// 	//	and the client mimics
+	// 	var obj = {};
+	// 	obj.id = id;
+	// 	obj.name = name;
+	// 	obj.x = 50;
 	// 	obj.vx = 0;
+	// 	obj.y = 50;
 	// 	obj.vy = 0;
-	// 	if (!obj.rot) obj.rot = 0;
-	// 	if (!obj.scale) obj.scale = 1;
+	// 	obj.rot = 0;
+	// 	obj.scale = 1;
 	// 	obj.speed = 0.088;
-	// 	obj.channels = [];
-	// 	// if the gameobject uses a component which uses an image, load that image now
-	// 	for (var key in obj.components) {
-	// 		var component = obj.components[key];
-	// 		// TODO: call componentBase.applyRuntimeProps() here???
-	// 		if (component.applyRuntimeProps) component.applyRuntimeProps(component);
-	// 		if (component.type == "image") {
-	// 			// TODO: we don't want to call loadImage() for images already loaded...
-	// 			loadImage(component.path);
-	// 		}
-	// 		else if (component.type == "atlas") {
-	// 			loadImage(component.path);
-	// 		}
+	// 	obj.channels = [sector, "serverglobal"];
+	// 	obj.components = [];
+	// 	if (name.includes("player")) {
+	// 		obj.imageid = "guy.png";
+	// 	}
+	// 	else if (name.includes("pup")) {
+	// 		obj.imageid = "pup.png";
 	// 	}
 	// 	sceneData[obj.id] = obj;
-	// 	console.log("loaded object " + obj.name + " with id " + obj.id, obj);
+	// 	console.log("created object " + obj.name + " with id " + obj.id);
 	// 	return obj;
 	// }
 
-	function createGameObject(id, name, sector) {
-		// creates a game object in memory and immediately returns it for further use
-		//	the attributes are supplied by the server because the server creates objects
-		//	and the client mimics
-		var obj = {};
-		obj.id = id;
-		obj.name = name;
-		obj.x = 50;
-		obj.vx = 0;
-		obj.y = 50;
-		obj.vy = 0;
-		obj.rot = 0;
-		obj.scale = 1;
-		obj.speed = 0.088;
-		obj.channels = [sector, "serverglobal"];
-		obj.components = [];
-		if (name.includes("player")) {
-			obj.imageid = "guy.png";
+	function findObject(query) {
+		// TODO: need to search recursively
+		// text.text would return the first text component on the first object named text in the scene
+		for (var key in sceneData) {
+			var obj = sceneData[key];
+			if (obj.name == query) {
+				return obj;
+			}
 		}
-		else if (name.includes("pup")) {
-			obj.imageid = "pup.png";
+	}
+
+	function findComponentByType(obj, type) {
+		for (var i = 0; i < obj.components.length; i++) {
+			var component = obj.components[i];
+			if (component.type == type) {
+				return component;
+			}
 		}
-		sceneData[obj.id] = obj;
-		console.log("created object " + obj.name + " with id " + obj.id);
-		return obj;
 	}
 
 	function createLayer(name, zindex, drawFunc) {
@@ -455,7 +548,7 @@ var ASTRAL = (function() {
 		script.src = path;
 		script.onload = function() {
 			console.log("loading script at path " + path  + " fired its onload callback");
-			callback();
+			if (callback) callback();
 			script.remove();
 		}
 		document.body.appendChild(script);
@@ -544,18 +637,27 @@ var ASTRAL = (function() {
 	    req.send(null);
 	}
 
-	function loadScene(path) {
+	function loadScene(path, callback) {
 		ASTRAL.do("beforesceneload"); // e.g. editor can listen to this and clear its scene list
 		sceneData = [];
 		loadJson(path, function(data) {
+			// var tempData = JSON.parse(data);
+			// for (var i = 0; i < tempData.length; i++) {
+			// 	var obj = tempData[i];
+			// 	sceneData[obj.id] = obj;
+			// }
 			sceneData = JSON.parse(data);
 			ASTRAL.sceneData = sceneData;
 			console.log("loaded scene " + path + ", contains " + sceneData.length + " root nodes");
 			loadObjects(sceneData);
+			if (callback) callback();
 		});
 	}
 
-	function loadObjects(objects, path, level) {
+	// TODO: maybe modify this to accept parent as the first parameter, which would be the
+	//	parent object in the recursive relationship, so that we can call obj.parent to get
+	//	the object's parent object which would be highly useful
+	function loadObjects(objects, path, level, parent) {
 		//console.log("LOADING", objects);
 		// walks the objects array recursively to get the object path/level and calls loadObject()
 		//	on each object to massage the cold json data into runtime data
@@ -565,56 +667,149 @@ var ASTRAL = (function() {
 		var levelRoot = path;
 		for (var key in objects) {
 			var obj = objects[key];
+			if (parent) obj.parent = parent;
 			obj.path = levelRoot + "/" + obj.name;
 			obj.level = level;
-			loadObject(obj);
+			createObject(obj);
 			if (obj.objects) {
-				loadObjects(obj.objects, obj.path, level);
+				loadObjects(obj.objects, obj.path, level, obj);
 			}
 		}
 		level = 1;
 	}
 
-	function loadObject(obj) {
-		// loads an object from disk/json
+	function createObject(data, name) {
+		// create the object empty or using the data passed in
+		var obj;
+		if (data) {
+			obj = data;
+		}
+		else {
+			obj = {};
+			obj.id = Date.parse(new Date().toUTCString());
+			obj.name = name;
+			//sceneData[obj.id] = obj;
+			sceneData.push(obj);
+		}
+		// props
+		if (!obj.x) obj.x = 0;
+		if (!obj.y) obj.y = 0;
 		if (!obj.vx) obj.vx = 0;
 		if (!obj.vy) obj.vy = 0;
 		if (!obj.rot) obj.rot = 0;
 		if (!obj.scale) obj.scale = 1;
-		obj.speed = 0.088;
+		if (!obj.speed) obj.speed = 0.088;
+		console.log("OBJ", obj);
 		obj.channels = [];
-		for (var key in obj.components) {
-			var component = obj.components[key];
-			// if the component uses any required resources, load them now
-			if (component.type == "image") {
-				// TODO: we don't want to call loadImage() for images already loaded...
-				loadImage(component.path, function(img) {
-					obj.baseWidth = img.width;
-					obj.baseHeight = img.height;
-					obj.width = obj.baseHeight * obj.scale;
-					obj.height = obj.baseHeight * obj.scale;
-				});
+		// observer
+		obj.onHandlers = [];
+		obj.on = function(name, callback) {
+			var handlers = this.onHandlers[name];
+			if (!handlers) {
+				this.onHandlers[name] = [];
+				console.log("created custom event handler '" + name + "' for object '" + this.name + "'")
 			}
-			else if (component.type == "atlas") {
-				// TODO: this is wrong...we need to load the image referenced by the atlas, not the atlas itself
-				loadImage(component.path);
+			this.onHandlers[name].push(callback);
+			console.log("object '" + this.name + "' subscribed to event '" + name + "'");
+		}
+		obj.do = function(name) {
+			console.log("entity '" + this.name + "' fired event '" + name + "'");
+			var handlers = this.onHandlers[name];
+			if (handlers != null) {
+				for (var i in handlers) {
+					var callback = handlers[i];
+					callback();
+				}
 			}
 			else {
-				// merge the saved component data with the runtime props
-				var componentBase = components[component.type];
-				//console.log("COMPONENT", component, componentBase, components);
-				if (componentBase) {
-					if (componentBase.applyRuntimeProps) {
-						componentBase.applyRuntimeProps(component);
-						console.log("applied component instance runtime props to", component);
-					}
-				}
-				else {
-					console.log("WARNING: could not find componentBase '" + component.type + "', this means an object is using a component which hasn't been loaded or does not exist");
-				}
+				console.log("warning", "object.do() failed because no handler exists with the name '" + name + "'");
 			}
 		}
-		ASTRAL.do("objectloaded", obj); // e.g. editor can listen to this and create an item in the scene list
+		// components
+		if (!obj.components) {
+			obj.components = [];
+		}
+		else {
+			for (var key in obj.components) {
+				var component = obj.components[key];
+				// if the component uses any required resources, load them now
+				if (component.type == "image") {
+					// TODO: we don't want to call loadImage() for images already loaded...
+					loadImage(component.path, function(img) {
+						obj.baseWidth = img.width;
+						obj.baseHeight = img.height;
+						obj.width = obj.baseWidth * obj.scale;
+						obj.height = obj.baseHeight * obj.scale;
+					});
+				}
+				else if (component.type == "atlas") {
+					// TODO: this is wrong...we need to load the image referenced by the atlas, not the atlas itself
+					loadImage(component.path);
+				}
+				else {
+					// merge the saved component data with the runtime props
+					var componentBase = components[component.type];
+					//console.log("COMPONENT", component, componentBase, components);
+					if (componentBase) {
+						if (componentBase.applyRuntimeProps) {
+							componentBase.applyRuntimeProps(component);
+							console.log("applied component instance runtime props to", component);
+						}
+					}
+					else {
+						console.log("WARNING: could not find componentBase '" + component.type + "', this means an object is using a component which hasn't been loaded or does not exist");
+					}
+				}
+			}		
+		}
+		ASTRAL.do("objectcreated", obj); // e.g. editor can listen to this and create an item in the scene list
+		return obj;
+	}
+
+	function deleteInspectedObject() {
+		deleteObject(ASTRAL.editor.inspectedObject);
+	}
+
+	// TODO: this doesnt work for child objects we need to recursively search
+	function deleteObject(obj) {
+		// iterate the sceneData looking for the matching obj
+		// for (var i = 0; i < sceneData.length; i++) {
+		// 	if (obj.id == sceneData[i].id) {
+		// 		sceneData.splice(i, 1);
+		// 		ASTRAL.do("objectdeleted", obj);
+		// 	}
+		// 	for (var ii = 0; ii < sceneData[i].objects; ii++) {
+		// 		deleteObject(sceneData[i].objects[ii]);
+		// 	}
+		// }
+
+		// TODO: instead implement a parent prop on obj and call obj.parent.objects to iterate
+		//	the parent's children and remove the one matching obj
+		var collection = sceneData;
+		if (obj.parent) collection = obj.parent.objects;
+		for (var i = 0; i < collection.length; i++) {
+			if (obj.id == collection[i].id) {
+				collection.splice(i, 1);
+				ASTRAL.do("objectdeleted", obj);
+			}
+		}
+
+		// if (obj.parent) {
+
+		// }
+		// else {
+		// 	for (var i = 0; i < sceneData.length; i++) {
+		// 		if (obj.id == sceneData[i].id) {
+		// 			sceneData.splice(i, 1);
+		// 			ASTRAL.do("objectdeleted", obj);
+		// 		}
+		// 	}
+		// }
+		// console.log(obj.parent);
+	}
+
+	function loadComponentResources() {
+
 	}
 
 ///////////////////////////////////////
@@ -626,6 +821,15 @@ var ASTRAL = (function() {
 // TODO: make it pub/sub and let gamedev control more of this
 
 	function input() {
+		if (mouseB1 == 2) {
+			mouseB1 = 3;
+			console.log("mouse button 1 state set to click");
+		}
+		else if (mouseB1 == 3) {
+			mouseB1 = 0;
+			console.log("mouse button 1 state set to idle");
+		}
+
 		var vx = 0
 		var vy = 0;
 		if (moveUp == true) {
@@ -666,8 +870,9 @@ var ASTRAL = (function() {
 		if (finalInput != lastInput) {
 			lastInput = finalInput;
 			//send({event: "move", data: {vx: vx, vy: vy}});
-			// TODO: tight coupling...this was for testing client/server but should be moved into a game script since it is game specific
-			ASTRAL.netcode.queueSend("*move," + vx + "," + vy + "," + ASTRAL.game.myObject.x + "," + ASTRAL.game.myObject.y);
+			// TODO: fix tight coupling (see note in Docs)...this was for testing client/server but should be moved into a game script since it is game specific
+			//ASTRAL.netcode.queueSend("*move," + vx + "," + vy + "," + ASTRAL.game.myObject.x + "," + ASTRAL.game.myObject.y);
+			console.log("serverside movement code needs reimplementation");
 		}
 	}
 
@@ -837,8 +1042,11 @@ var ASTRAL = (function() {
 		layers:layers,
 		images:images,
 		createLayer:createLayer,
-		createGameObject:createGameObject,
+		createObject:createObject,
+		deleteInspectedObject:deleteInspectedObject,
+		/*createGameObject:createGameObject,*/
 		/*loadGameObject:loadGameObject,*/
+		findObject:findObject,
 		loadImage:loadImage,
 		loadScene:loadScene,
 		loadBatch:loadBatch,
@@ -851,7 +1059,12 @@ var ASTRAL = (function() {
 		setPanelLayout:setPanelLayout,
 		components:components,
 		gameInfo:gameInfo,
-		isFunction:isFunction
+		isFunction:isFunction,
+		get mouseX() {
+			return mouseX;
+		},
+		get mouseY() {
+			return mouseY;
+		}
 	}
-
 }());
