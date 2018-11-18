@@ -146,6 +146,9 @@ ASTRAL.editor = (function() {
 
 		// create the inspector panel
 		inspectorPanel = ctlPanel("inspector", "inspectorPanel", "", "sidebar4");
+		var noSelectionSection = ctlSection("", "noSelectionSection", "", inspectorPanel);
+		noSelectionSection.className = "selectionmsg";
+		noSelectionSection.innerHTML = "Select an object in the SCENE panel to view or modify its properties here.";
 		inspectorSection = ctlSection("", "", "", inspectorPanel);
 		var thing = ctl("button icon basic", null, "", "inspectorShowBasic", inspectorSection, function() {});
 		inspectorShowBasic.dataset.tip = "Show commonly used object properties.";
@@ -153,7 +156,7 @@ ASTRAL.editor = (function() {
 		inspectorShowAdvanced.dataset.tip = "Show all object properties.";
 		var thing = ctl("button icon remove", null, "", "inspectorDeleteObject", inspectorSection, function() {ASTRAL.deleteInspectedObject();});
 		inspectorDeleteObject.dataset.tip = "Delete this object from the scene.";
-		var thing = ctl("button", null, "(nothing selected)", "inspectoritem", inspectorSection, null);
+		var thing = ctl("input", null, "(nothing selected)", "inspectoritem", inspectorSection, null);
 		var thing = ctl("input pair", "position", "0", "posx", inspectorSection, null);
 		var thing = ctl("input pair", null, "0", "posy", inspectorSection, null);
 		posx.addEventListener("mousewheel", function(event) {
@@ -186,6 +189,7 @@ ASTRAL.editor = (function() {
 		componentsPlaceholder.className = "componentText";
 		componentsPlaceholder.innerHTML = "None";
 		inspectorSection.appendChild(componentsPlaceholder);
+		populateInspectorPanel(null);
 
 		// create the project panel
 		projectPanel = ctlPanel("project", "projectPanel", "", "sidebar1");
@@ -557,6 +561,7 @@ ASTRAL.editor = (function() {
 				deleteGameObjectFromScenePanel(obj.objects[i]);
 			}
 		}
+		populateInspectorPanel(null);
 	}
 
 	function addProjectFileToScene(path, mouseevent) {
@@ -570,25 +575,11 @@ ASTRAL.editor = (function() {
 		var ry = ch / window.innerHeight;
 		obj.x = mouseevent.pageX * rx;
 		obj.y = mouseevent.pageY * ry;
-		// if its an image, add image component to gameobject and center image at the mouse position
-		if (fi.type == "image") {
-			ASTRAL.loadImage(path, function(img) {
-				//console.log(img);
-				obj.x -= img.width / 2;
-				obj.y -= img.height / 2;
-				obj.baseWidth = img.width;
-				obj.baseHeight = img.height;
-				obj.width = obj.baseWidth * obj.scale;
-				obj.height = obj.baseHeight * obj.scale;
-				// TODO: i redacted this because i dont think it does anything (wtf is objectButton?) and it was tripping out when i added use strict
-				//objectButton.click(); // TODO: this is some magic...is var objectButton being hoisted?
-			});
-			var component = imageComponent(fi.path);
-			obj.components.push(component);
-		}
-		else if (fi.type == "script") {
-			addComponentToGameObject(obj, path);
-		}
+		// TODO: why does the component get added to the INSPECTOR panel even if we dont call
+		//	populateInspectorPanel()??
+		addComponentToGameObject(obj, path);
+		console.log("OBJ", obj);
+		populateInspectorPanel(obj);
 		console.log("added asset to scene as new gameobject:", obj);
 	}
 
@@ -649,85 +640,105 @@ ASTRAL.editor = (function() {
 
 	function populateInspectorPanel(obj) {
 		// this populates the INSPECTOR with the given object's properties
+		if (obj) {
 
-		// set a global to track the object being inspected
-		inspectedObject = obj;
+			noSelectionSection.style.display = "none";
+			inspectorSection.style.display = "block";
 
-		// since the inspector reuses some controls, we need to rebind their listeners
-		// TODO: do we really need to do this??
-		// TODO: or we can add these props here too, so that we can show an empty inspector until it gets
-		//	populated
-		posx.removeEventListener("input", posChange);
-		posx.addEventListener("input", posChange);
-		posx.removeEventListener("blur", posChange);
-		posx.addEventListener("blur", posChange);
-		posx.focus();
-		posy.removeEventListener("blur", posChange);
-		posy.addEventListener("blur", posChange);
-		posy.removeEventListener("input", posChange);
-		posy.addEventListener("input", posChange);
-		rot.removeEventListener("input", rotChange);
-		rot.addEventListener("input", rotChange);
-		rot.removeEventListener("blur", rotChange);
-		rot.addEventListener("blur", rotChange);
-		scale.removeEventListener("input", scaleChange);
-		scale.addEventListener("input", scaleChange);
-		scale.removeEventListener("blur", scaleChange);
-		scale.addEventListener("blur", scaleChange);
+			// set a global to track the object being inspected
+			inspectedObject = obj;
 
-		// populate some basic props
-		inspectoritem.innerHTML = obj.name;
-		// if (obj.x) {
-		// 	posx.innerHTML = obj.x;
-		// }
-		// else {
-		// 	posx.innerHTML = "null";
-		// }
-		// if (obj.y) {
-		// 	posy.innerHTML = obj.y;
-		// }
-		// else {
-		// 	posy.innerHTML = "null";
-		// }
-		posx.innerHTML = obj.x;
-		posy.innerHTML = obj.y;
-		if (!obj.scale) obj.scale = 1;
-		scale.innerHTML = obj.scale;
-		if (!obj.rot) obj.rot = 0;
-		rot.innerHTML = obj.rot;
+			// since the inspector reuses some controls, we need to rebind their listeners
+			// TODO: do we really need to do this??
+			// TODO: or we can add these props here too, so that we can show an empty inspector until it gets
+			//	populated
+			inspectoritem.removeEventListener("blur", nameChange);
+			inspectoritem.addEventListener("blur", nameChange);
+			inspectoritem.focus();
 
-		// clear old components from panel
-		document.querySelectorAll('.componentDiv').forEach(function(a){
-			a.remove()
-		});
+			posx.removeEventListener("input", posChange);
+			posx.addEventListener("input", posChange);
+			posx.removeEventListener("blur", posChange);
+			posx.addEventListener("blur", posChange);
+			//posx.focus();
+			posy.removeEventListener("blur", posChange);
+			posy.addEventListener("blur", posChange);
+			posy.removeEventListener("input", posChange);
+			posy.addEventListener("input", posChange);
+			rot.removeEventListener("input", rotChange);
+			rot.addEventListener("input", rotChange);
+			rot.removeEventListener("blur", rotChange);
+			rot.addEventListener("blur", rotChange);
+			scale.removeEventListener("input", scaleChange);
+			scale.addEventListener("input", scaleChange);
+			scale.removeEventListener("blur", scaleChange);
+			scale.addEventListener("blur", scaleChange);
 
-		// redo the drop event
-		// TODO: this selector could get sloppy since it uses a class which might get used more than once
-		//	so just make a #inspectorTitle element
-		var inspectorTitle = document.querySelector("#inspectorPanel .title");
-		inspectorTitle.removeEventListener("drop", titleDrop);
-		inspectorTitle.addEventListener("drop", titleDrop);
+			// populate some basic props
+			inspectoritem.innerHTML = obj.name;
+			// if (obj.x) {
+			// 	posx.innerHTML = obj.x;
+			// }
+			// else {
+			// 	posx.innerHTML = "null";
+			// }
+			// if (obj.y) {
+			// 	posy.innerHTML = obj.y;
+			// }
+			// else {
+			// 	posy.innerHTML = "null";
+			// }
+			posx.innerHTML = obj.x;
+			posy.innerHTML = obj.y;
+			if (!obj.scale) obj.scale = 1;
+			scale.innerHTML = obj.scale;
+			if (!obj.rot) obj.rot = 0;
+			rot.innerHTML = obj.rot;
 
-		// list the components
-		if (obj.components.length > 0) {
-			componentsPlaceholder.style.display = "none";
-			for (var i = 0; i < obj.components.length; i++) {
-				var component = obj.components[i];
-				ctlComponent(component, obj);
+			// clear old components from panel
+			document.querySelectorAll('.componentDiv').forEach(function(a){
+				a.remove()
+			});
+
+			// redo the drop event
+			// TODO: this selector could get sloppy since it uses a class which might get used more than once
+			//	so just make a #inspectorTitle element
+			var inspectorTitle = document.querySelector("#inspectorPanel .title");
+			inspectorTitle.removeEventListener("drop", titleDrop);
+			inspectorTitle.addEventListener("drop", titleDrop);
+
+			// list the components
+			if (obj.components.length > 0) {
+				componentsPlaceholder.style.display = "none";
+				for (var i = 0; i < obj.components.length; i++) {
+					var component = obj.components[i];
+					ctlComponent(component, obj);
+				}
 			}
+			else {
+				componentsPlaceholder.style.display = "block";
+			}
+
+			// if (!obj.components || obj.components.length == 0) {
+			// 	//var msg = ctlText("None", componentDiv);
+
+			// }
+
+			// refresh the inspector if the object properties have changed
+			// clearTimeout(refreshInspector);
+			// setTimeout(refreshInspector, 1000);
 		}
 		else {
-			componentsPlaceholder.style.display = "block";
+			// TODO: show notice and hide props
+			noSelectionSection.style.display = "block";
+			inspectorSection.style.display = "none";
+
+			inspectoritem.innerHTML = "";
+			posx.innerHTML = "";
+			posy.innerHTML = "";
+			rot.innerHTML = "";
+			scale.innerHTML = "";
 		}
-
-		// if (!obj.components || obj.components.length == 0) {
-		// 	//var msg = ctlText("None", componentDiv);
-
-		// }
-
-		// refresh the inspector if the object properties have changed
-		// clearTimeout(refreshInspector);
-		// setTimeout(refreshInspector, 1000);
 
 		// visual feedback
 		flashDomElement(inspectorPanel);
@@ -748,7 +759,10 @@ ASTRAL.editor = (function() {
 		//var component = componentBase.instance();
 
 		var component;
+
+		// check if componentBase is set which will tell us if the component is a .js file or img
 		if (componentBase) {
+			// the component.js file is already loaded, create an instance for the object to use
 			if (componentBase.instance) {
 				component = componentBase.instance();
 			}
@@ -757,10 +771,31 @@ ASTRAL.editor = (function() {
 			}
 		}
 		else {
+			// the component isn't already loaded, this currently only happens if an image file 
+			//	was dropped, so we create the component dynamically instead of from file
 			if (fi.type = "image") {
+				ASTRAL.loadImage(path, function(img) {
+					//console.log(img);
+					// TODO: we shouldn't center the image like this, instead modify the origin
+					//	for objects to be in the center by default...if we do that here what 
+					//	happens is the object gets put in the inspector before the image finishes
+					//	loading and the callback fires to center the image, so the centering does
+					//	work, but clicking anywhere causes a blur() on the inspector which forces
+					//	the obj.x and obj.y back to the previous values
+					//obj.x -= img.width / 2;
+					//obj.y -= img.height / 2;
+					obj.baseWidth = img.width;
+					obj.baseHeight = img.height;
+					obj.width = obj.baseWidth * obj.scale;
+					obj.height = obj.baseHeight * obj.scale;
+					// TODO: i redacted this because i dont think it does anything (wtf is objectButton?) and it was tripping out when i added use strict
+					//objectButton.click(); // TODO: this is some magic...is var objectButton being hoisted?
+				});
 				component = imageComponent(path);
 			}
 		}
+
+		console.log("OBJ", obj);
 
 		obj.components.push(component);
 		componentDiv = ctlComponent(component, obj);
@@ -774,8 +809,18 @@ ASTRAL.editor = (function() {
 
 	function refreshInspector() {
 		// TODO: this forcefully refreshes and flashes the whole panel, it should take a diff and only
-		//	refresh changed fields, then fire a flash on the changed fields only
+		//	refresh changed fields, then `fire a flash on the changed fields only
 		populateInspectorPanel(inspectedObject);
+	}
+
+	function getObjectNode(obj) {
+		var node = document.getElementById("objid" + obj.id);
+		return node;
+	}
+
+	function nameChange() {
+		inspectedObject.name = inspectoritem.innerHTML;
+		getObjectNode(inspectedObject).innerHTML = inspectedObject.name;
 	}
 
 	function posChange() {

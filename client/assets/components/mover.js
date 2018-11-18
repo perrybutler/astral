@@ -1,15 +1,15 @@
 ASTRAL.components.mover = (function() {
-	var speed = 1;
-	function update(obj) {
-		obj.x += speed;
+	function instance(obj) {
+		var component = {};
+		component.type = "mover";
+		component.speed = 1;
+		return component;
+	}
+	function update(obj, ctx, instance) {
+		obj.x += instance.speed;
 	}
 	return {
-		set speed(val) {
-			speed = val;
-		},
-		get speed() {
-			return speed;
-		},
+		instance:instance,
 		update:update
 	}
 }());

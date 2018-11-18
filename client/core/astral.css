@@ -135,6 +135,13 @@
 
 ******************************/
 
+.selectionmsg {
+	color:#999;
+	font-family:arial;
+	font-size:0.7em;
+	padding:5px;
+}
+
 .connectionmsg {
 	color:#999;
 	font-family:arial;

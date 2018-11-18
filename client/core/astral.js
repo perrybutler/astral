@@ -184,7 +184,9 @@ var ASTRAL = (function() {
 
 	function start() {
 		enabled = true;
-		requestAnimationFrame(gameLoop);
+		//requestAnimationFrame(gameLoop);
+		setInterval(gameLoop, 1);
+		//gameLoop();
 	}
 
 	function stop() {
@@ -200,18 +202,26 @@ var ASTRAL = (function() {
 	var delta = 0;
 	var last = 0;
 	var step = 1000 / 60; // * 5 to simulate 5x slower loop
+	var t1;
+	var t2 = 0;
 
-	function gameLoop(timestamp) {
+	function gameLoop() {
 		computeFps();
-		delta += timestamp - last;
-		last = timestamp;
-		while (delta >= step) {
-			update(step);
-			delta -= step;
-		}
+		update();
 		draw();
-		requestAnimationFrame(gameLoop);
 	}
+
+	// function gameLoop(timestamp) {
+	// 	computeFps();
+	// 	delta += timestamp - last;
+	// 	last = timestamp;
+	// 	while (delta >= step) {
+	// 		update(step);
+	// 		delta -= step;
+	// 	}
+	// 	draw();
+	// 	requestAnimationFrame(gameLoop);
+	// }
 
 	var fpsFrames = 0;
 	var fps = 0;
@@ -271,7 +281,18 @@ var ASTRAL = (function() {
 			if (ASTRAL.mouseY > obj.y && ASTRAL.mouseY < obj.y + obj.height) {
 				//console.log(ASTRAL.mouseY, obj.y + obj.height, obj.height);
 				obj.isMouseOver = true;
+
+				// TODO: sloppy object drag
+				if (mouseB1 == 1) {
+					obj.isDragging = true;
+				}
+
 				if (mouseB1 == 3) {
+					obj.isDragging = false;
+					// TODO: maybe here we can determine if the editor is toggled on and then
+					//	call something like obj.do("editorclick") and if the editor is off we
+					//	can just call obj.do("click")...
+
 					obj.do("click");
 
 					// TODO: or instead of firing do() we could check for an existing onclick prop
@@ -291,6 +312,11 @@ var ASTRAL = (function() {
 					}
 				}
 			}
+		}
+
+		if (obj.isDragging == true) {
+			obj.x = ASTRAL.mouseX - obj.width/2;
+			obj.y = ASTRAL.mouseY - obj.height/2;
 		}
 	}
 
@@ -322,17 +348,18 @@ var ASTRAL = (function() {
 	function drawObject(obj, ctx, parent) {
 		// draw the object using its renderable components
 		if (obj.components) {
+			var img;
 			for (var i = 0; i < obj.components.length; i++) {
 				var component = obj.components[i];
 				// if the component is an image or atlas, call drawImage(), otherwise call the 
 				//	component's update()
 				if (component.type == "image") {
-					var img = images[component.path];
+					img = images[component.path];
 					if (!img) img = imgMissing;
 					drawImage(img, obj, ctx);
 				}
 				else if (component.type == "atlas") {
-					var img = images[component.path];
+					img = images[component.path];
 					if (!img) img = imgMissing;
 					drawImage(img, obj, ctx);
 				}
@@ -424,57 +451,8 @@ var ASTRAL = (function() {
 		ctx.scale(obj.scale, obj.scale);
 		ctx.translate(-(obj.x + img.width / 2), -(obj.y + img.height / 2));
 		ctx.drawImage(img, obj.x, obj.y);
-
-		// draw the editor hints/helpers
-		// TODO: fix tight coupling (see note in Docs)
-		// TODO: this should be part of drawObjectExtras()...
-		if (ASTRAL.editor.enabled) {
-			// TODO: move this code to the editor using a pubsub message...then we can check inspectorObject
-			//	there and change the rect color
-			// if (ASTRAL.editor.drawObjectBorders == true) {
-			// 	ctx.beginPath();
-			// 	ctx.rect(obj.x - 0.5, obj.y - 0.5, img.width, img.height);
-			// 	if (obj.isMouseOver == true) {
-			// 		ctx.strokeStyle = "white";
-			// 	}
-			// 	else {
-			// 		ctx.strokeStyle = "blue";
-			// 	}
-			// 	ctx.stroke();
-			// 	ctx.closePath();
-			// }
-
-			//ctx.fillText(obj.id, obj.x, obj.y - 6);
-		}
 		ctx.restore();
 	}
-
-	// function createGameObject(id, name, sector) {
-	// 	// creates a game object in memory and immediately returns it for further use
-	// 	//	the attributes are supplied by the server because the server creates objects
-	// 	//	and the client mimics
-	// 	var obj = {};
-	// 	obj.id = id;
-	// 	obj.name = name;
-	// 	obj.x = 50;
-	// 	obj.vx = 0;
-	// 	obj.y = 50;
-	// 	obj.vy = 0;
-	// 	obj.rot = 0;
-	// 	obj.scale = 1;
-	// 	obj.speed = 0.088;
-	// 	obj.channels = [sector, "serverglobal"];
-	// 	obj.components = [];
-	// 	if (name.includes("player")) {
-	// 		obj.imageid = "guy.png";
-	// 	}
-	// 	else if (name.includes("pup")) {
-	// 		obj.imageid = "pup.png";
-	// 	}
-	// 	sceneData[obj.id] = obj;
-	// 	console.log("created object " + obj.name + " with id " + obj.id);
-	// 	return obj;
-	// }
 
 	function findObject(query) {
 		// TODO: need to search recursively
@@ -630,7 +608,6 @@ var ASTRAL = (function() {
 				statusPassing = "0";
 			}
 			if (req.readyState == 4 && req.status == statusPassing) {
-				// TODO: we need to load the deps here or in kit.sprite...
 				callback(req.responseText);
 			}
 	    };
