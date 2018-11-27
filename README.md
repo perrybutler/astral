@@ -17,9 +17,11 @@ Architecture:
 * Entity component system, works similar to Unity
 * Components include atlas, image, collider, particle, rigidbody, text, input, custom
 
-**Disclaimer:** the graphics depicted on this page (in the screen captures) are for demonstration purposes only and remain copyrighted by their respective owners/publishers. Specifically Gravity/Ragnarok Online and Gamesys/Here Be Monsters.
+*What makes Astral unique?* It comes with a built-in editor. Oh, Unreal had that 20 years ago you say? Not quite :D Imagine starting a game of Unreal, then opening UnrealEd and modifying the game as you're playing it. You can't do that, not even today, 20 years later with Unreal Engine 4. But that's what Astral can do. A single keyboard shortcut will switch between play and edit modes in real-time. This is possible because we are using JavaScript as it was designed - a fully dynamic scripting language - rather than treating JS like a compiled assembly language, which is what most JS game engines and even modern JS frameworks attempt to do. So that's what sets Astral apart from nearly all other game engines.
 
 **Warning:** this code is pre-alpha and nowhere near production ready. Use at your own risk.
+
+**Disclaimer:** the graphics depicted on this page (in the screen captures) are for demonstration purposes only and remain copyrighted by their respective owners/publishers. Specifically Gravity/Ragnarok Online and Gamesys/Here Be Monsters.
 
 ## Updates
 
