@@ -19,6 +19,8 @@ Architecture:
 
 **Disclaimer:** the graphics depicted on this page (in the screen captures) are for demonstration purposes only and remain copyrighted by their respective owners/publishers. Specifically Gravity/Ragnarok Online and Gamesys/Here Be Monsters.
 
+## Updates
+
 ![](https://thumbs.gfycat.com/ShorttermEducatedApisdorsatalaboriosa-size_restricted.gif)
 
 Realtime inspector/editor functionality. This is the framework in its most recent state. The graphics used here are CC0/public domain.
