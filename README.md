@@ -21,9 +21,13 @@ Architecture:
 
 ## Updates
 
+### October 6th, 2018
+
 ![](https://thumbs.gfycat.com/ShorttermEducatedApisdorsatalaboriosa-size_restricted.gif)
 
 Realtime inspector/editor functionality. This is the framework in its most recent state. The graphics used here are CC0/public domain.
+
+### October 5th, 2018
 
 ![](https://thumbs.gfycat.com/FocusedEnormousAnemone-size_restricted.gif)
 
