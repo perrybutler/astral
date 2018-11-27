@@ -17,17 +17,11 @@ Architecture:
 * Entity component system, works similar to Unity
 * Components include atlas, image, collider, particle, rigidbody, text, input, custom
 
-----
-
 **Disclaimer:** the graphics depicted on this page (in the screen captures) are for demonstration purposes only and remain copyrighted by their respective owners/publishers. Specifically Gravity/Ragnarok Online and Gamesys/Here Be Monsters.
-
-----
 
 ![](https://thumbs.gfycat.com/ShorttermEducatedApisdorsatalaboriosa-size_restricted.gif)
 
 Realtime inspector/editor functionality. This is the framework in its most recent state. The graphics used here are CC0/public domain.
-
-----
 
 ![](https://thumbs.gfycat.com/FocusedEnormousAnemone-size_restricted.gif)
 
@@ -47,19 +41,11 @@ After a long hiatus, I returned to this project to continue where I left off, bu
 
 I got burnt out on Rapid Engine, and I was sad that I no longer had the old code for my 3d engines, so I decided to fill that gap with a little side project. Here's iosys Engine reborn.
 
-----
-
 ![](https://thumbs.gfycat.com/CoarseFocusedGadwall-small.gif)
-
-----
 
 ![](https://thumbs.gfycat.com/IndelibleCheeryAdeliepenguin-max-1mb.gif)
 
-----
-
 ![](https://thumbs.gfycat.com/HilariousCandidEskimodog-size_restricted.gif)
-
-----
 
 Unfortunately gfycat made some of those gifs really bad quality.
 
@@ -93,24 +79,14 @@ It turns out I've been making and scrapping game engines for a while. What can I
 
 I used a lot of map editors back in the day to modify and make new content for games, such as Build (Duke Nukem 3D), qeradiant (Quake II), UnrealEd (Unreal) and Hammer (Half-Life), but one particular editor called QuArK is the one that stood out, and that was the inspiration for my first editor.
 
-----
-
 ![](https://thumbs.gfycat.com/ThankfulFastAmericanavocet-small.gif)
 
 An in-game screenshot showing what the engine could do. Textures, lighting, fog, transparency, collision detection. You could walk around on the terrain.
 
-----
-
 ![](https://thumbs.gfycat.com/UnlinedGiganticImpala-small.gif)
-
-----
 
 ![](https://thumbs.gfycat.com/ShockingBonyCoelacanth-small.gif)
 
-----
-
 ![](https://thumbs.gfycat.com/PlushOrganicIndianskimmer-small.gif)
-
-----
 
 ![](https://thumbs.gfycat.com/AssuredUnsungAfricanmolesnake-small.gif)
