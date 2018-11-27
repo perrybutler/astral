@@ -22,11 +22,9 @@ Architecture:
 ## Updates
 
 ![](https://thumbs.gfycat.com/ShorttermEducatedApisdorsatalaboriosa-size_restricted.gif)
-
 Realtime inspector/editor functionality. This is the framework in its most recent state. The graphics used here are CC0/public domain.
 
 ![](https://thumbs.gfycat.com/FocusedEnormousAnemone-size_restricted.gif)
-
 Netcode is coming along well. This also shows a Chromium wrapper being used to launch the game like a native Windows app. The wrapper is a custom .NET app with Chromium embedded via CEFsharp lib which will have its own repo and can optionally be bundled with the finished game for a turn-key product, depending on the open-source license constraints.
 
 # History
