@@ -19,6 +19,8 @@ Architecture:
 
 **Disclaimer:** the graphics depicted on this page (in the screen captures) are for demonstration purposes only and remain copyrighted by their respective owners/publishers. Specifically Gravity/Ragnarok Online and Gamesys/Here Be Monsters.
 
+**Warning:** this code is pre-alpha and nowhere near production ready. Use at your own risk.
+
 ## Updates
 
 ### October 6th, 2018
