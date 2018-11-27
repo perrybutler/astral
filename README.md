@@ -4,9 +4,9 @@ Astral is a combination of my previous game engine projects and UI designs.
 
 Usage:
 
-* Build 2d canvas based cross-platform HTML5 games
-* Design a game with the in-browser editor, or by writing JS code
-* Create scenes, prefabs, texture atlases, sprites, animations and more
+* Build 2d canvas-based cross-platform HTML5 games
+* Design your game with the in-browser editor, or by writing JS code
+* Create scenes, prefabs, texture atlases, sprites, animations and more without leaving the browser
 * Quickly prototype game ideas, or even apps and diagrams
 
 Architecture:
