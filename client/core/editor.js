@@ -5,6 +5,12 @@ ASTRAL.editor = (function() {
 
 	console.log("editor.js constructor");
 
+///////////////////////////////////////
+//
+//	PRIVATE LOCAL VARS
+//
+///////////////////////////////////////
+
 	var enabled = false;
 
 	var editorLayer;
@@ -25,6 +31,7 @@ ASTRAL.editor = (function() {
 	var homeButton;
 	var upButton;
 	var folderButton;
+	var fileButton;
 
 	var homePath = "../client/assets";
 	var currentPath;
@@ -202,7 +209,10 @@ ASTRAL.editor = (function() {
 		homeButton.dataset.tip = "Return to the root assets folder";
 		upButton = ctl("button icon moveup", null, "", null, projectSection, function() {});
 		upButton.dataset.tip = "Go back to the previous folder";
-		//folderButton = ctl("button icon folderadd", null, "", null, projectSection, function() {});
+		folderButton = ctl("button icon folderadd", null, "", null, projectSection, function() {createFolder()});
+		folderButton.dataset.tip = "Create a new folder in the current directory.";
+		fileButton = ctl("button icon fileadd", null, "", "projectPanelNewItem", projectSection, function() {createFile()});
+		fileButton.dataset.tip = "Create a new file in the current directory.";
 		currentPath = "../client/assets";
 
 		// create fps counter
@@ -277,6 +287,35 @@ ASTRAL.editor = (function() {
 					flashDomElement(netcodestuff);
 				}
 			});
+
+			ASTRAL.netcode.on("*createfileresult", function(payload) {
+				// pop the file into the PROJECT panel with contenteditable true
+				var fi = ASTRAL.getFileInfo(payload[0]);
+				createdProjectNode.remove();
+				var node = createProjectNode(fi.name);
+				flashDomElement(node);
+			});
+
+			ASTRAL.netcode.on("*renamefileresult", function(payload) {
+				// var fi = ASTRAL.getFileInfo(payload[0]);
+				// createdProjectNode.innerHTML = fi.name;
+				// flashDomElement(createdProjectNode);
+				var fi = ASTRAL.getFileInfo(payload[0]);
+				createdProjectNode.remove();
+				createdProjectNode = createProjectNode(fi.name);
+				flashDomElement(createdProjectNode);
+			});
+
+			ASTRAL.netcode.on("*deletefileresult", function(payload) {
+				var fi = ASTRAL.getFileInfo(payload[0]);
+				if (fi.name) {
+					// file was deleted
+					deletedProjectNode.remove();
+				}
+				else {
+					// file was not deleted
+				}
+			});
 		}
 
 		window.addEventListener("resize", function() {
@@ -287,12 +326,19 @@ ASTRAL.editor = (function() {
 			}
 		});
 
+		window.addEventListener("click", function() {
+			var menu = document.getElementById("contextmenu");
+			if (menu) menu.remove();
+		});
+
 		ASTRAL.on("beforesceneload", function() {
 			// clear the scene panel object list
 			var currentList = document.querySelectorAll(".sceneobjectbutton");
 			for (var i = 0; i < currentList.length; i++) {
 				currentList[i].remove();
 			}
+			// clear the inspector
+			inspectedObject = null;
 		});
 
 		ASTRAL.on("objectcreated", function(obj) {
@@ -315,19 +361,38 @@ ASTRAL.editor = (function() {
 		//setTimeout(function() {screenScalingChange()}, 10);
 
 		//console.log("ASTRAL", ASTRAL);
+
+		setInterval(function() {
+			refreshInspectorPanel(inspectedObject);
+		}, 100);
 	}
 
 	function saveScene() {
-
+		ASTRAL.saveSceneData(ASTRAL.sceneData);
 	}
 
 	function viewSceneData() {
 		// TODO: this is not carrying over new objects...only initial objects and their changed data
-		ASTRAL.openDataInNewTab(ASTRAL.sceneData);
+		let json = ASTRAL.sceneDataToJson();
+		ASTRAL.openJsonInNewTab(json);
 	}
 
 	function downloadScene() {
-		ASTRAL.downloadData(ASTRAL.sceneData, "myscene.scene");
+		ASTRAL.downloadSceneData("newscene.scene");
+	}
+
+	function createFolder() {
+
+	}
+
+	function createFile() {
+		//ASTRAL.netcode.sendNow("*createfile," + currentPath);
+		var node = createProjectNode();
+		beginRenameProjectNode(node, true);
+	}
+
+	function renameFile() {
+
 	}
 
 ///////////////////////////////////////
@@ -501,6 +566,10 @@ ASTRAL.editor = (function() {
 						projectSection,
 						function() {getDir(path)}
 					);
+					assetButton.addEventListener("contextmenu", function(e) {
+						e.preventDefault();
+						ctxProject(assetButton, e);
+					});
 					// https://stackoverflow.com/questions/22438002/dealing-with-loops-in-javascript-only-last-item-gets-affected
 				}).call(this, path);
 			}
@@ -526,9 +595,237 @@ ASTRAL.editor = (function() {
 						projectSection,
 						function(event) {openProjectFile(event, path)}
 					);
+					assetButton.addEventListener("contextmenu", function(e) {
+						e.preventDefault();
+						ctxProject(assetButton, e);
+					});
 				}).call(this, path);
 			}
 		}
+	}
+
+	var createdProjectNode;
+
+	function createProjectNode(name) {
+		if (!name) name = "newfile";
+		var path = currentPath + "/" + name;
+		var iconName = getIconForFile(path);
+		var node = ctl(
+			"button file projectfile buttonicon " + iconName,
+			null,
+			name,
+			path,
+			projectSection,
+			function(event) {openProjectFile(event, path)}
+		);
+		node.addEventListener("contextmenu", function(e) {
+			e.preventDefault();
+			ctxProject(node, e);
+		});
+		return node;
+	}
+
+	var deletedProjectNode;
+
+	function deleteProjectNode(node) {
+		deletedProjectNode = node;
+		var path = currentPath + "/" + node.innerHTML;
+		ASTRAL.netcode.sendNow("*deletefile," + path);
+	}
+
+	function copyFile(node) {
+		var path = currentPath + "/" + node.innerHTML;
+		ASTRAL.netcode.sendNow("*copyfile," + path);
+	}
+
+	function copyObject(obj) {
+		var newobj;
+		newobj = JSON.parse(JSON.stringify(obj));
+		ASTRAL.formatObject(newobj);
+		newobj.id = Date.parse(new Date().toUTCString());
+		ASTRAL.sceneData.push(newobj);
+		ASTRAL.do("objectcreated", newobj);
+	}
+
+	function deleteObject(node) {
+
+	}
+
+	function renameObject(node) {
+
+	}
+
+	function beginRenameProjectNode(node, isNew) {
+		var oldpath = currentPath + "/" + node.innerHTML;
+		var oldonclick = node.onclick;
+		node.onclick = null;
+		node.draggable = false;
+		node.setAttribute("contenteditable", true);
+		node.focus();
+		setEndOfContenteditable(node);
+		node.addEventListener("keydown", function(e) {
+			if (e.which == 13) {
+				e.preventDefault();
+				//doneRenaming();
+				node.blur();
+			}
+		});
+		node.addEventListener("blur", function() {
+			doneRenaming();
+		});
+		function doneRenaming() {
+			node.onclick = oldonclick;
+			node.draggable = true;
+			createdProjectNode = node;
+			node.setAttribute("contenteditable", false);
+			// TODO: maybe send a second param with the old filename if this is a rename operation
+			if (isNew) {
+				var newpath = currentPath + "/" + node.innerHTML;
+				ASTRAL.netcode.sendNow("*createfile," + newpath);
+			}
+			else {
+				var newpath = currentPath + "/" + node.innerHTML;
+				ASTRAL.netcode.sendNow("*renamefile," + oldpath + "," + newpath);
+				// TODO: i think maybe we need to remove and readd a node so it gets the right props
+			}
+			//createProjectNode()
+		}
+	}
+
+	function setEndOfContenteditable(el) {
+	    var range,selection;
+        range = document.createRange();//Create a range (a range is a like the selection but invisible)
+        range.selectNodeContents(el);//Select the entire contents of the element with the range
+        range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
+        selection = window.getSelection();//get the selection object (allows you to change selection)
+        selection.removeAllRanges();//remove any selections already made
+        selection.addRange(range);//make the range you have just created the visible selection
+        // https://stackoverflow.com/questions/1125292/how-to-move-cursor-to-end-of-contenteditable-entity
+	}
+
+	function ctxScene(node, obj, e) {
+		// if a menu is already open remove that one
+		var menu = document.getElementById("contextmenu");
+		if (menu) menu.remove();
+
+		// create the context
+		menu = document.createElement("DIV");
+		document.body.appendChild(menu);
+		menu.id = "contextmenu";
+		menu.style.left = e.pageX;
+		menu.style.top = e.pageY;
+
+		var btn;
+
+		btn = document.createElement("DIV");
+		btn.innerHTML = "Make a Copy";
+		btn.className = "item";
+		btn.onclick = function() {
+			copyObject(obj);
+		}
+		menu.appendChild(btn);
+
+		// btn = document.createElement("DIV");
+		// btn.innerHTML = "Rename";
+		// btn.className = "item";
+		// btn.onclick = function() {
+		// 	renameObject(node);
+		// }
+		// menu.appendChild(btn);
+
+		// btn = document.createElement("DIV");
+		// btn.innerHTML = "Delete";
+		// btn.className = "item";
+		// btn.onclick = function() {
+		// 	deleteObject(node);
+		// }
+		// menu.appendChild(btn);
+	}
+
+	function ctxProject(node, e) {
+		// if a menu is already open remove that one
+		var menu = document.getElementById("contextmenu");
+		if (menu) menu.remove();
+
+		// create the context
+		menu = document.createElement("DIV");
+		menu.id = "contextmenu";
+		menu.style.left = e.pageX;
+		menu.style.top = e.pageY;
+
+		var btn;
+
+		// // COPY creates a deep copy of the object, resulting in a brand new object
+		// btn = document.createElement("DIV");
+		// btn.innerHTML = "Copy";
+		// btn.className = "item";
+		// btn.onclick = function() {
+			
+		// }
+		// menu.appendChild(btn);
+
+		// // CUT
+		// btn = document.createElement("DIV");
+		// btn.innerHTML = "Cut";
+		// btn.className = "item";
+		// btn.onclick = function() {
+			
+		// }
+		// menu.appendChild(btn);
+
+		// // PASTE
+		// btn = document.createElement("DIV");
+		// btn.innerHTML = "Paste";
+		// btn.className = "item";
+		// btn.onclick = function() {
+			
+		// }
+		// menu.appendChild(btn);
+
+		// =======
+
+		btn = document.createElement("DIV");
+		btn.innerHTML = "Make a Copy";
+		btn.className = "item";
+		btn.onclick = function() {
+			copyFile(node);
+		}
+		menu.appendChild(btn);
+
+
+		// =======
+
+		// RENAME
+		btn = document.createElement("DIV");
+		btn.innerHTML = "Rename";
+		btn.className = "item";
+		btn.onclick = function(e) {
+			//console.log(node);
+			beginRenameProjectNode(node, false);
+		}
+		menu.appendChild(btn);
+
+		// DELETE
+		btn = document.createElement("DIV");
+		btn.className = "item";
+		btn.innerHTML = "Delete";
+		btn.onclick = function() {
+			deleteProjectNode(node);
+		}
+		menu.appendChild(btn);
+
+		// // PROPERTIES
+		// btn = document.createElement("DIV");
+		// btn.className = "item";
+		// btn.innerHTML = "Properties";
+		// btn.onclick = function() {
+			
+		// }
+		// menu.appendChild(btn);
+
+		document.body.appendChild(menu);
+
+		// https://design.tutsplus.com/tutorials/quick-tip-duplicate-clone-or-copy-and-paste--cms-19969
 	}
 
 	function addGameObjectToScenePanel(obj) {
@@ -537,7 +834,7 @@ ASTRAL.editor = (function() {
 		var level = 1;
 		if (obj.level) level = obj.level;
 		// add a button for this gameobject to the SCENE panel
-		var objectButton = ctl( // arguments: type (css classnames), label (separate heading div), value, id, section, onclick
+		var node = ctl( // arguments: type (css classnames), label (separate heading div), value, id, section, onclick
 			"button sceneobjectbutton level" + level,
 			null,
 			obj.name,
@@ -545,9 +842,13 @@ ASTRAL.editor = (function() {
 			sceneSection,
 			function() {populateInspectorPanel(obj)}
 		);
+		node.addEventListener("contextmenu", function(e) {
+			e.preventDefault();
+			ctxScene(node, obj, e);
+		});
 		// visual feedback
-		flashDomElement(objectButton);
-		console.log("created scenegraph node:", obj);
+		flashDomElement(node);
+		console.log("created node for object:", obj);
 	}
 
 	function deleteGameObjectFromScenePanel(obj) {
@@ -561,26 +862,23 @@ ASTRAL.editor = (function() {
 				deleteGameObjectFromScenePanel(obj.objects[i]);
 			}
 		}
-		populateInspectorPanel(null);
+		inspectedObject = null;
 	}
 
 	function addProjectFileToScene(path, mouseevent) {
 		// this handles dragging an asset from the PROJECT panel into the scene/canvas
 		// create the gameobject and set its position at the mouse position
+		console.log("creating object from project file:", path);
 		var fi = ASTRAL.getFileInfo(path);
-		var obj = ASTRAL.createObject(null, fi.nameNoExt);
+		var obj = ASTRAL.createObject(null, fi.nameNoExt); // this triggers addGameObjectToScenePanel()
 		var cw = gameCanvas.width;
 		var ch = gameCanvas.height;
 		var rx = cw / window.innerWidth;
 		var ry = ch / window.innerHeight;
 		obj.x = mouseevent.pageX * rx;
 		obj.y = mouseevent.pageY * ry;
-		// TODO: why does the component get added to the INSPECTOR panel even if we dont call
-		//	populateInspectorPanel()??
 		addComponentToGameObject(obj, path);
-		console.log("OBJ", obj);
 		populateInspectorPanel(obj);
-		console.log("added asset to scene as new gameobject:", obj);
 	}
 
 	function openProjectFile(event, path) {
@@ -638,13 +936,37 @@ ASTRAL.editor = (function() {
 //
 ///////////////////////////////////////
 
+	function refreshInspectorPanel(obj) {
+		// this populates the INSPECTOR with the given object's properties
+		if (obj) {
+			noSelectionSection.style.display = "none";
+			inspectorSection.style.display = "block";
+			// populate some basic props
+			if (document.activeElement != inspectoritem) inspectoritem.innerHTML = obj.name;
+			if (document.activeElement != posx) posx.innerHTML = obj.x;
+			if (document.activeElement != posy) posy.innerHTML = obj.y;
+			if (!obj.scale) obj.scale = 1;
+			if (document.activeElement != scale) scale.innerHTML = obj.scale;
+			if (!obj.rot) obj.rot = 0;
+			if (document.activeElement != rot) rot.innerHTML = obj.rot;
+		}
+		else {
+			noSelectionSection.style.display = "block";
+			inspectorSection.style.display = "none";
+			inspectoritem.innerHTML = "";
+			posx.innerHTML = "";
+			posy.innerHTML = "";
+			rot.innerHTML = "";
+			scale.innerHTML = "";
+		}
+	}
+
 	function populateInspectorPanel(obj) {
 		// this populates the INSPECTOR with the given object's properties
 		if (obj) {
-
 			noSelectionSection.style.display = "none";
 			inspectorSection.style.display = "block";
-
+			
 			// set a global to track the object being inspected
 			inspectedObject = obj;
 
@@ -676,18 +998,6 @@ ASTRAL.editor = (function() {
 
 			// populate some basic props
 			inspectoritem.innerHTML = obj.name;
-			// if (obj.x) {
-			// 	posx.innerHTML = obj.x;
-			// }
-			// else {
-			// 	posx.innerHTML = "null";
-			// }
-			// if (obj.y) {
-			// 	posy.innerHTML = obj.y;
-			// }
-			// else {
-			// 	posy.innerHTML = "null";
-			// }
 			posx.innerHTML = obj.x;
 			posy.innerHTML = obj.y;
 			if (!obj.scale) obj.scale = 1;
@@ -718,15 +1028,6 @@ ASTRAL.editor = (function() {
 			else {
 				componentsPlaceholder.style.display = "block";
 			}
-
-			// if (!obj.components || obj.components.length == 0) {
-			// 	//var msg = ctlText("None", componentDiv);
-
-			// }
-
-			// refresh the inspector if the object properties have changed
-			// clearTimeout(refreshInspector);
-			// setTimeout(refreshInspector, 1000);
 		}
 		else {
 			// TODO: show notice and hide props
@@ -795,7 +1096,7 @@ ASTRAL.editor = (function() {
 			}
 		}
 
-		console.log("OBJ", obj);
+		//console.log("OBJ", obj);
 
 		obj.components.push(component);
 		componentDiv = ctlComponent(component, obj);
@@ -1262,6 +1563,8 @@ ASTRAL.editor = (function() {
 		toggle: toggle,
 		ctlPanel: ctlPanel,
 		ctlSection: ctlSection,
+		showToolTip:showToolTip,
+		hideToolTip:hideToolTip,
 		set enabled(val) {
 			enabled = val;
 		},

@@ -1,19 +1,24 @@
-// TODO: these are globals...i should have some kind of script module wrapper so we can have
-//	private/public interfaces
+ASTRAL.game.main = (function() {
+	function init() {
+		ASTRAL.loadScene("assets/intro.scene", function() {
+			ready();
+		});
+	}
 
-ASTRAL.startGame = function() {
-	ASTRAL.loadScene("assets/scenes/zone1.scene", function() {
-		ready();
-	});
-}
+	function ready() {
+		// var btn = ASTRAL.findObject("guy");
+		// btn.on("click", function() {
+		// 	ASTRAL.playSound("assets/sounds/Breaker-1.mp3");
+		// });
+	}
 
-function ready() {
-	var btn = ASTRAL.findObject("guy");
-	btn.on("click", function() {
-		foo();
-	});
-}
+	function startGame() {
+		ASTRAL.playSound("assets/sounds/Breaker-1.mp3");
+		ASTRAL.loadScene("assets/level1.scene");
+	}
 
-function foo() {
-	ASTRAL.playSound("assets/sounds/Breaker-1.mp3");
-}
+	return {
+		init:init,
+		startGame:startGame
+	}
+}());

@@ -11,6 +11,7 @@ var ASTRAL = (function() {
 //
 ///////////////////////////////////////
 
+	var game = {};
 	var enabled = false;
 	var gameInfo = [];
 
@@ -18,6 +19,7 @@ var ASTRAL = (function() {
 	var onHandlers = [];
 
 	// graphics stuff
+	var currentScene;
 	var sceneData = [];
 	var layers = [];
 	var images = [];
@@ -34,7 +36,9 @@ var ASTRAL = (function() {
 	// controls
 	var mouseX = 0;
 	var mouseY = 0;
-	var mouseB1 = false;
+	var mouseB1 = "nothing";
+	var mouseB1Old = "nothing";
+	var mouseB1Handled = false;
 	var mouseB2 = false;
 	var moveUp = false;
 	var moveDown = false;
@@ -42,6 +46,8 @@ var ASTRAL = (function() {
 	var moveRight = false;
 	var lastInput = "0,0";
 	var finalInput = "0,0";
+	var dragOffsetX = 0;
+	var dragOffsetY = 0;
 
 	// 
 	// var objectRuntimeProps = ["on", "do"];
@@ -64,6 +70,12 @@ var ASTRAL = (function() {
 			gameInfo = JSON.parse(val);
 			console.log("got game info:", gameInfo);
 			loadBatch(gameInfo.preload, function() {
+				console.log("all modules loaded, initializing based on game.json order");
+				for (var i = 0; i < gameInfo.preload.length; i++) {
+					var info = gameInfo.preload[i];
+					var module = ASTRAL[info.name];
+					if (module && module.init) module.init();
+				}
 				console.log("astral was initialized successfully");
 				console.log("###################################");
 				ready();
@@ -96,16 +108,13 @@ var ASTRAL = (function() {
 		// handle mousedown
 		window.addEventListener("mousedown", function(e) {
 			console.log("~~ mousedown fired for button " + e.button);
-			//if (e.button == 0) mouseB1 = true;
-			//if (e.button == 1) mouseB2 = true;
-			if (e.button == 0) mouseB1 = 1;
+			mouseB1Handled = false;
+			if (e.button == 0) mouseB1 = "mousedown";
 		});
 
 		window.addEventListener("mouseup", function(e) {
 			console.log("~~ mouseup fired for button " + e.button);
-			//if (e.button == 0) mouseB1 = false;
-			//if (e.button == 1) mouseB2 = false;
-			if (e.button == 0) mouseB1 = 2;
+			if (e.button == 0) mouseB1 = "mouseup";
 		});
 
 		window.addEventListener("mousemove", function(e) {
@@ -171,7 +180,7 @@ var ASTRAL = (function() {
 		loadScript(gameInfo.startup, function() {
 			// TODO: we shouldn't have to explicitly do this here, we should have main.js
 			//	automatically call its own init() function once it has been loaded
-			ASTRAL.startGame();
+			ASTRAL.game.main.init();
 		});
 
 		// start the engine aka game loop
@@ -282,41 +291,54 @@ var ASTRAL = (function() {
 				//console.log(ASTRAL.mouseY, obj.y + obj.height, obj.height);
 				obj.isMouseOver = true;
 
-				// TODO: sloppy object drag
-				if (mouseB1 == 1) {
-					obj.isDragging = true;
+				if (mouseB1 == "mousedown") {
+					if (ASTRAL.editor.enabled == true) {
+						if (obj == ASTRAL.editor.inspectedObject) {
+							obj.isDragging = true;
+							dragOffsetX = ASTRAL.mouseX - obj.x;
+							dragOffsetY = ASTRAL.mouseY - obj.y;
+						}
+					}
 				}
 
-				if (mouseB1 == 3) {
-					obj.isDragging = false;
-					// TODO: maybe here we can determine if the editor is toggled on and then
-					//	call something like obj.do("editorclick") and if the editor is off we
-					//	can just call obj.do("click")...
-
-					obj.do("click");
-
-					// TODO: or instead of firing do() we could check for an existing onclick prop
-					//	and fire that instead, but the problem is that there might be multiple
-					//	components with an onclick prop so which one do we use? should we just 
-					//	have a single onclick prop handled at the object level? or we can attach
-					//	a custom script to the object, which would act as a component, but in this
-					//	script we can implement an OnMouseClick() function which gets automatically
-					//	called in any and all scripts whenever obj.do("click") is called.
-
-					var co = findComponentByType(obj, "text");
-					if (co) {
-						var func = co.onclick;
-						if (func) eval(func);
-						// TODO: find an eval alternative
-						//	https://stackoverflow.com/questions/912596/how-to-turn-a-string-into-a-javascript-function-call
+				if (mouseB1 == "click") {
+					if (ASTRAL.editor.enabled == true) {
+						obj.isDragging = false;
 					}
+					else {
+						// TODO: maybe here we can determine if the editor is toggled on and then
+						//	call something like obj.do("editorclick") and if the editor is off we
+						//	can just call obj.do("click")...
+
+						obj.do("click");
+
+						// TODO: or instead of firing do() we could check for an existing onclick prop
+						//	and fire that instead, but the problem is that there might be multiple
+						//	components with an onclick prop so which one do we use? should we just 
+						//	have a single onclick prop handled at the object level? or we can attach
+						//	a custom script to the object, which would act as a component, but in this
+						//	script we can implement an OnMouseClick() function which gets automatically
+						//	called in any and all scripts whenever obj.do("click") is called.
+
+						var co = findComponentByType(obj, "text");
+						if (co) {
+							var func = co.onclick;
+							if (func) eval(func);
+							// TODO: find an eval alternative
+							//	https://stackoverflow.com/questions/912596/how-to-turn-a-string-into-a-javascript-function-call
+						}
+					}
+
 				}
 			}
 		}
 
+		// after determining object-mouse state, if the object is being dragged update its position
 		if (obj.isDragging == true) {
-			obj.x = ASTRAL.mouseX - obj.width/2;
-			obj.y = ASTRAL.mouseY - obj.height/2;
+			// obj.x = ASTRAL.mouseX - obj.width/2;
+			// obj.y = ASTRAL.mouseY - obj.height/2;
+			obj.x = ASTRAL.mouseX - dragOffsetX;
+			obj.y = ASTRAL.mouseY - dragOffsetY;
 		}
 	}
 
@@ -386,6 +408,8 @@ var ASTRAL = (function() {
 		}
 	}
 
+	var marchOffset = 0;
+
 	function drawObjectExtras(obj, ctx) {
 		// draw debug/editor hints
 		// TODO: fix tight coupling (see note in Docs)
@@ -423,16 +447,31 @@ var ASTRAL = (function() {
 
 			// draw borders
 			if (ASTRAL.editor.drawObjectBorders == true) {
-				// draw object border
+				// save the context so we can set up a border style for this obj only
+				ctx.save();
+				ctx.lineWidth = 2;
+				ctx.strokeStyle = "blue"; // default border color
+
+				// if the obj is selected, always show marching ants
+				if (obj == ASTRAL.editor.inspectedObject) {
+					//ctx.strokeStyle = "yellow";
+					marchOffset+= 0.25;
+					if (marchOffset > 32) {
+					    marchOffset = 0;
+					}
+					ctx.setLineDash([4, 2]);
+					ctx.lineDashOffset = -marchOffset;
+				}
 				if (obj.isMouseOver == true) {
 					ctx.strokeStyle = "white";
 				}
-				else {
-					ctx.strokeStyle = "blue";
-				}
-				ctx.strokeRect(obj.x - 0.5, obj.y - 0.5, obj.width, obj.height);
 
-				// draw collider border
+				// finally, draw the border and restore the context
+				//ctx.strokeRect(obj.x - 0.5, obj.y - 0.5, obj.width, obj.height);
+				ctx.strokeRect(obj.x - 1, obj.y - 1, obj.width + 1, obj.height + 1);
+				ctx.restore();
+
+				// draw collider border which is separate from the obj border
 				// TODO: this is going to cause us to iterate all components for all objects...
 				var c = findComponentByType(obj, "collider");
 				if (c) {
@@ -559,14 +598,14 @@ var ASTRAL = (function() {
 					console.log(r.name + " module has " + module.requires.length + " dependencies");
 					loadBatch(module.requires, function() {
 						if (module.init) {
-							module.init();
+							//module.init();
 						}
 					});
 				}
 				else {
 					console.log(r.name + " module has 0 dependencies");
 					if (module && module.init) {
-						module.init();
+						//module.init();
 					}
 				}
 				console.log("loaded " + loaded + " of " + loadcount + " modules");
@@ -623,11 +662,26 @@ var ASTRAL = (function() {
 			// 	var obj = tempData[i];
 			// 	sceneData[obj.id] = obj;
 			// }
-			sceneData = JSON.parse(data);
-			ASTRAL.sceneData = sceneData;
-			console.log("loaded scene " + path + ", contains " + sceneData.length + " root nodes");
-			loadObjects(sceneData);
-			if (callback) callback();
+			//ASTRAL.currentScene = path; // why do we have to set thru the public interface?
+
+			try {
+				if (data) {
+					sceneData = JSON.parse(data);
+				}
+				else {
+					sceneData = [];
+				}
+				ASTRAL.currentScene = path;
+				ASTRAL.sceneData = sceneData;
+				loadObjects(sceneData);
+				console.log("loaded scene " + path + ", contains " + sceneData.length + " root nodes");
+				if (callback) callback();
+			}
+			catch (e) {
+				ASTRAL.error("Failed to load scene " + path + ". " + e, 3000);
+				//console.log("ERROR: failed to load scene " + path, e);
+				ASTRAL.sceneData = [];
+			}
 		});
 	}
 
@@ -666,7 +720,8 @@ var ASTRAL = (function() {
 			obj.id = Date.parse(new Date().toUTCString());
 			obj.name = name;
 			//sceneData[obj.id] = obj;
-			sceneData.push(obj);
+			//sceneData.push(obj); // TODO: why isnt this working
+			ASTRAL.sceneData.push(obj);
 		}
 		// props
 		if (!obj.x) obj.x = 0;
@@ -798,12 +853,33 @@ var ASTRAL = (function() {
 // TODO: make it pub/sub and let gamedev control more of this
 
 	function input() {
-		if (mouseB1 == 2) {
-			mouseB1 = 3;
+		//mouseB1Old = mouseB1;
+		// if (mouseB1 == "beforemousedown") {
+		// 	mouseB1 = "mousedown";
+		// 	console.log("mouse button 1 state set to mousedown");
+		// }
+
+		// TODO: mousedown event could come in here before we handle it for objects, effectively
+		//	skipping over the mousedown event which is undesired...we need to persist the event
+		//	by one extra frame
+
+		if (mouseB1 == "mousedown") {
+			if (mouseB1Handled) {
+				mouseB1 = "aftermousedown";
+			}
+			else {
+				mouseB1Handled = true;
+			}
+			console.log("mouse button 1 state set to aftermousedown");
+		}
+		else if (mouseB1 == "mouseup") {
+			//mouseB1Old = mouseB1;
+			mouseB1 = "click";
 			console.log("mouse button 1 state set to click");
 		}
-		else if (mouseB1 == 3) {
-			mouseB1 = 0;
+		else if (mouseB1 == "click") {
+			//mouseB1Old = mouseB1;
+			mouseB1 = "nothing";
 			console.log("mouse button 1 state set to idle");
 		}
 
@@ -879,7 +955,6 @@ var ASTRAL = (function() {
 
 	function setPanelLayout(panels1, panels2, panels3, panels4) {
 		// accepts four arrays defining which panels should be moved to which of the four sidebars
-
 		var panels = document.querySelectorAll(".sidebar .panel");
 		panels.forEach(function(p) {
 			p.style.display = "none";
@@ -917,9 +992,14 @@ var ASTRAL = (function() {
 		info.path = path;
 		info.dir = path.substring(0, path.lastIndexOf("/"));
 		info.name = path.split("/").pop();
-		info.ext = path.split(".").pop().toLowerCase();
-		info.nameNoExt = info.name.split(".").slice(0, -1).join(".");
-		console.log("got file info for " + info.name + ":", info);
+		if (info.name.includes(".")) {
+			info.ext = path.split(".").pop().toLowerCase();
+			info.nameNoExt = info.name.split(".").slice(0, -1).join(".");
+		}
+		else {
+			info.ext = "";
+			info.nameNoExt = info.name;
+		}
 		switch (info.ext) {
 			case "png":
 			case "jpg":
@@ -945,6 +1025,7 @@ var ASTRAL = (function() {
 				info.type = "data";
 				break;
 		}
+		console.log("got file info for " + info.name + ":", info);
 		return info;
 	}
 
@@ -973,19 +1054,74 @@ var ASTRAL = (function() {
 		el.style.top = y + "px";
 	}
 
-	function formatData(data) {
-		// formats a regular js object into a json object
-		let tempArr = [];
-		Object.keys(data).forEach( (element) => {
-		    tempArr.push(data[element]);
-		});
-		let json = JSON.stringify(tempArr, null, 2);
+	function sceneDataToJson() {
+		// returns a json string for the given data, this is the top level function that gets
+		//	called when saving a scene to disk
+		//var filtered = filterSceneData(sceneData);
+		var clone = cloneObject(sceneData, formatObject);
+		let json = JSON.stringify(clone, null, 2);
 		return json;
 	}
 
-	function downloadData(data, filename) {
-		// downloads a regular js object as a json formatted file
-		let json = formatData(data);
+	// function filterSceneData(data) {
+	// 	// clones and formats the data for saving to disk as json
+	// 	let filteredData = [];
+	// 	for (let prop in data) {
+	// 		if (data.hasOwnProperty(prop)) {
+	// 		  filteredData[prop] = data[prop];
+	// 		  formatObject(filteredData[prop]);
+	// 		}
+	// 	}
+	// 	return filteredData;
+	// 	// https://medium.com/@Farzad_YZ/3-ways-to-clone-objects-in-javascript-f752d148054d
+	// }
+
+	function cloneObject(obj, formatter) {
+		// clones an object
+		let clone = [];
+		for (let prop in obj) {
+			if (obj.hasOwnProperty(prop)) {
+			  clone[prop] = obj[prop];
+			  if (formatter) formatter(clone[prop]);
+			}
+		}
+		return clone;
+		// https://medium.com/@Farzad_YZ/3-ways-to-clone-objects-in-javascript-f752d148054d
+	}
+
+	function formatObject(obj) {
+		// formats the gameobject for saving to disk as json by removing any runtime 
+		//	props and circular refs
+		delete obj.do;
+		delete obj.isMouseOver;
+		delete obj.isDragging;
+		delete obj.level;
+		delete obj.on;
+		delete obj.onHandlers;
+		delete obj.parent;
+		if (obj.objects) {
+			for (var i = 0; i < obj.objects.length; i ++) {
+				formatObject(obj.objects[i]);
+			}
+		}
+	}
+
+	function saveSceneData(data) {
+		var json = sceneDataToJson();
+		ASTRAL.netcode.sendNow("*savescene," + ASTRAL.currentScene + "," + json);
+	}
+
+	function openSceneDataInNewTab() {
+		var json = sceneDataToJson();
+		openJsonInNewTab(json);
+	}
+
+	function downloadSceneData() {
+		var json = sceneDataToJson();
+		downloadJsonData(json, "newscene.scene");
+	}
+
+	function downloadJsonData(json, filename) {
 		var blob = new Blob([json], {type:"application/json"});
 		var url = URL.createObjectURL(blob);
 		var a = document.createElement("A");
@@ -994,8 +1130,8 @@ var ASTRAL = (function() {
 		a.click();
 	}
 
-	function openDataInNewTab(data) {
-		let json = ASTRAL.formatData(data);
+	function openJsonInNewTab(json) {
+		console.log("openJsonInNewTab json:", json);
 		var x = window.open();
 	    x.document.open();
 	    x.document.write('<html><body><pre>' + json + '</pre></body></html>');
@@ -1007,7 +1143,12 @@ var ASTRAL = (function() {
 		el.className = "error";
 		el.innerHTML = msg;
 		document.body.appendChild(el);
-		setTimeout(function() {el.classList.add("errorfade")}, duration);
+		setTimeout(function() {
+			el.classList.add("errorfade");
+			setTimeout(function() {
+				el.remove();
+			}, 1000);
+		}, duration);
 		//setTimeout(function() {el.remove()}, 1000);
 	}
 
@@ -1020,6 +1161,7 @@ var ASTRAL = (function() {
 		images:images,
 		createLayer:createLayer,
 		createObject:createObject,
+		cloneObject:cloneObject,
 		deleteInspectedObject:deleteInspectedObject,
 		/*createGameObject:createGameObject,*/
 		/*loadGameObject:loadGameObject,*/
@@ -1029,19 +1171,24 @@ var ASTRAL = (function() {
 		loadBatch:loadBatch,
 		playSound:playSound,
 		getFileInfo:getFileInfo,
-		formatData:formatData,
-		downloadData:downloadData,
-		openDataInNewTab:openDataInNewTab,
+		sceneDataToJson:sceneDataToJson,
+		saveSceneData:saveSceneData,
+		downloadSceneData:downloadSceneData,
+		openJsonInNewTab:openJsonInNewTab,
 		error:error,
 		setPanelLayout:setPanelLayout,
 		components:components,
 		gameInfo:gameInfo,
 		isFunction:isFunction,
+		formatObject:formatObject,
 		get mouseX() {
 			return mouseX;
 		},
 		get mouseY() {
 			return mouseY;
+		},
+		get game() {
+			return game;
 		}
 	}
 }());

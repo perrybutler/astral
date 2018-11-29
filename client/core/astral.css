@@ -1,3 +1,5 @@
+:focus {outline: 2px solid yellow;}
+
 /******************************
 	
 	LAYERS
@@ -168,6 +170,7 @@
     border-radius:5px;
     margin-bottom:4px;
     overflow:hidden;
+    user-select:none;
 }
 
 .panel .section {
@@ -328,6 +331,7 @@
 .panel .button.icon.moveup {background-image:url('assets/move_up.png');}
 .panel .button.icon.movedown {background-image:url('assets/move_down.png');}
 .panel .button.icon.folderadd {background-image:url('assets/folder_add.png');}
+.panel .button.icon.fileadd {background-image:url('assets/file_add.png');}
 .panel .button.icon.home {background-image:url('assets/home.png');}
 .panel .button.icon.diskette {background-image:url('assets/diskette.png');}
 .panel .button.icon.openexternal {background-image:url('assets/openexternal.png');}
@@ -359,7 +363,7 @@
 	margin-bottom:0.2em;
 }
 
-.panel .button.anim.selected {
+.panel .button.region.selected {
 	color:yellow;
 }
 
@@ -525,7 +529,7 @@
 }
 
 .error {
-	z-index:999;
+	z-index:9999;
 	display:inline-block;
 	position:relative;
 	/*padding:1em;*/
@@ -562,6 +566,7 @@
 	top:4px;
 	border-radius:5px;
 	padding:3px;
+	user-select:none;
 }
 
 #fps .max {
@@ -578,4 +583,26 @@
 
 #fps .bad {
 	background-color:#ff0000;
+}
+
+
+#contextmenu {
+	position:absolute;
+	background-color:#fff;
+	z-index:999;
+	min-width:120;
+	max-width:200;
+	padding:3px;
+	font-size:0.8em;
+	font-family:arial;
+	box-shadow:6px 6px 20px #333;
+}
+
+#contextmenu .item {
+	cursor:pointer;
+	padding:3px;
+}
+
+#contextmenu .item:hover {
+	background-color:#bbb;
 }

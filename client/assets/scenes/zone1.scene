@@ -59,7 +59,7 @@
 		"components": [
 			{
 				"type": "atlas",
-				"path": "assets/0x72_DungeonTilesetII_v1.1.atlas",
+				"path": "assets/packs/0x72_DungeonTilesetII_v1.1.atlas",
 				"state": "knight_walk"
 			},
 			{

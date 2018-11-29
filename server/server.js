@@ -81,6 +81,104 @@ watcher.on("unlink", function(path) {
 	}
 });
 
+function getUniquePath(fi) {
+	var c = 1;
+	var finalPath = fi.path;
+	// if the path already exists make it unique
+	while(fs.existsSync(finalPath)) {
+		finalPath = fi.dir + "/" + fi.nameNoExt + c;
+		if (fi.ext) finalPath += "." + fi.ext;
+		c++;
+	}
+	return finalPath;
+}
+
+function createFile(path) {
+	// var c = 1;
+	// var finalPath = path;
+	// var fi = getFileInfo(path);
+
+	// // if the path already exists make it unique
+	// while(fs.existsSync(finalPath)) {
+	// 	finalPath = fi.dir + "/" + fi.nameNoExt + c;
+	// 	if (fi.ext) finalPath += "." + fi.ext;
+	// 	c++;
+	// }
+
+	var fi = getFileInfo(path);
+	var finalPath = getUniquePath(fi);
+
+	// TODO: if its a json file we need to add some content ([]) to make it valid json
+	var content = "";
+	switch (fi.ext) {
+		case "scene":
+		case "prefab":
+		case "atlas":
+			content = "[]";
+			break;
+	}
+
+	fs.writeFile(finalPath, content, function(err) {
+		if (err) {
+			queueSend("zone1", "*createfileresult,");
+		}
+		else {
+			queueSend("zone1", "*createfileresult," + finalPath);
+		}
+	});
+}
+
+function deleteFile(path) {
+	if (fs.existsSync(path)) {
+		fs.unlink(path, function(err) {
+			if (err) {
+				queueSend("zone1", "*deletefileresult,");
+			}
+			else {
+				queueSend("zone1", "*deletefileresult," + path);
+			}
+		});
+	}
+	else {
+		// the file doesnt exist
+		queueSend("zone1", "*deletefileresult,");
+	}
+}
+
+function renameFile(src, dst) {
+	fs.rename(src, dst, function(err) {
+		if (err) {
+			queueSend("zone1", "*renamefileresult,");
+		}
+		else {
+			queueSend("zone1", "*renamefileresult," + dst);
+		}
+	});
+}
+
+function saveScene(spl) {
+	var path = spl[1];
+	var jsonParts = [];
+	for (var i = 2; i < spl.length; i++) {
+		jsonParts.push(spl[i]);
+	}
+	var jsonString = jsonParts.join(",");
+	jsonString = "\"" + jsonString + "\"";
+	// TODO: we have to parse twice because we might be stringifying twice...
+	var jsonObject = JSON.parse(JSON.parse(jsonString));
+	fs.writeFileSync(path, JSON.stringify(jsonObject, null, 4));
+}
+
+function copyFile(spl) {
+	var srcpath = spl[1];
+	var fi = getFileInfo(srcpath);
+	var dstpath = getUniquePath(fi);
+	fs.copyFile(srcpath, dstpath, (err) => {
+	    if (err) throw err;
+	    console.log("copied file:", fi.name + "->" + dstpath);
+	});
+}
+
 console.log(getMetas("../client/assets"));
 
 function createMetaFile(path) {
@@ -300,6 +398,25 @@ function handleMessage(player, payload) {
 			var exec = require('child_process').exec;
 			exec("start" + ' ' + spl[1]);
 			break;
+		case "*createfile":
+			var path = spl[1];
+			createFile(path);
+			break;
+		case "*renamefile":
+			var src = spl[1];
+			var dst = spl[2];
+			renameFile(src, dst);
+			break;
+		case "*deletefile":
+			var path = spl[1];
+			deleteFile(path);
+			break;
+		case "*savescene":
+			saveScene(spl);
+			break;
+		case "*copyfile":
+			copyFile(spl);
+			break;
 	}
 }
 
@@ -453,8 +570,14 @@ function getFileInfo(path) {
 	info.path = path.replace("\\", "/");
 	info.dir = path.substring(0, path.lastIndexOf("/"));
 	info.name = path.split("/").pop();
-	info.ext = path.split(".").pop().toLowerCase();
-	info.nameNoExt = info.name.split(".").slice(0, -1).join(".");
+	if (info.name.includes(".")) {
+		info.ext = path.split(".").pop().toLowerCase();
+		info.nameNoExt = info.name.split(".").slice(0, -1).join(".");
+	}
+	else {
+		info.ext = "";
+		info.nameNoExt = info.name;
+	}
 	console.log("got file info for " + info.name + ":", info);
 	switch (info.ext) {
 		case "png":

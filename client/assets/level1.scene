@@ -1,0 +1,166 @@
+[
+    {
+        "id": 1543032491000,
+        "name": "bg_prerendered",
+        "x": 297,
+        "y": 198,
+        "vx": 0,
+        "vy": 0,
+        "rot": 0,
+        "scale": 1,
+        "speed": 0.088,
+        "channels": [],
+        "components": [
+            {
+                "type": "image",
+                "path": "assets/packs/jsbreakouts/bg_prerendered.png"
+            }
+        ],
+        "baseWidth": 320,
+        "baseHeight": 416,
+        "width": 320,
+        "height": 416,
+        "path": "/bg_prerendered"
+    },
+    {
+        "id": 1543199093000,
+        "name": "wall_west",
+        "x": 297,
+        "y": 199,
+        "vx": 0,
+        "vy": 0,
+        "rot": 0,
+        "scale": 1,
+        "speed": 0.088,
+        "channels": [],
+        "components": [
+            {
+                "type": "collider",
+                "shape": "rectangle",
+                "width": "15",
+                "height": "414",
+                "isTrigger": false,
+                "collideWorldBounds": false,
+                "collideOnDirection": "nsew",
+                "whitelist": "*",
+                "blacklist": ""
+            }
+        ],
+        "path": "/wall_west"
+    },
+    {
+        "id": 1543202652000,
+        "name": "wall_east",
+        "x": 602,
+        "y": 199,
+        "vx": 0,
+        "vy": 0,
+        "rot": 0,
+        "scale": 1,
+        "speed": 0.088,
+        "channels": [],
+        "components": [
+            {
+                "type": "collider",
+                "shape": "rectangle",
+                "width": "15",
+                "height": "414",
+                "isTrigger": false,
+                "collideWorldBounds": false,
+                "collideOnDirection": "nsew",
+                "whitelist": "*",
+                "blacklist": ""
+            }
+        ],
+        "path": "/wall_east"
+    },
+    {
+        "id": 1543202685000,
+        "name": "wall_north",
+        "x": 312,
+        "y": 197,
+        "vx": 0,
+        "vy": 0,
+        "rot": 0,
+        "scale": 1,
+        "speed": 0.088,
+        "channels": [],
+        "components": [
+            {
+                "type": "collider",
+                "shape": "rectangle",
+                "width": "290",
+                "height": "16",
+                "isTrigger": false,
+                "collideDirection": "nsew",
+                "whitelist": "",
+                "blacklist": ""
+            }
+        ],
+        "path": "/wall_north"
+    },
+    {
+        "id": 1543202719000,
+        "name": "wall_south",
+        "x": 312,
+        "y": 597,
+        "vx": 0,
+        "vy": 0,
+        "rot": 0,
+        "scale": 1,
+        "speed": 0.088,
+        "channels": [],
+        "components": [
+            {
+                "type": "collider",
+                "shape": "rectangle",
+                "width": "290",
+                "height": "16",
+                "isTrigger": false,
+                "collideDirection": "nsew",
+                "whitelist": "",
+                "blacklist": ""
+            }
+        ],
+        "path": "/wall_south"
+    },
+    {
+        "id": 1543203573000,
+        "name": "timer",
+        "x": 460,
+        "y": 430,
+        "vx": 0,
+        "vy": 0,
+        "rot": 0,
+        "scale": 1,
+        "speed": 0.088,
+        "channels": [],
+        "components": []
+    },
+    {
+        "id": 1543203579000,
+        "name": "ball",
+        "x": 460,
+        "y": 510,
+        "vx": 0,
+        "vy": 0,
+        "rot": 0,
+        "scale": 1,
+        "speed": 0.088,
+        "channels": [],
+        "components": []
+    },
+    {
+        "id": 1543203633000,
+        "name": "paddle",
+        "x": 460,
+        "y": 570,
+        "vx": 0,
+        "vy": 0,
+        "rot": 0,
+        "scale": 1,
+        "speed": 0.088,
+        "channels": [],
+        "components": []
+    }
+]

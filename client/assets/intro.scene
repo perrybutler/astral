@@ -1,0 +1,74 @@
+[
+    {
+        "id": 1543032491000,
+        "name": "bg_prerendered",
+        "x": 297,
+        "y": 198,
+        "vx": 0,
+        "vy": 0,
+        "rot": 0,
+        "scale": 1,
+        "speed": 0.088,
+        "channels": [],
+        "components": [
+            {
+                "type": "image",
+                "path": "assets/packs/jsbreakouts/bg_prerendered.png"
+            }
+        ],
+        "baseWidth": 320,
+        "baseHeight": 416,
+        "width": 320,
+        "height": 416,
+        "path": "/bg_prerendered"
+    },
+    {
+        "id": 1543032493000,
+        "name": "logo",
+        "x": 392,
+        "y": 272,
+        "vx": 0,
+        "vy": 0,
+        "rot": 0,
+        "scale": 1,
+        "speed": 0.088,
+        "channels": [],
+        "components": [
+            {
+                "type": "image",
+                "path": "assets/packs/jsbreakouts/logo.png"
+            }
+        ],
+        "baseWidth": 131,
+        "baseHeight": 200,
+        "width": 131,
+        "height": 200,
+        "path": "/logo"
+    },
+    {
+        "id": 1543032502000,
+        "name": "text",
+        "x": 423,
+        "y": 513,
+        "vx": 0,
+        "vy": 0,
+        "rot": 0,
+        "scale": 1,
+        "speed": 0.088,
+        "channels": [],
+        "components": [
+            {
+                "type": "text",
+                "text": "Start",
+                "fontSize": 30,
+                "fontFamily": "Arial",
+                "color": "#000",
+                "hoverColor": "#ff0000",
+                "onclick": "ASTRAL.game.main.startGame();"
+            }
+        ],
+        "width": 63.3544921875,
+        "height": 30,
+        "path": "/text"
+    }
+]

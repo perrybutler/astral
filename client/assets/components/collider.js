@@ -6,9 +6,8 @@ ASTRAL.components.collider = (function() {
 		component.width = 64;
 		component.height = 64;
 		component.isTrigger = false;
-		component.collideWorldBounds = false;
-		component.collideOnDirection = "nsew";
-		component.whitelist = "*";
+		component.collideDirection = "nsew";
+		component.whitelist = "";
 		component.blacklist = "";
 		return component;
 	}

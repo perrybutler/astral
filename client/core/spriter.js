@@ -1,16 +1,24 @@
+"use strict";
 console.log("spriter.js entry point");
 
-ASTRAL.spriter = new function() {
-	var isenabled = false;
+ASTRAL.spriter = (function() {
+
+	console.log("editor.js constructor");
+
+///////////////////////////////////////
+//
+//	PRIVATE LOCAL VARS
+//
+///////////////////////////////////////
+
+	var enabled = false;
 
 	// the image we'll be working on
 	var img;
 	var imgLoading = false;
 
 	// the data that will get saved
-	//var anims = [];
-	var data = {};
-	data.anims = [];
+	var atlasData = [];
 
 	// basic props
 	var zoom = 1;
@@ -19,10 +27,10 @@ ASTRAL.spriter = new function() {
 	var snapToGrid = true;
 	//var mode = "";
 	var selecting = false;
+	var regionCount = 0;
 	
 	// animation preview stuff
 	var animationTimer;
-	var animCount = 0;
 	var fid = 0;
 
 	// panels, canvas, layers
@@ -36,6 +44,7 @@ ASTRAL.spriter = new function() {
 	var controlsPanel;
 	var previewPanel;
 	var previewCanvas;
+	var spriterToolsPanel;
 
 	// input boxes
 	var nameInput;
@@ -47,6 +56,14 @@ ASTRAL.spriter = new function() {
 	var rect = {};
 	var selected = {};
 	var selectedId;
+	var selectedRegion;
+	var selectedNode;
+
+///////////////////////////////////////
+//
+//	STARTUP SHUTDOWN
+//
+///////////////////////////////////////
 
 	function init() {
 		console.log("spriter.js init()");
@@ -64,16 +81,17 @@ ASTRAL.spriter = new function() {
 		spriterDiv.appendChild(dropPanel);
 
 		// create the tools panel
+		// TODO: this hard couple (ASTRAL.editor.ctlPanel) can fail if spriter.js manages to load first
 		spriterToolsPanel = ASTRAL.editor.ctlPanel("tools", "spriterToolsPanel", "", "sidebar4");
 		var spriterToolsSection = ASTRAL.editor.ctlSection("", "", "", spriterToolsPanel);
-		var openImageButton = ctl("button", "file", "open image", null, spriterToolsSection, openImage);
-		var openDataButton = ctl("button", null, "open data", null, spriterToolsSection, openData);
-		var saveButton = ctl("button icon diskette", "data", "", null, spriterToolsSection, saveAtlas);
+		var saveButton = ctl("button icon diskette", null, "", null, spriterToolsSection, saveAtlas);
 		saveButton.dataset.tip = "Save changes to the current atlas file.";
 		var viewButton = ctl("button icon openexternal", null, "", null, spriterToolsSection, viewAtlasData);
 		viewButton.dataset.tip = "View the atlas data in a new tab.";
 		var downloadButton = ctl("button icon download", null, "", null, spriterToolsSection, downloadAtlas);
 		downloadButton.dataset.tip = "Download the atlas data to disk.";
+		var openImageButton = ctl("button", null, "open image", null, spriterToolsSection, openImage);
+		var openDataButton = ctl("button", null, "open data", null, spriterToolsSection, openData);
 		var gridInputX = ctl("input pair", "grid", "16", "gridx", spriterToolsSection, setGrid);
 		var gridInputY = ctl("input pair", null, "16", "gridy", spriterToolsSection, setGrid);
 		var zoomButton = ctl("button pill", "zoom", "1x", null, spriterToolsSection, function() {setZoom(0)});
@@ -85,40 +103,49 @@ ASTRAL.spriter = new function() {
 		var bgButton = ctl("button pill bggray", null, "-", null, spriterToolsSection, function() {setBackground("#808080")});
 		var bgButton = ctl("button pill bgblack", null, "-", null, spriterToolsSection, function() {setBackground("#000")});
 		var bgButton = ctl("button pill bgwhite", null, "-", null, spriterToolsSection, function() {setBackground("#FFF")});
-		var moveleftButton = ctl("button icon moveleft", "adjust selection", "", null, spriterToolsSection, function() {moveSelection(-1, 0)});
-		var moverightButton = ctl("button icon moveright", null, "", null, spriterToolsSection, function() {moveSelection(1, 0)});
-		var moveupButton = ctl("button icon moveup", null, "", null, spriterToolsSection, function() {moveSelection(0, -1)});
-		var movedownButton = ctl("button icon movedown", null, "", null, spriterToolsSection, function() {moveSelection(0, 1)});
-		var shrinkleftButton = ctl("button icon shrinkleft", null, "", null, spriterToolsSection, function() {resizeSelection(-1, 0, 0, 0)});
-		var shrinkrightButton = ctl("button icon shrinkright", null, "", null, spriterToolsSection, function() {resizeSelection(0, 0, -1, 0)});
-		var shrinktopButton = ctl("button icon shrinktop", null, "", null, spriterToolsSection, function() {resizeSelection(0, -1, 0, 0)});
-		var shrinkbottomButton = ctl("button icon shrinkbottom", null, "", null, spriterToolsSection, function() {resizeSelection(0, 0, 0, -1)});
-		var growleftButton = ctl("button icon growleft", null, "", null, spriterToolsSection, function() {resizeSelection(1, 0, 0, 0)});
-		var growrightButton = ctl("button icon growright", null, "", null, spriterToolsSection, function() {resizeSelection(0, 0, 1, 0)});
-		var growtopButton = ctl("button icon growtop", null, "", null, spriterToolsSection, function() {resizeSelection(0, 1, 0, 0)});
-		var growbottomButton = ctl("button icon growbottom", null, "", null, spriterToolsSection, function() {resizeSelection(0, 0, 0, 1)});
 
-		// create the animations panel
+		// create the atlas panel
 		atlasPanel = ASTRAL.editor.ctlPanel("atlas", "atlasPanel", "", "sidebar4");
 		atlasSection = ASTRAL.editor.ctlSection("", "", "", atlasPanel);
-		var newButton = ctl("button pill", null, "(new)", null, atlasSection, function() {newAnimation();});
-		var deleteButton = ctl("button pill", null, "(delete)", null, atlasSection, function() {deleteAnimation();});
+		var thing = ctl("button icon remove", "frames", "", null, atlasSection, function() {});
+		thing.dataset.tip = "Delete selected frame from this atlas.";
+		var thing = ctl("button icon add", "framesets", "", null, atlasSection, function() {createRegion();});
+		thing.dataset.tip = "Create a new empty frameset in this atlas.";
+		var thing = ctl("button icon remove", null, "", null, atlasSection, function() {deleteAnimation();});
+		thing.dataset.tip = "Delete selected frameset from this atlas.";
+		// TODO: the datasets are correct on div elements, but tooltips wont appear
 
-		// create the properties panel
-		propsPanel = ASTRAL.editor.ctlPanel("properties", "propsPanel", "", "sidebar4");
+		// create the selection panel
+		propsPanel = ASTRAL.editor.ctlPanel("selection", "propsPanel", "", "sidebar4");
 		var propsSection = ASTRAL.editor.ctlSection("", "", "", propsPanel);
+		var moveleftButton = ctl("button icon moveleft", "adjust", "", null, propsSection, function() {moveSelection(-1, 0)});
+		var moverightButton = ctl("button icon moveright", null, "", null, propsSection, function() {moveSelection(1, 0)});
+		var moveupButton = ctl("button icon moveup", null, "", null, propsSection, function() {moveSelection(0, -1)});
+		var movedownButton = ctl("button icon movedown", null, "", null, propsSection, function() {moveSelection(0, 1)});
+		var shrinkleftButton = ctl("button icon shrinkleft", null, "", null, propsSection, function() {resizeSelection(-1, 0, 0, 0)});
+		var shrinkrightButton = ctl("button icon shrinkright", null, "", null, propsSection, function() {resizeSelection(0, 0, -1, 0)});
+		var shrinktopButton = ctl("button icon shrinktop", null, "", null, propsSection, function() {resizeSelection(0, -1, 0, 0)});
+		var shrinkbottomButton = ctl("button icon shrinkbottom", null, "", null, propsSection, function() {resizeSelection(0, 0, 0, -1)});
+		var growleftButton = ctl("button icon growleft", null, "", null, propsSection, function() {resizeSelection(1, 0, 0, 0)});
+		var growrightButton = ctl("button icon growright", null, "", null, propsSection, function() {resizeSelection(0, 0, 1, 0)});
+		var growtopButton = ctl("button icon growtop", null, "", null, propsSection, function() {resizeSelection(0, 1, 0, 0)});
+		var growbottomButton = ctl("button icon growbottom", null, "", null, propsSection, function() {resizeSelection(0, 0, 0, 1)});
 		nameInput = ctl("input", "name", "new", "props-name", propsSection, null);
-		rowsInput = ctl("input", "rows", "1", "props-rows", propsSection, null);
-		colsInput = ctl("input", "cols", "1", "props-cols", propsSection, null);
+		colsInput = ctl("input", "sliceX", "1", "props-cols", propsSection, null);
+		rowsInput = ctl("input", "sliceY", "1", "props-rows", propsSection, null);
 		var regionLabel = document.createElement("DIV");
 		regionLabel.className = "label";
 		regionLabel.innerHTML = "region";
 		propsSection.appendChild(regionLabel);
 		regionInput = document.createElement("DIV");
+		regionInput.innerHTML = "selecting...";
 		regionInput.className = "input";
 		regionInput.style.color = "#999";
 		regionInput.id = "props-region";
 		propsSection.appendChild(regionInput);
+		var btnAddFrames = ctl("button", "add selection", "as new frames", null, propsSection, function() {});
+		var btnAddFrameset = ctl("button", null, "as new frameset", null, propsSection, function() {});
+		var btnAddToFrameset = ctl("button", null, "to current frameset", null, propsSection, function() {});
 
 		// create the preview panel
 		previewPanel = ASTRAL.editor.ctlPanel("preview", "previewPanel", "", "sidebar4");
@@ -179,7 +206,7 @@ ASTRAL.spriter = new function() {
 	function activate(filename) {
 		console.log("activating spriter for " + filename);
 		spriterDiv.style.visibility = "visible";
-		isenabled = true;
+		enabled = true;
 		ASTRAL.loadImage(filename, function() {
 			// set the current image
 			img = ASTRAL.images[filename];
@@ -194,39 +221,30 @@ ASTRAL.spriter = new function() {
 		isenabled = false;
 	}
 
-	function enabled() {
-		return isenabled;
+	function setImage(filename) {
+		atlasData = [];
+		var btns = document.querySelectorAll(".button.region");
+		btns.forEach(function(btn) {
+			btn.remove();
+		});
+
+		var can = spriterCanvas; // TODO: this is implicitly referring to the dom element id...might need to enable option strict
+		var ctx = can.getContext("2d");
+		ctx.clearRect(0, 0, can.width, can.height);
+		imgLoading = true;
+		ASTRAL.loadImage(filename, function() {
+			img = ASTRAL.images[filename];
+			can.width = img.width;
+			can.height = img.height;
+			imgLoading = false;
+		});
 	}
 
-	function ctl(type, label, value, id, parent, click) {
-		// TODO: we have a more extensive version of this function in editor.js we should be using...
-
-		var el = document.createElement("DIV");
-		if (value.indexOf("#") != -1) {
-			el.innerHTML = "";
-		}
-		else {
-			el.innerHTML = value;	
-		}
-		if (id) el.id = id;
-		el.className = type;
-		el.onclick = click;
-		if (type.indexOf("input") != -1) {
-			el.contentEditable = true;
-		}
-		if (label) {
-			var lbl = document.createElement("DIV");
-			lbl.className = "label";
-			lbl.innerHTML = label;
-			parent.appendChild(lbl);
-		}
-		parent.appendChild(el);
-		return el;
-	}
-
-	function setGrid() {
-
-	}
+///////////////////////////////////////
+//
+//	TOOLS PANEL
+//
+///////////////////////////////////////
 
 	function openImage() {
 		// var inp = document.createElement("INPUT");
@@ -238,45 +256,72 @@ ASTRAL.spriter = new function() {
 	function openData() {
 		var inp = document.createElement("INPUT");
 		inp.type = "file";
-		inp.addEventListener("change", handleFileSelect, false);
+		inp.addEventListener("change", handleOpenData, false);
 		inp.click();
 	}
 
-	function handleFileSelect() {
+	function downloadAtlas() {
+		ASTRAL.downloadData(atlasData, "myatlas.atlas");
+	}
+
+	function saveAtlas() {
+		// make a call to the server and let the server save it to disk
+		// hot reload the file on the client/server
+		var json = ASTRAL.formatData(atlasData);
+		console.log("save not implemented");
+	}
+
+	function viewAtlasData() {
+		var json = atlasDataToJson();
+	    ASTRAL.openJsonInNewTab(json);
+	}
+
+	function atlasDataToJson() {
+		var clone = ASTRAL.cloneObject(atlasData);
+		console.log("atlasDataToJson clone:", clone);
+		var json = JSON.stringify(clone, null, 2);
+		console.log("atlasDataToJson json:", json);
+		return json;
+	}
+
+	function setGrid() {
+
+	}
+
+	function handleOpenData() {
 		var file = this.files[0];
 		var path = "assets/" + file.name;
-		loadJson(path, function(txt) {
-			var anims = JSON.parse(txt);
-			for (var i = 0; i < anims.length; i++) {
-				var anim = anims[i];
-				newAnimation(anim);
+		ASTRAL.loadJson(path, function(txt) {
+			var regions = JSON.parse(txt);
+			for (var i = 0; i < regions.length; i++) {
+				var region = regions[i];
+				createRegion(region);
 			}
 		});
 	}
 
-	function loadJson(name, callback) {
-	    var req = new XMLHttpRequest();
-	    //req.overrideMimeType("application/json");
-	    req.open("GET", name, true);
-	    req.onreadystatechange = function() {
-	    	var statusPassing = "200";
-	    	// if working from the filesystem, override statusPassing to "0" since
-	    	//	a json file returns req.status == "0" on success
-			if (window.location.protocol == "file:") {
-				statusPassing = "0";
-			}
-			if (req.readyState == 4 && req.status == statusPassing) {
-				// TODO: we need to load the deps here or in kit.sprite...
-				callback(req.responseText);
-			}
-	    };
-	    req.send(null);  
+	function setZoom(val) {
+		var layer = ASTRAL.layers["spriter"];
+		var can = layer.can;
+		var ctx = layer.ctx;
+		var tran = 0; //1024 / 2 / 2 + 32 / 2 * val; // if zoom is 1 this should equal tran of 0px
+		can.style.transform = "scale(" + (val + 1) + "," + (val + 1) + ") translate(" + tran + "px," + tran + "px)";
+		zoom = val;
+	}
+
+	function setBackground(color) {
+		var layer = ASTRAL.layers["spriter"];
+		var can = layer.can;
+		can.style.background = color;
+
+		var can = previewCanvas;
+		can.style.background = color;
 	}
 
 	function moveSelection(x, y) {
 		selected.left += x;
 		selected.top += y;
-		setRegion();
+		applySelectionToRegion();
 	}
 
 	function resizeSelection(left, top, right, bottom) {
@@ -294,58 +339,194 @@ ASTRAL.spriter = new function() {
 		if (bottom != 0) {
 			selected.height += bottom;
 		}
-		setRegion();
+		applySelectionToRegion();
 	}
 
-	function setImage(filename) {
-		data.anims = [];
-		var animButtons = document.querySelectorAll(".button.anim");
-		console.log(animButtons);
-		animButtons.forEach(function(item) {
-			item.remove();
-		});
+///////////////////////////////////////
+//
+//	PREVIEW PANEL
+//
+///////////////////////////////////////
 
-		var can = spriterCanvas; // TODO: this is implicitly referring to the dom element id...might need to enable option strict
-		var ctx = can.getContext("2d");
-		ctx.clearRect(0, 0, can.width, can.height);
-		imgLoading = true;
-		ASTRAL.loadImage(filename, function() {
-			img = ASTRAL.images[filename];
-			can.width = img.width;
-			can.height = img.height;
-			imgLoading = false;
-		});
+	function animate() {
+		var cols = colsInput.innerHTML;
+		if (cols > 0) {
+			fid += 1;
+			if (fid >= cols) {fid = 0;}
+		}
+		else {
+			fid = 0;
+		}
 	}
 
-	function setBackground(color) {
-		var layer = ASTRAL.layers["spriter"];
-		var can = layer.can;
-		can.style.background = color;
-
-		var can = previewCanvas;
-		can.style.background = color;
+	function setSpeed(val) {
+		// setInterval(function() {animate();}, 300);
+		clearInterval(animationTimer);
+		animationTimer = setInterval(function() {animate();}, 200 / val);
 	}
+
+///////////////////////////////////////
+//
+//	ATLAS PANEL
+//
+///////////////////////////////////////
+
+	function createRegion(region) {
+		// reset the selected region to null
+		selected = {};
+
+		//regionCount += 1;
+		//selectedId = regionCount - 1;
+
+		// generate a new id for this region
+		var newid = performance.now(); //Date.parse(new Date().toUTCString());
+
+		selectedId = newid;
+
+		if (!region) {
+			region = {};
+			region.id = newid;
+			region.name = "region";
+			region.rows = 1;
+			region.cols = 1;
+			region.x = 0;
+			region.y = 0;
+			region.width = 0;
+			region.height = 0;
+		}
+
+		selectedRegion = region;
+
+		// create a button for the region in the regions list
+		var node = document.createElement("DIV");
+		node.className = "button region";
+		node.innerHTML = region.name;
+		node.id = "regionid" + newid;
+		//node.onclick = function() {populateInspectorPanel(node.id);}
+		node.onclick = function() {
+			selectedRegion = region;
+			selectedNode = node;
+			highlightNode(selectedNode);
+			populateInspectorPanel();
+		}
+		atlasSection.appendChild(node);
+		
+		selectedNode = node;
+		highlightNode(selectedNode);
+
+		// populate the name prop with the new region name and set events on it
+		nameInput.innerHTML = region.name;
+		nameInput.removeEventListener("blur", nameChange);
+		nameInput.addEventListener("blur", nameChange);
+		nameInput.focus();
+
+		rowsInput.innerHTML = region.rows;
+		rowsInput.removeEventListener("blur", rowsChange);
+		rowsInput.addEventListener("blur", rowsChange);
+
+		colsInput.innerHTML = region.cols;
+		colsInput.removeEventListener("blur", colsChange);
+		colsInput.addEventListener("blur", colsChange);
+
+		regionInput.innerHTML = "0, 0, 0, 0";
+
+		// store the region in an array
+		atlasData.push(region);
+	}
+
+	function deleteAnimation() {
+		var el = document.getElementById(selectedId);
+		if (el) {
+			var prev = el.previousSibling;
+			var next = el.nextSibling;
+			el.remove();
+			atlasData.splice(selectedId, 1);
+			if (next && next.className.indexOf("region") != -1) {
+				populateInspectorPanel(next.id);
+			}
+			else if (prev && prev.className.indexOf("region") != -1) {
+				populateInspectorPanel(prev.id);
+			}
+		}
+	}
+
+	function populateInspectorPanel() {
+		// populates the INSPECTOR panel with the selected region's props, occurs after user 
+		//	clicks a region in the ATLAS panel
+		var region = selectedRegion;
+		nameInput.innerHTML = region.name;
+		rowsInput.innerHTML = region.rows;
+		colsInput.innerHTML = region.cols;
+		regionInput.innerHTML = region.x + ", " + region.y + ", " + region.width + ", " + region.height;
+		createSelect(region.x, region.y, region.width, region.height);
+		highlightNode(selectedNode);
+	}
+
+	function highlightNode(node) {
+		// set the selected class on the region button
+		var prevNode = document.querySelector(".button.region.selected");
+		if (prevNode) prevNode.className = prevNode.className.replace(" selected", "");
+		//var node = document.getElementById("regionid" + id);
+		node.className += " selected";
+	}
+
+///////////////////////////////////////
+//
+//	PROPERTIES PANEL
+//
+///////////////////////////////////////
+
+	function findRegion(id) {
+		var region;
+		for (var i = 0; i < atlasData.length; i++) {
+			region = atlasData[i];
+			if (region.id == id) {
+				return region;
+			}
+		}
+	}
+
+	// TODO: why dont we simply have a selectedRegion?
+
+	function nameChange() {
+		var newName = nameInput.innerHTML;
+		selectedRegion.name = newName;
+		selectedNode.innerHTML = newName;
+	}
+
+	function rowsChange() {
+		var newval = parseInt(rowsInput.innerHTML);
+		selectedRegion.rows = newval;
+	}
+
+	function colsChange() {
+		var newval = parseInt(colsInput.innerHTML);
+		selectedRegion.cols = newval;
+	}
+
+	function applySelectionToRegion() {
+		// sets the props for the selectedRegion using the selectedRect
+		if (selectedRegion) {
+			selectedRegion.x = selected.left;
+			selectedRegion.y = selected.top;
+			selectedRegion.width = selected.width;
+			selectedRegion.height = selected.height;
+			regionInput.innerHTML = (selected.left) + ", " + (selected.top) + ", " + selected.width + ", " + selected.height;
+		}
+	}
+
+///////////////////////////////////////
+//
+//	CORE
+//
+///////////////////////////////////////
 
 	function loadSpriteSheet() {
 		console.log("todo load sprite sheet");
 	}
 
-	function downloadAtlas() {
-		ASTRAL.downloadData(data.anims, "myatlas.atlas");
-	}
-
-	function saveAtlas() {
-		// make a call to the server and let the server save it to disk
-		// hot reload the file on the client/server
-		let json = ASTRAL.formatData(data.anims);
-		console.log("save not implemented");
-	}
-
-	function viewAtlasData() {
-	    ASTRAL.openDataInNewTab(data.anims);
-	}
-
 	function startSelect(offsetX, offsetY) {
+		// fires on mousedown
 		selecting = true; // we need to track this so that endSelect doesnt fire on every mouseup, only if we were selecting to begin with
 		regionInput.innerHTML = "selecting...";
 		selected = {};
@@ -369,6 +550,7 @@ ASTRAL.spriter = new function() {
 	}
 
 	function adjustSelect(offsetX, offsetY) {
+		// fires on mousedown + mousemove (drag)
 		var ox = offsetX;// - padding;
 		var oy = offsetY;// - padding;
 		if (ox < 0) ox = 0;
@@ -389,15 +571,17 @@ ASTRAL.spriter = new function() {
 	}
 
 	function endSelect() {
+		// fires on mouseup
 		if (selecting == true) {
 			selecting = false;
 			selected = JSON.parse(JSON.stringify(rect));
 			rect = {};
-			setRegion();
+			applySelectionToRegion();
 		}
 	}
 
 	function createSelect(x, y, w, h) {
+		// creates a selection, fires when clicking a region node
 		selecting = true;
 		rect.left = x;
 		rect.top = y;
@@ -543,151 +727,59 @@ ASTRAL.spriter = new function() {
 		);
 	}
 
-	function animate() {
-		var cols = colsInput.innerHTML;
-		if (cols > 0) {
-			fid += 1;
-			if (fid >= cols) {fid = 0;}
+
+///////////////////////////////////////
+//
+//	UI BUILDERS
+//
+///////////////////////////////////////
+
+	function ctl(type, label, value, id, parent, click) {
+		// TODO: we have a more extensive version of this function in editor.js we should be using...
+
+		var el = document.createElement("DIV");
+		if (value.indexOf("#") != -1) {
+			el.innerHTML = "";
 		}
 		else {
-			fid = 0;
+			el.innerHTML = value;	
 		}
-	}
+		if (id) el.id = id;
+		el.className = type;
 
-	function setZoom(val) {
-		var layer = ASTRAL.layers["spriter"];
-		var can = layer.can;
-		var ctx = layer.ctx;
-		var tran = 0; //1024 / 2 / 2 + 32 / 2 * val; // if zoom is 1 this should equal tran of 0px
-		can.style.transform = "scale(" + (val + 1) + "," + (val + 1) + ") translate(" + tran + "px," + tran + "px)";
-		zoom = val;
-	}
+		el.onclick = click;
 
-	function setSpeed(val) {
-		// setInterval(function() {animate();}, 300);
-		clearInterval(animationTimer);
-		animationTimer = setInterval(function() {animate();}, 200 / val);
-	}
-
-	function newAnimation(anim) {
-		// adds a new anim button to the anims list and populate the props list with values
-		selected = {};
-
-		//mode = "new";
-		animCount += 1;
-		selectedId = "anim" + animCount;
-
-		if (!anim) {
-			anim = {};
-			anim.name = "animation " + animCount;
-			anim.rows = 1;
-			anim.cols = 1;
-			anim.x = 0;
-			anim.y = 0;
-			anim.width = 0;
-			anim.height = 0;
-		}
-
-		// create a button for the anim in the anims list
-		var animButton = document.createElement("DIV");
-		animButton.className = "button anim";
-		animButton.innerHTML = anim.name;
-		animButton.id = selectedId;
-		animButton.onclick = function() {selectAnimation(animButton.id);}
-		atlasSection.appendChild(animButton);
-		highlightAnimationButton(selectedId);
-
-		// populate the name prop with the new animation name and set events on it
-		nameInput.innerHTML = anim.name;
-		nameInput.removeEventListener("blur", nameChange);
-		nameInput.addEventListener("blur", nameChange);
-		nameInput.focus();
-
-		rowsInput.innerHTML = anim.rows;
-		rowsInput.removeEventListener("blur", rowsChange);
-		rowsInput.addEventListener("blur", rowsChange);
-
-		colsInput.innerHTML = anim.cols;
-		colsInput.removeEventListener("blur", colsChange);
-		colsInput.addEventListener("blur", colsChange);
-
-		regionInput.innerHTML = "0, 0, 0, 0";
-
-		// store the animation in an array
-		data.anims[selectedId] = anim;
-	}
-
-	function deleteAnimation() {
-		var el = document.getElementById(selectedId);
-		if (el) {
-			var prev = el.previousSibling;
-			var next = el.nextSibling;
-			el.remove();
-			delete data.anims[selectedId];
-			if (next && next.className.indexOf("anim") != -1) {
-				selectAnimation(next.id);
-			}
-			else if (prev && prev.className.indexOf("anim") != -1) {
-				selectAnimation(prev.id);
+		el.onmouseover = function(event) {
+			if (el.dataset && el.dataset.tip) {
+				ASTRAL.editor.showToolTip(el.dataset.tip, event);
 			}
 		}
-	}
-
-	function selectAnimation(id) {
-		console.log("selecting animation " + id);
-		// occurs after user clicks an animation in the anims list
-		selectedId = id;
-		var anim = data.anims[id];
-		nameInput.innerHTML = anim.name;
-		rowsInput.innerHTML = anim.rows;
-		colsInput.innerHTML = anim.cols;
-		regionInput.innerHTML = anim.x + ", " + anim.y + ", " + anim.width + ", " + anim.height;
-		createSelect(anim.x, anim.y, anim.width, anim.height);
-		highlightAnimationButton(id);
-	}
-
-	function highlightAnimationButton(id) {
-		// set the selected class on the animation button
-		var prevButton = document.querySelector(".button.anim.selected");
-		if (prevButton) prevButton.className = prevButton.className.replace(" selected", "");
-		var animButton = document.getElementById(id);
-		animButton.className += " selected";
-	}
-
-	function nameChange() {
-		var newName = nameInput.innerHTML;
-		var anim = data.anims[selectedId];
-		anim.name = newName;
-		var animButton = document.getElementById(selectedId);
-		animButton.innerHTML = newName;
-	}
-
-	function rowsChange() {
-		var newval = parseInt(rowsInput.innerHTML);
-		var anim = data.anims[selectedId];
-		anim.rows = newval;
-	}
-
-	function colsChange() {
-		var newval = parseInt(colsInput.innerHTML);
-		var anim = data.anims[selectedId];
-		anim.cols = newval;
-	}
-
-	function setRegion() {
-		// occurs after user selected a region on the sprite sheet by drawing a rect
-		if (selectedId) {
-			var anim = data.anims[selectedId];
-			anim.x = selected.left;
-			anim.y = selected.top;
-			anim.width = selected.width;
-			anim.height = selected.height;
-			regionInput.innerHTML = (selected.left) + ", " + (selected.top) + ", " + selected.width + ", " + selected.height;
+		el.onmouseleave = function(event) {
+			ASTRAL.editor.hideToolTip();
 		}
+
+		if (type.indexOf("input") != -1) {
+			el.contentEditable = true;
+		}
+		if (label) {
+			var lbl = document.createElement("DIV");
+			lbl.className = "label";
+			lbl.innerHTML = label;
+			parent.appendChild(lbl);
+		}
+		parent.appendChild(el);
+		return el;
 	}
 
-	this.init = init;
-	this.activate = activate;
-	this.zoom = zoom;
-	this.enabled = enabled;
-}
+	return {
+		init:init,
+		activate:activate,
+		zoom:zoom,
+		set enabled(val) {
+			enabled = val;
+		},
+		get enabled() {
+			return enabled;
+		},
+	}
+}());
