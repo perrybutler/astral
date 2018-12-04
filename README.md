@@ -41,7 +41,7 @@ Architecture:
 
 Building a game engine has been an ongoing learning experiment and hobby project of mine since around the year 2002. My first few engines were done in VB6/VB.NET with DirectX 7/8/9. Here is a quick tour of the whole timeline.
 
-## "Astral" (2018)
+## "Astral" (2018, JavaScript)
 
 After a long hiatus, I returned to this project to continue where I left off, but I wanted to rewrite the code from the ground up and apply what I learned from the previous prototypes. This time around, I tackled the netcode first, so that a client/server model would be part of the core from the very beginning, without having to overhaul a single player engine into a multiplayer one later.
 
@@ -49,7 +49,7 @@ After a long hiatus, I returned to this project to continue where I left off, bu
 
 ^ Multiple clients with a NodeJS socket server sending/receiving messages.
 
-## "vbengine" (2018)
+## "vbengine" (2018, VB.NET)
 
 I got burnt out on Rapid Engine and I was sad that I no longer had the old code for my 3d engines, so I decided to fill that gap with a little side project. Here's iosys Engine reborn.
 
