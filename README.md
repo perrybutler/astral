@@ -67,7 +67,7 @@ I got burnt out on Rapid Engine and I was sad that I no longer had the old code 
 
 Unfortunately gfycat made some of those gifs really bad quality.
 
-## "Rapid Engine"
+## "Rapid Engine" (2013, JavaScript)
 
 Once I had a prototype canvas engine working with Adventure Toolkit, I decided to take things to the next level by doing the Breakouts project and carrying over the inspector/editor ideas from the previous work. And of course, a new name for the engine, this time borrowing its name from a related but not yet integrated project of mine (RapidJS). The last image shows the custom async loader/modules. The graphics used here are public domain.
 
@@ -83,7 +83,7 @@ Once I had a prototype canvas engine working with Adventure Toolkit, I decided t
 
 ^ Console output of the asynchronous file loader. Not AMD or CommonJS.
 
-## "Adventure Toolkit"
+## "Adventure Toolkit" (2011, JavaScript)
 
 Very early prototype testing out sprite animations, roaming AI, shadows/opacity, object sorting, collisions and push physics to see what's possible with HTML5 canvas. The inspector/editor thing was an early incantation. (See graphics disclaimer at top of this page)
 
@@ -93,13 +93,13 @@ Very early prototype testing out sprite animations, roaming AI, shadows/opacity,
 
 ![](https://thumbs.gfycat.com/YellowishKindheartedCopperhead-size_restricted.gif)
 
-## "Nokia Adventure Game"
+## "Nokia Adventure Game" (2008, Java MIDP 2.0)
 
 It turns out I've been making and scrapping game engines for a while. What can I say? It's fun. This was made many years ago when Nokia phones were the hot ticket. It had a scrolling tiled background and animated sprite character, and ran smoothly on my Nokia 6230. (See graphics disclaimer at top of this page)
 
 ![](https://thumbs.gfycat.com/SentimentalNeedyArctichare-size_restricted.gif)
 
-## "iosys Engine"
+## "iosys Engine" (2001, VB6 / VB.NET)
 
 I used a lot of map editors back in the day to modify and make new content for games, such as Build (Duke Nukem 3D), qeradiant (Quake II), UnrealEd (Unreal) and Hammer (Half-Life), but one particular editor called QuArK is the one that stood out, and that was the inspiration for my first editor.
 
