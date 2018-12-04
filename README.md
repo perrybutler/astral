@@ -41,35 +41,51 @@ Netcode is coming along well. This also shows a Chromium wrapper being used to l
 
 Building a game engine has been an ongoing learning experiment and hobby project of mine since around the year 2002. My first few engines were done in VB6/VB.NET with DirectX 7/8/9. Here is a quick tour of the whole timeline.
 
-## "Astral"
-
-![](https://thumbs.gfycat.com/PreciousMiniatureCorydorascatfish-size_restricted.gif)
+## "Astral" (2018)
 
 After a long hiatus, I returned to this project to continue where I left off, but I wanted to rewrite the code from the ground up and apply what I learned from the previous prototypes. This time around, I tackled the netcode first, so that a client/server model would be part of the core from the very beginning, without having to overhaul a single player engine into a multiplayer one later.
 
-## "vbengine"
+![](https://thumbs.gfycat.com/PreciousMiniatureCorydorascatfish-size_restricted.gif)
 
-I got burnt out on Rapid Engine, and I was sad that I no longer had the old code for my 3d engines, so I decided to fill that gap with a little side project. Here's iosys Engine reborn.
+^ Multiple clients with a NodeJS socket server sending/receiving messages.
+
+## "vbengine" (2018)
+
+I got burnt out on Rapid Engine and I was sad that I no longer had the old code for my 3d engines, so I decided to fill that gap with a little side project. Here's iosys Engine reborn.
 
 ![](https://thumbs.gfycat.com/CoarseFocusedGadwall-small.gif)
 
+^ Yep that's the tiger.x model from the DirectX SDK.
+
 ![](https://thumbs.gfycat.com/IndelibleCheeryAdeliepenguin-max-1mb.gif)
 
+^ I never created a terrain system before so here's one! You can load any heightmap image and specify a cell count, then the engine will load that heightmap and chunk it into cells for easy culling later.
+
 ![](https://thumbs.gfycat.com/HilariousCandidEskimodog-size_restricted.gif)
+
+^ Very rudimentary editor inspired by modding Skyrim with Creation Kit. My ideas grew into a 70 page overhaul that couldn't be done in CK :)
 
 Unfortunately gfycat made some of those gifs really bad quality.
 
 ## "Rapid Engine"
 
+Once I had a prototype canvas engine working with Adventure Toolkit, I decided to take things to the next level by doing the Breakouts project and carrying over the inspector/editor ideas from the previous work. And of course, a new name for the engine, this time borrowing its name from a related but not yet integrated project of mine (RapidJS). The last image shows the custom async loader/modules. The graphics used here are public domain.
+
 ![](https://thumbs.gfycat.com/CalmReflectingCamel-size_restricted.gif)
+
+^ Showing more of the editor.
 
 ![](https://thumbs.gfycat.com/InsidiousLeadingBighorn-size_restricted.gif)
 
+^ Showing some of the editor.
+
 ![](https://thumbs.gfycat.com/GrossAgileHippopotamus-size_restricted.gif)
 
-Once I had a prototype canvas engine working with Adventure Toolkit, I decided to take things to the next level by doing the Breakouts project and carrying over the inspector/editor ideas from the previous work. And of course, a new name for the engine, this time borrowing its name from a related but not yet integrated project of mine (RapidJS). The last image shows the custom async loader/modules. The graphics used here are public domain.
+^ Console output of the asynchronous file loader. Not AMD or CommonJS.
 
 ## "Adventure Toolkit"
+
+Very early prototype testing out sprite animations, roaming AI, shadows/opacity, object sorting, collisions and push physics to see what's possible with HTML5 canvas. The inspector/editor thing was an early incantation. (See graphics disclaimer at top of this page)
 
 ![](https://thumbs.gfycat.com/HopefulGlaringEeve-size_restricted.gif)
 
@@ -77,13 +93,11 @@ Once I had a prototype canvas engine working with Adventure Toolkit, I decided t
 
 ![](https://thumbs.gfycat.com/YellowishKindheartedCopperhead-size_restricted.gif)
 
-Very early prototype testing out sprite animations, roaming AI, shadows/opacity, object sorting, collisions and push physics to see what's possible with HTML5 canvas. The inspector/editor thing was an early incantation. (See graphics disclaimer at top of this page)
-
 ## "Nokia Adventure Game"
 
-![](https://thumbs.gfycat.com/SentimentalNeedyArctichare-size_restricted.gif)
-
 It turns out I've been making and scrapping game engines for a while. What can I say? It's fun. This was made many years ago when Nokia phones were the hot ticket. It had a scrolling tiled background and animated sprite character, and ran smoothly on my Nokia 6230. (See graphics disclaimer at top of this page)
+
+![](https://thumbs.gfycat.com/SentimentalNeedyArctichare-size_restricted.gif)
 
 ## "iosys Engine"
 
@@ -91,7 +105,7 @@ I used a lot of map editors back in the day to modify and make new content for g
 
 ![](https://thumbs.gfycat.com/ThankfulFastAmericanavocet-small.gif)
 
-An in-game screenshot showing what the engine could do. Textures, lighting, fog, transparency, collision detection. You could walk around on the terrain.
+^ An in-game screenshot showing what the engine could do. Textures, lighting, fog, transparency, collision detection. You could walk around on the terrain.
 
 ![](https://thumbs.gfycat.com/UnlinedGiganticImpala-small.gif)
 
