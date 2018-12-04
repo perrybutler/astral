@@ -29,13 +29,13 @@ Architecture:
 
 ![](https://thumbs.gfycat.com/ShorttermEducatedApisdorsatalaboriosa-size_restricted.gif)
 
-Realtime inspector/editor functionality. This is the framework in its most recent state. The graphics used here are CC0/public domain.
+^ Realtime inspector/editor functionality. This is the framework in its most recent state. The graphics used here are CC0/public domain.
 
 ### October 5th, 2018
 
 ![](https://thumbs.gfycat.com/FocusedEnormousAnemone-size_restricted.gif)
 
-Netcode is coming along well. This also shows a Chromium wrapper being used to launch the game like a native Windows app. The wrapper is a custom .NET app with Chromium embedded via CEFsharp lib which will have its own repo and can optionally be bundled with the finished game for a turn-key product, depending on the open-source license constraints.
+^ Netcode is coming along well. This also shows a Chromium wrapper being used to launch the game like a native Windows app. The wrapper is a custom .NET app with Chromium embedded via CEFsharp lib which will have its own repo and can optionally be bundled with the finished game for a turn-key product, depending on the open-source license constraints.
 
 # History
 
@@ -59,7 +59,7 @@ I got burnt out on Rapid Engine and I was sad that I no longer had the old code 
 
 ![](https://thumbs.gfycat.com/IndelibleCheeryAdeliepenguin-max-1mb.gif)
 
-^ I never created a terrain system before so here's one! You can load any heightmap image and specify a cell count, then the engine will load that heightmap and chunk it into cells for easy culling later.
+^ I never created a terrain system before so here's one! You can load any heightmap image and specify a cell count, then the engine will load that heightmap and chunk it into cells for easy culling later. It was great fun loading heightmaps from other games, or NASA Moon/Mars images, and seeing them as wireframes in my engine that I could explore. WASD + mouse look was functional.
 
 ![](https://thumbs.gfycat.com/HilariousCandidEskimodog-size_restricted.gif)
 
