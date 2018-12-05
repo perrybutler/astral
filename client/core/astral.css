@@ -363,7 +363,17 @@
 	margin-bottom:0.2em;
 }
 
-.panel .button.region.selected {
+.panel .button.frame {
+	font-size:0.5em;
+	min-width:16px;
+	text-align:center;
+}
+
+.panel .button.frame.selected {
+	color:yellow;
+}
+
+.panel .button.frameset.selected {
 	color:yellow;
 }
 

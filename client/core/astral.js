@@ -1138,6 +1138,17 @@ var ASTRAL = (function() {
 	    x.document.close();
 	}
 
+	function setEndOfContenteditable(el) {
+	    var range,selection;
+        range = document.createRange();//Create a range (a range is a like the selection but invisible)
+        range.selectNodeContents(el);//Select the entire contents of the element with the range
+        range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
+        selection = window.getSelection();//get the selection object (allows you to change selection)
+        selection.removeAllRanges();//remove any selections already made
+        selection.addRange(range);//make the range you have just created the visible selection
+        // https://stackoverflow.com/questions/1125292/how-to-move-cursor-to-end-of-contenteditable-entity
+	}
+
 	function error(msg, duration) {
 		var el = document.createElement("DIV");
 		el.className = "error";
@@ -1181,6 +1192,7 @@ var ASTRAL = (function() {
 		gameInfo:gameInfo,
 		isFunction:isFunction,
 		formatObject:formatObject,
+		setEndOfContenteditable:setEndOfContenteditable,
 		get mouseX() {
 			return mouseX;
 		},
