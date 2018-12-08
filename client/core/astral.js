@@ -1177,6 +1177,7 @@ var ASTRAL = (function() {
 		/*createGameObject:createGameObject,*/
 		/*loadGameObject:loadGameObject,*/
 		findObject:findObject,
+		loadJson:loadJson,
 		loadImage:loadImage,
 		loadScene:loadScene,
 		loadBatch:loadBatch,

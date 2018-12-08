@@ -8,7 +8,8 @@
 		{"name": "mover", "path": "assets/components/mover.js"},
 		{"name": "particle", "path": "assets/components/particle.js"},
 		{"name": "collider", "path": "assets/components/collider.js"},
-		{"name": "text", "path": "assets/components/text.js"}
+		{"name": "text", "path": "assets/components/text.js"},
+		{"name": "atlas", "path": "assets/components/atlas.js"}
 	],
 	"startup": "main.js"
 }

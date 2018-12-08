@@ -18,6 +18,7 @@ ASTRAL.spriter = (function() {
 	var imgLoading = false;
 
 	// the data that will get saved
+	var openFile = "";
 	var atlasData = {};
 	atlasData.frames = {};
 	atlasData.framesets = {};
@@ -106,7 +107,7 @@ ASTRAL.spriter = (function() {
 		// create the atlas panel
 		atlasPanel = ASTRAL.editor.ctlPanel("atlas", "atlasPanel", "", "sidebar4");
 		atlasSection = ASTRAL.editor.ctlSection("", "", "", atlasPanel);
-		var newButton = ctl("button icon fileadd", null, "", "atlasPanelNewButton", atlasSection, function() {console.log("not implemented")});
+		var newButton = ctl("button icon fileadd", null, "", "atlasPanelNewButton", atlasSection, function() {newAtlas();});
 		newButton.dataset.tip = "Create a new empty atlas.";
 		var saveButton = ctl("button icon diskette", null, "", null, atlasSection, saveAtlas);
 		saveButton.dataset.tip = "Save changes to the current atlas file.";
@@ -122,7 +123,7 @@ ASTRAL.spriter = (function() {
 		// framesets section
 		var thing = ctl("button icon add", "framesets", "", null, atlasSection, function() {createFrameset();});
 		thing.dataset.tip = "Create a new empty frameset in this atlas.";
-		var thing = ctl("button icon remove", null, "", null, atlasSection, function() {deleteAnimation();});
+		var thing = ctl("button icon remove", null, "", null, atlasSection, function() {deleteFrameset();});
 		thing.dataset.tip = "Delete selected frameset from this atlas.";
 		framesetsSection = document.createElement("DIV");
 		atlasSection.appendChild(framesetsSection);
@@ -172,6 +173,7 @@ ASTRAL.spriter = (function() {
 		previewCanvas.width = 128;
 		previewCanvas.height = 128;
 		previewSection.appendChild(previewCanvas);
+		var thing = ctl("dropdown", "show what", "selected area,selected frame,selected frameset", "previewwhat", previewSection, null);
 		var speedButton = ctl("button pill", "speed", "1x", null, previewSection, function() {setSpeed(1)});
 		var speedButton = ctl("button pill", null, "2x", null, previewSection, function() {setSpeed(2)});
 		var speedButton = ctl("button pill", null, "3x", null, previewSection, function() {setSpeed(3)});
@@ -221,21 +223,62 @@ ASTRAL.spriter = (function() {
 	}
 
 	function activate(filename) {
+		// shows the spriter tool and loads an image or atlas too
 		console.log("activating spriter for " + filename);
 		spriterDiv.style.visibility = "visible";
 		enabled = true;
-		ASTRAL.loadImage(filename, function() {
-			// set the current image
-			img = ASTRAL.images[filename];
-			spriterLayer.can.width = img.width;
-			spriterLayer.can.height = img.height;
-		});
+		clearAtlas();
+		rect = {};
+		selectedArea = {};
+
+		var fi = ASTRAL.getFileInfo(filename);
+		if (fi.ext == "atlas") {
+			ASTRAL.loadJson(filename, function(strdata) {
+				var data = JSON.parse(strdata);
+				// load the atlas image
+				if (data.image) {
+					console.log("ATLASIMAGE", data.image);
+					ASTRAL.loadImage(data.image, function() {
+						// set the current image
+						img = ASTRAL.images[data.image];
+						spriterLayer.can.width = img.width;
+						spriterLayer.can.height = img.height;
+					});
+				}
+				// TODO: the following should probably be inside the ASTRAL.loadImage callback above
+				// load the atlas frames/framesets
+				atlasData.frames = data.frames;
+				atlasData.framesets = data.framesets;
+				for (var key in data.frames) {
+					var frame = data.frames[key];
+					addFrameNode(key);
+				}
+				for (var key in data.framesets) {
+					var frameset = data.framesets[key];
+					addFramesetNode(key);	
+				}
+				// set the currentFile used by the save button
+				openFile = filename;
+			});
+		}
+		else if (fi.type == "image") {
+			ASTRAL.loadImage(filename, function() {
+				// set the current image
+				img = ASTRAL.images[filename];
+				spriterLayer.can.width = img.width;
+				spriterLayer.can.height = img.height;
+			});
+		}
+		else {
+			// unsupported type
+		}
+
 		ASTRAL.setPanelLayout([], [], ["atlasPanel", "propsPanel"], ["previewPanel", "spriterToolsPanel", "projectPanel"]);
 	}
 
 	function deactivate() {
 		spriterDiv.style.visibility = "hidden";
-		isenabled = false;
+		enabled = false;
 	}
 
 	function setImage(filename) {
@@ -248,13 +291,376 @@ ASTRAL.spriter = (function() {
 		var can = spriterCanvas; // TODO: this is implicitly referring to the dom element id...might need to enable option strict
 		var ctx = can.getContext("2d");
 		ctx.clearRect(0, 0, can.width, can.height);
-		imgLoading = true;
+		imgLoading = true; // TODO: document why we need this...
 		ASTRAL.loadImage(filename, function() {
+			// load completed, grab a ref to the image and set the canvas size to the image size
 			img = ASTRAL.images[filename];
 			can.width = img.width;
 			can.height = img.height;
 			imgLoading = false;
 		});
+	}
+
+///////////////////////////////////////
+//
+//	ATLAS PANEL
+//
+///////////////////////////////////////
+
+	function newAtlas() {
+		clearAtlas();
+	}
+
+	function clearAtlas() {
+		openFile = "";
+		atlasData.frames = {};
+		atlasData.framesets = {};
+		var frameNodes = document.querySelectorAll(".button.frame");
+		frameNodes.forEach(function(el) {
+			el.remove();
+		});
+		var framesetNodes = document.querySelectorAll(".button.frameset");
+		framesetNodes.forEach(function(el) {
+			el.remove();
+		});
+	}
+
+	function addFrameNode(name) {
+		// create a button for the frameset in the framesets list
+		var node = document.createElement("DIV");
+		node.className = "button pill frame";
+		node.innerHTML = name;
+		node.id = "frameid" + name;
+		//node.onclick = function() {populateInspectorPanel(node.id);}
+		node.onclick = function() {
+			// selectedFrame = atlasData.frames[name];
+			// selectedNode = node;
+			// highlightNode(selectedNode);
+			// //populateInspectorPanel();
+
+			// single click to select frame and deselect everything else
+			selectFrame(name);
+
+			// ctrl click to toggle frame to selected frameset
+
+		}
+		framesSection.appendChild(node);
+		// selectedNode = node;
+		// highlightNode(selectedNode);
+	}
+
+	function addFramesetNode(name) {
+		// create a button for the frameset in the framesets list
+		var node = document.createElement("DIV");
+		node.className = "button frameset";
+		node.innerHTML = name;
+		node.id = name;
+		//node.onclick = function() {populateInspectorPanel(node.id);}
+		node.onclick = function() {
+			// selectedFrameset = atlasData.framesets[name];
+			// selectedNode = node;
+			// highlightNode(selectedNode);
+			// //populateInspectorPanel();
+			selectFrameset(node.id);
+		}
+		node.addEventListener("contextmenu", function(e) {
+			e.preventDefault();
+			ctxFrameset(node, e);
+		});
+		framesetsSection.appendChild(node);
+		// selectedNode = node;
+		// highlightNode(selectedNode);
+		selectFrameset(name);
+	}
+
+	function selectFrame(name) {
+		clearNodeSelection();
+		previewwhat.value = "selected frame";
+		selectedFrameset = null;
+		selectedFrame = atlasData.frames[name];
+		selectedNode = document.getElementById("frameid" + name);
+		highlightNode(selectedNode);
+	}
+
+	function selectFrameset(name) {
+		clearNodeSelection();
+		previewwhat.value = "selected frameset";
+
+		selectedFrameset = name; //atlasData.framesets[name];
+		selectedNode = document.getElementById(name);
+		highlightNode(selectedNode);
+
+		var selectedFramesetValue = atlasData.framesets[selectedFrameset];
+		var spl = selectedFramesetValue.split(",");
+		spl.forEach(function(frameid) {
+			var selectedFrameNode = document.getElementById("frameid" + frameid);
+			highlightNode(selectedFrameNode);
+		});
+	}
+
+	function clearNodeSelection() {
+		var selectedNodes = document.querySelectorAll(".frame.selected, .frameset.selected");
+		selectedNodes.forEach(function(node) {
+			node.classList.remove("selected");
+		});
+	}
+
+	function deleteFrameset() {
+		//var el = document.getElementById(selectedId);
+		var el = document.getElementById(selectedFrameset);
+		if (el) {
+			var prev = el.previousSibling;
+			var next = el.nextSibling;
+			el.remove();
+			//atlasData.framesets.splice(selectedFrameset, 1);
+			delete atlasData.framesets[selectedFrameset];
+			if (next && next.className.indexOf("frameset") != -1) {
+				populateInspectorPanel(next.id);
+			}
+			else if (prev && prev.className.indexOf("frameset") != -1) {
+				populateInspectorPanel(prev.id);
+			}
+		}
+	}
+
+	function beginRenameFramesetNode(node, isNew) {
+		var oldname = node.innerHTML;
+		var oldframeset = atlasData.framesets[oldname];
+		var oldonclick = node.onclick;
+		node.onclick = null;
+		node.draggable = false;
+		node.setAttribute("contenteditable", true);
+		node.focus();
+		ASTRAL.setEndOfContenteditable(node);
+		node.addEventListener("keydown", function(e) {
+			if (e.which == 13) {
+				e.preventDefault();
+				node.blur();
+			}
+		});
+		node.addEventListener("blur", function() {
+			doneRenaming();
+		});
+		function doneRenaming() {
+			var newname = node.innerHTML;
+			node.onclick = oldonclick;
+			node.draggable = true;
+			node.id = newname;
+			delete atlasData.framesets[oldname];
+			atlasData.framesets[newname] = oldframeset;
+			node.setAttribute("contenteditable", false);
+			selectFrameset(newname);
+			//selectFrameset(selectedFrameset);
+		}
+	}
+
+	function ctxFrameset(node, e) {
+		// if a menu is already open remove that one
+		var menu = document.getElementById("contextmenu");
+		if (menu) menu.remove();
+
+		// create the context
+		menu = document.createElement("DIV");
+		menu.id = "contextmenu";
+		menu.style.left = e.pageX;
+		menu.style.top = e.pageY;
+
+		var btn;
+
+		// MAKE A COPY
+		btn = document.createElement("DIV");
+		btn.innerHTML = "Make a Copy";
+		btn.className = "item";
+		btn.onclick = function() {
+			copyFile(node);
+		}
+		menu.appendChild(btn);
+
+		// =======
+
+		// RENAME
+		btn = document.createElement("DIV");
+		btn.innerHTML = "Rename";
+		btn.className = "item";
+		btn.onclick = function(e) {
+			//console.log(node);
+			beginRenameFramesetNode(node, false);
+		}
+		menu.appendChild(btn);
+
+		// DELETE
+		btn = document.createElement("DIV");
+		btn.className = "item";
+		btn.innerHTML = "Delete";
+		btn.onclick = function() {
+			deleteProjectNode(node);
+		}
+		menu.appendChild(btn);
+
+		document.body.appendChild(menu);
+	}
+
+
+	// function loadAtlas(filename) {
+	// 	ASTRAL.loadJson(filename, function() {
+			
+	// 	});
+	// 	setImage();
+	// }
+
+///////////////////////////////////////
+//
+//  SELECTED AREA PANEL
+//
+///////////////////////////////////////
+
+	function startSelect(offsetX, offsetY) {
+		// fires on mousedown
+		selecting = true; // we need to track this so that endSelect doesnt fire on every mouseup, only if we were selecting to begin with
+		selectedAreaInput.innerHTML = "none";
+		selectedArea = {};
+		var ox = offsetX;// - padding;
+		var oy = offsetY;// - padding;
+		if (ox < 0) ox = 0;
+		if (oy < 0) oy = 0;
+		if (ox > img.width) ox = img.width;
+		if (oy > img.height) oy = img.height;
+		if (snapToGrid == true) {
+			var gridx = parseInt(document.getElementById("gridx").innerHTML);
+			var gridy = parseInt(document.getElementById("gridy").innerHTML);
+			ox = parseInt(ox / gridx) * gridx;
+			oy = parseInt(oy / gridy) * gridy;
+		}
+		rect.left = ox; //e.offsetX * (img.width / spriterDiv.offsetWidth);
+		rect.top = oy; //e.offsetY * (img.height / spriterDiv.offsetHeight);
+		rect.width = 0;
+		rect.height = 0;
+		// 0.5 offset explained here: https://stackoverflow.com/questions/23612000/why-is-my-strokestyle-transparent
+	}
+
+	function adjustSelect(offsetX, offsetY) {
+		// fires on mousedown + mousemove (drag)
+		selectedAreaInput.innerHTML = rect.left + ", " + rect.top + ", " + rect.width + ", " + rect.height;
+		var ox = offsetX;// - padding;
+		var oy = offsetY;// - padding;
+		if (ox < 0) ox = 0;
+		if (oy < 0) oy = 0;
+		if (ox > img.width) ox = img.width;
+		if (oy > img.height) oy = img.height;
+		ox = ox - rect.left;
+		oy = oy - rect.top;
+		if (snapToGrid == true) {
+			var gridx = parseInt(document.getElementById("gridx").innerHTML);
+			var gridy = parseInt(document.getElementById("gridy").innerHTML);
+			// ox = parseInt(ox / gridx) * gridx;
+			// oy = parseInt(oy / gridy) * gridy;
+			ox = gridx + parseInt(ox / gridx) * gridx;
+			oy = gridy + parseInt(oy / gridy) * gridy;
+		}
+		rect.width = ox;// - padding; //e.offsetX * (img.width / spriterDiv.offsetWidth) - rect.left;
+		rect.height = oy;// - padding; //e.offsetY * (img.height / spriterDiv.offsetHeight) - rect.top;
+		// 0.5 offset explained here: https://stackoverflow.com/questions/23612000/why-is-my-strokestyle-transparent
+	}
+
+	function endSelect() {
+		// fires on mouseup
+		if (selecting == true) {
+			selecting = false;
+			selectedArea = JSON.parse(JSON.stringify(rect));
+			rect = {};
+			applySelectionToFrameset();
+			previewwhat.value = "selected area";
+		}
+	}
+
+	function createSelect(x, y, w, h) {
+		// creates a selection, fires when clicking a frameset node
+		selecting = true;
+		rect.left = x;
+		rect.top = y;
+		rect.width = w;
+		rect.height = h;
+		endSelect();
+	}
+
+	function addFrames(callback) {
+		// add selected area to atlas frames list
+		var frames = getFrames();
+		frames.forEach(function(frame) {
+			addFrame(frame, callback);
+		});
+	}
+
+	function getFrames() {
+		// convert the selected area to an array of frames
+		var frames = [];
+		var sliceX = parseInt(colsInput.innerHTML);
+		var sliceY = parseInt(rowsInput.innerHTML);
+		var frameWidth = selectedArea.width / sliceX;
+		var frameHeight = selectedArea.height / sliceY;
+		for (var y = 0; y < sliceY; y++) {
+			for (var x = 0; x < sliceX; x++) {
+				var fx = selectedArea.left + x * frameWidth;
+				var fy = selectedArea.top + y * frameHeight;
+				var frame = fx + "," + fy + "," + frameWidth + "," + frameHeight;
+				frames.push(frame);
+			}
+		}
+		return frames;
+	}
+
+	function addFrame(frame, callback) {
+		var frameid = getNextFrameId();
+		atlasData.frames[frameid] = frame;
+		addFrameNode(frameid);
+		// fire the callback so frameset can obtain frameid's
+		if (callback) callback(frameid);
+	}
+
+	function addFrameset() {
+		// add the selected area as frames to the atlas, and create a frameset with those frames
+		var name = uniqueFramesetName();
+		var frames = ""
+		addFrames(function(frameid) {
+			if (frames != "") {
+				frames += ",";
+			}
+			frames += frameid;
+		});
+		atlasData.framesets[name] = frames;
+		addFramesetNode(name);
+	}
+
+	function addToFrameset() {
+		// add the selected area as frames to the current frameset
+		var frames = "";
+		addFrames(function(frameid) {
+			if (frames != "") {
+				frames += ",";
+			}
+			frames += frameid;
+		});
+		atlasData.framesets[selectedFrameset] += "," + frames;
+		selectFrameset(selectedFrameset);
+	}
+
+	function getNextFrameId() {
+		var max = 0;
+		for (var key in atlasData.frames) {
+			var keyval = parseInt(key);
+			if (keyval > max) max = keyval;
+		}
+		return max + 1;
+	}
+
+	function uniqueFramesetName() {
+		var c = 1;
+		var name = "frameset";
+		do {
+			name = "frameset" + c;
+			c++;
+		} while(atlasData.framesets[name]);
+		return name;
 	}
 
 ///////////////////////////////////////
@@ -384,353 +790,9 @@ ASTRAL.spriter = (function() {
 		animationTimer = setInterval(function() {animate();}, 200 / val);
 	}
 
-///////////////////////////////////////
-//
-//	ATLAS PANEL
-//
-///////////////////////////////////////
 
-	// function createFrameset(frameset) {
-	// 	// creates a new empty frameset, or imports an existing frameset from disk
 
-	// 	// reset the selected area to null
-	// 	selectedArea = {};
 
-	// 	//framesetCount += 1;
-	// 	//selectedId = framesetCount - 1;
-
-	// 	// generate a new id for this frameset
-	// 	var newid = performance.now(); //Date.parse(new Date().toUTCString());
-
-	// 	selectedId = newid;
-
-	// 	if (!frameset) {
-	// 		frameset = {};
-	// 		frameset.id = newid;
-	// 		frameset.name = "frameset";
-	// 		frameset.rows = 1;
-	// 		frameset.cols = 1;
-	// 		frameset.x = 0;
-	// 		frameset.y = 0;
-	// 		frameset.width = 0;
-	// 		frameset.height = 0;
-	// 	}
-
-	// 	selectedFrameset = frameset;
-
-	// 	// create a button for the frameset in the framesets list
-	// 	var node = document.createElement("DIV");
-	// 	node.className = "button frameset";
-	// 	node.innerHTML = frameset.name;
-	// 	node.id = newid;
-	// 	//node.onclick = function() {populateInspectorPanel(node.id);}
-	// 	node.onclick = function() {
-	// 		selectedFrameset = frameset;
-	// 		selectedNode = node;
-	// 		highlightNode(selectedNode);
-	// 		populateInspectorPanel();
-	// 	}
-	// 	atlasSection.appendChild(node);
-		
-	// 	selectedNode = node;
-	// 	highlightNode(selectedNode);
-
-	// 	// populate the name prop with the new frameset name and set events on it
-	// 	nameInput.innerHTML = frameset.name;
-	// 	nameInput.removeEventListener("blur", nameChange);
-	// 	nameInput.addEventListener("blur", nameChange);
-	// 	nameInput.focus();
-
-	// 	rowsInput.innerHTML = frameset.rows;
-	// 	rowsInput.removeEventListener("blur", rowsChange);
-	// 	rowsInput.addEventListener("blur", rowsChange);
-
-	// 	colsInput.innerHTML = frameset.cols;
-	// 	colsInput.removeEventListener("blur", colsChange);
-	// 	colsInput.addEventListener("blur", colsChange);
-
-	// 	selectedAreaInput.innerHTML = "0, 0, 0, 0";
-
-	// 	// store the frameset in an array
-	// 	atlasData.push(frameset);
-	// }
-
-	function deleteAnimation() {
-		var el = document.getElementById(selectedId);
-		if (el) {
-			var prev = el.previousSibling;
-			var next = el.nextSibling;
-			el.remove();
-			atlasData.splice(selectedId, 1);
-			if (next && next.className.indexOf("frameset") != -1) {
-				populateInspectorPanel(next.id);
-			}
-			else if (prev && prev.className.indexOf("frameset") != -1) {
-				populateInspectorPanel(prev.id);
-			}
-		}
-	}
-
-	function populateInspectorPanel() {
-		// populates the INSPECTOR panel with the selected frameset's props, occurs after user 
-		//	clicks a frameset in the ATLAS panel
-		var frameset = selectedFrameset;
-		nameInput.innerHTML = frameset.name;
-		rowsInput.innerHTML = frameset.rows;
-		colsInput.innerHTML = frameset.cols;
-		selectedAreaInput.innerHTML = frameset.x + ", " + frameset.y + ", " + frameset.width + ", " + frameset.height;
-		createSelect(frameset.x, frameset.y, frameset.width, frameset.height);
-		highlightNode(selectedNode);
-	}
-
-	function getFrames() {
-		// convert the selected area to an array of frames
-		var frames = [];
-		var sliceX = parseInt(colsInput.innerHTML);
-		var sliceY = parseInt(rowsInput.innerHTML);
-		var frameWidth = selectedArea.width / sliceX;
-		var frameHeight = selectedArea.height / sliceY;
-		for (var y = 0; y < sliceY; y++) {
-			for (var x = 0; x < sliceX; x++) {
-				var frame = x*frameWidth + "," + y*frameHeight + "," + frameWidth + "," + frameHeight;
-				frames.push(frame);
-			}
-		}
-		return frames;
-	}
-
-	function addFrames(callback) {
-		// get the selected area as frames and add them to the atlas
-		// TODO: should we call addFrame() here for more abstraction?
-		var frames = getFrames();
-		frames.forEach(function(frame) {
-			addFrame(frame, callback);
-		});
-	}
-
-	function addFrame(frame, callback) {
-		var frameid = getNextFrameId();
-		atlasData.frames[frameid] = frame;
-		addFrameNode(frameid);
-		// fire the callback so frameset can obtain frameid's
-		if (callback) callback(frameid);
-	}
-
-	function addFrameNode(name) {
-		// create a button for the frameset in the framesets list
-		var node = document.createElement("DIV");
-		node.className = "button pill frame";
-		node.innerHTML = name;
-		node.id = "frameid" + name;
-		//node.onclick = function() {populateInspectorPanel(node.id);}
-		node.onclick = function() {
-			// selectedFrame = atlasData.frames[name];
-			// selectedNode = node;
-			// highlightNode(selectedNode);
-			// //populateInspectorPanel();
-
-			// single click to select frame and deselect everything else
-			selectFrame(name);
-
-			// ctrl click to toggle frame to selected frameset
-
-		}
-		framesSection.appendChild(node);
-		// selectedNode = node;
-		// highlightNode(selectedNode);
-	}
-
-	function selectFrame(name) {
-		clearNodeSelection();
-		selectedFrameset = null;
-		selectedFrame = atlasData.frames[name];
-		selectedNode = document.getElementById("frameid" + name);
-		highlightNode(selectedNode);
-	}
-
-	function getNextFrameId() {
-		var max = 0;
-		for (var key in atlasData.frames) {
-			var keyval = parseInt(key);
-			if (keyval > max) max = keyval;
-		}
-		return max + 1;
-	}
-
-	function addFrameset() {
-		// add the selected area as frames to the atlas, and create a frameset with those frames
-		var name = uniqueFramesetName();
-		var frames = ""
-		addFrames(function(frameid) {
-			if (frames != "") {
-				frames += ",";
-			}
-			frames += frameid;
-		});
-		atlasData.framesets[name] = frames;
-		//selectedFrameset = atlasData.framesets[name];
-		addFramesetNode(name);
-	}
-
-	function addFramesetNode(name) {
-		// create a button for the frameset in the framesets list
-		var node = document.createElement("DIV");
-		node.className = "button frameset";
-		node.innerHTML = name;
-		node.id = name;
-		//node.onclick = function() {populateInspectorPanel(node.id);}
-		node.onclick = function() {
-			// selectedFrameset = atlasData.framesets[name];
-			// selectedNode = node;
-			// highlightNode(selectedNode);
-			// //populateInspectorPanel();
-			selectFrameset(node.id);
-		}
-		node.addEventListener("contextmenu", function(e) {
-			e.preventDefault();
-			ctxFrameset(node, e);
-		});
-		framesetsSection.appendChild(node);
-		// selectedNode = node;
-		// highlightNode(selectedNode);
-		selectFrameset(name);
-	}
-
-	function ctxFrameset(node, e) {
-		// if a menu is already open remove that one
-		var menu = document.getElementById("contextmenu");
-		if (menu) menu.remove();
-
-		// create the context
-		menu = document.createElement("DIV");
-		menu.id = "contextmenu";
-		menu.style.left = e.pageX;
-		menu.style.top = e.pageY;
-
-		var btn;
-
-		// MAKE A COPY
-		btn = document.createElement("DIV");
-		btn.innerHTML = "Make a Copy";
-		btn.className = "item";
-		btn.onclick = function() {
-			copyFile(node);
-		}
-		menu.appendChild(btn);
-
-		// =======
-
-		// RENAME
-		btn = document.createElement("DIV");
-		btn.innerHTML = "Rename";
-		btn.className = "item";
-		btn.onclick = function(e) {
-			//console.log(node);
-			beginRenameFramesetNode(node, false);
-		}
-		menu.appendChild(btn);
-
-		// DELETE
-		btn = document.createElement("DIV");
-		btn.className = "item";
-		btn.innerHTML = "Delete";
-		btn.onclick = function() {
-			deleteProjectNode(node);
-		}
-		menu.appendChild(btn);
-
-		document.body.appendChild(menu);
-	}
-
-	function beginRenameFramesetNode(node, isNew) {
-		var oldname = node.innerHTML;
-		var oldframeset = atlasData.framesets[oldname];
-		var oldonclick = node.onclick;
-		node.onclick = null;
-		node.draggable = false;
-		node.setAttribute("contenteditable", true);
-		node.focus();
-		ASTRAL.setEndOfContenteditable(node);
-		node.addEventListener("keydown", function(e) {
-			if (e.which == 13) {
-				e.preventDefault();
-				node.blur();
-			}
-		});
-		node.addEventListener("blur", function() {
-			doneRenaming();
-		});
-		function doneRenaming() {
-			var newname = node.innerHTML;
-			node.onclick = oldonclick;
-			node.draggable = true;
-			node.id = newname;
-			delete atlasData.framesets[oldname];
-			atlasData.framesets[newname] = oldframeset;
-			node.setAttribute("contenteditable", false);
-			selectFrameset(newname);
-			//selectFrameset(selectedFrameset);
-		}
-	}
-
-	function selectFrameset(name) {
-		clearNodeSelection();
-
-		selectedFrameset = name; //atlasData.framesets[name];
-		selectedNode = document.getElementById(name);
-		highlightNode(selectedNode);
-
-		var selectedFramesetValue = atlasData.framesets[selectedFrameset];
-		var spl = selectedFramesetValue.split(",");
-		spl.forEach(function(frameid) {
-			console.log(frameid);
-			var selectedFrameNode = document.getElementById("frameid" + frameid);
-			highlightNode(selectedFrameNode);
-		});
-	}
-
-	function clearNodeSelection() {
-		var selectedNodes = document.querySelectorAll(".frame.selected, .frameset.selected");
-		console.log(selectedNodes);
-		selectedNodes.forEach(function(node) {
-			console.log(node);
-			node.classList.remove("selected");
-		});
-	}
-
-	function uniqueFramesetName() {
-		var c = 1;
-		var name = "frameset";
-		do {
-			name = "frameset" + c;
-			c++;
-		} while(atlasData.framesets[name]);
-		return name;
-	}
-
-	function addToFrameset() {
-		// add the selected area as frames to the current frameset
-		//var frames = getFrames();
-		var frames = "";
-		addFrames(function(frameid) {
-			if (frames != "") {
-				frames += ",";
-			}
-			frames += frameid;
-		});
-		//console.log("ADDTOFRAMESET", frames, selectedFrameset);
-		atlasData.framesets[selectedFrameset] += "," + frames;
-
-		selectFrameset(selectedFrameset);
-
-		// frames = 2 (correct)
-		// we want to add frames string to selectedFrameset string
-
-		// frames.forEach(function(frame) {
-		// 	// add frame to selected frameset
-		// 	console.log("ADDTOFRAMESET", frames, frame, selectedFrameset);
-		// });
-	}
 
 	function highlightNode(node) {
 		// // set the selected class on the frameset button
@@ -795,74 +857,6 @@ ASTRAL.spriter = (function() {
 
 	function loadSpriteSheet() {
 		console.log("todo load sprite sheet");
-	}
-
-	function startSelect(offsetX, offsetY) {
-		// fires on mousedown
-		selecting = true; // we need to track this so that endSelect doesnt fire on every mouseup, only if we were selecting to begin with
-		selectedAreaInput.innerHTML = "none";
-		selectedArea = {};
-		var ox = offsetX;// - padding;
-		var oy = offsetY;// - padding;
-		if (ox < 0) ox = 0;
-		if (oy < 0) oy = 0;
-		if (ox > img.width) ox = img.width;
-		if (oy > img.height) oy = img.height;
-		if (snapToGrid == true) {
-			var gridx = parseInt(document.getElementById("gridx").innerHTML);
-			var gridy = parseInt(document.getElementById("gridy").innerHTML);
-			ox = parseInt(ox / gridx) * gridx;
-			oy = parseInt(oy / gridy) * gridy;
-		}
-		rect.left = ox; //e.offsetX * (img.width / spriterDiv.offsetWidth);
-		rect.top = oy; //e.offsetY * (img.height / spriterDiv.offsetHeight);
-		rect.width = 0;
-		rect.height = 0;
-		// 0.5 offset explained here: https://stackoverflow.com/questions/23612000/why-is-my-strokestyle-transparent
-	}
-
-	function adjustSelect(offsetX, offsetY) {
-		// fires on mousedown + mousemove (drag)
-		selectedAreaInput.innerHTML = rect.left + ", " + rect.top + ", " + rect.width + ", " + rect.height;
-		var ox = offsetX;// - padding;
-		var oy = offsetY;// - padding;
-		if (ox < 0) ox = 0;
-		if (oy < 0) oy = 0;
-		if (ox > img.width) ox = img.width;
-		if (oy > img.height) oy = img.height;
-		ox = ox - rect.left;
-		oy = oy - rect.top;
-		if (snapToGrid == true) {
-			var gridx = parseInt(document.getElementById("gridx").innerHTML);
-			var gridy = parseInt(document.getElementById("gridy").innerHTML);
-			// ox = parseInt(ox / gridx) * gridx;
-			// oy = parseInt(oy / gridy) * gridy;
-			ox = gridx + parseInt(ox / gridx) * gridx;
-			oy = gridy + parseInt(oy / gridy) * gridy;
-		}
-		rect.width = ox;// - padding; //e.offsetX * (img.width / spriterDiv.offsetWidth) - rect.left;
-		rect.height = oy;// - padding; //e.offsetY * (img.height / spriterDiv.offsetHeight) - rect.top;
-		// 0.5 offset explained here: https://stackoverflow.com/questions/23612000/why-is-my-strokestyle-transparent
-	}
-
-	function endSelect() {
-		// fires on mouseup
-		if (selecting == true) {
-			selecting = false;
-			selectedArea = JSON.parse(JSON.stringify(rect));
-			rect = {};
-			applySelectionToFrameset();
-		}
-	}
-
-	function createSelect(x, y, w, h) {
-		// creates a selection, fires when clicking a frameset node
-		selecting = true;
-		rect.left = x;
-		rect.top = y;
-		rect.width = w;
-		rect.height = h;
-		endSelect();
 	}
 
 	var marchOffset = 0;
@@ -959,160 +953,58 @@ ASTRAL.spriter = (function() {
 		var cellw = 0;
 		var cellh = 0;
 
-		// draw frame indexes for area being selected
-		c = 1;
+		// SELECTING AREA (RED)
 		r = rect;
 		color1 = "rgba(255,0,0, 0.7)";
 		color2 = "rgba(220,0,0, 0.7)";
-		cellw = rect.width / cols;
-		cellh = rect.height / rows;
+		cellw = r.width / cols;
+		cellh = r.height / rows;
 		for (var y = 0; y < rows; y++) {
 			for (var x = 0; x < cols; x++) {
-				// ctx.beginPath();
-				// ctx.strokeStyle = "black";
-				// ctx.moveTo(rect.left + x * cellw, rect.top + y * cellh);
-				// ctx.lineTo(rect.left + x * cellw, rect.top + y * cellh + cellh);
-				// ctx.stroke();
-
-				// ctx.fillText(c, rect.left + x * cellw, rect.top + y * cellh + 12);
-				// c++;
-
-				// alternate the color to create a checkerboard pattern for the selection overlay
-				// there is a special case where a 2x2 doesnt checker so we handle it explicitly
-				if (color == color1) {
-					color = color2;
-				}
-				else {
-					color = color1;
-				}
-				if (rows == 2 && cols == 2 && y == 1 && x == 0) {
-					color = color2;
-				}
-				ctx.fillStyle = color;
-
-				// now draw the selection overlay
+				ctx.fillStyle = color1;
 				var l = r.left + x * cellw;
 				var t = r.top + y * cellh;
 				ctx.fillRect(l, t, cellw, cellh);
-
-				// now draw the frame index
-				//ctx.fillStyle = "black";
-				//ctx.fillText(c, r.left + x * cellw, r.top + y * cellh + 12);
-				c++;
 			}
 		}
 
-		// draw frame indexes for selected area
-		c = 1;
+		// SELECTED AREA (RED)
 		r = selectedArea;
+		color1 = "rgba(255,0,0, 0.7)";
+		color2 = "rgba(220,0,0, 0.7)";
+		cellw = r.width / cols;
+		cellh = r.height / rows;
+		for (var y = 0; y < rows; y++) {
+			for (var x = 0; x < cols; x++) {
+				ctx.fillStyle = color1;
+				var l = r.left + x * cellw;
+				var t = r.top + y * cellh;
+				ctx.fillRect(l, t, cellw, cellh);
+			}
+		}
+
+		// SELECTED FRAMESET (YELLOW)
 		color1 = "rgba(255,255,0, 0.7)";
 		color2 = "rgba(220,220,0, 0.7)";
-		cellw = selectedArea.width / cols;
-		cellh = selectedArea.height / rows;
-		for (var y = 0; y < rows; y++) {
-			for (var x = 0; x < cols; x++) {
-
-				// ctx.beginPath();
-				// ctx.strokeStyle = "black";
-				// ctx.moveTo(selectedArea.left + x * cellw, selectedArea.top + y * cellh);
-				// ctx.lineTo(selectedArea.left + x * cellw, selectedArea.top + y * cellh + cellh);
-				// ctx.stroke();
-
-				// ctx.fillText(c, selectedArea.left + x * cellw, selectedArea.top + y * cellh + 12);
-				// c++;
-
-				// alternate the color to create a checkerboard pattern for the selection overlay
-				// there is a special case where a 2x2 doesnt checker so we handle it explicitly
-				// TODO: actually it does this whenever cols is 2, rows can be any value
-				if (color == color1) {
-					color = color2;
-				}
-				else {
-					color = color1;
-				}
-				
-				// if (rows == 2 && cols == 2 && y == 1 && x == 0) {
-				// 	color = color2;
-				// }
-				if (isEven(cols) && x == 0) {
-					if (color == color1) {
-					color = color2;
-					}
-					else {
-						color = color1;
-					}
-				}
-				ctx.fillStyle = color;
-
-				// now draw the selection overlay
-				var l = r.left + x * cellw;
-				var t = r.top + y * cellh;
-				ctx.fillRect(l, t, cellw, cellh);
-
-				// now draw the frame index
-				//ctx.fillStyle = "black";
-				//ctx.fillText(c, r.left + x * cellw, r.top + y * cellh + 12);
-				c++;
+		if (selectedFrameset) {
+			var spl = atlasData.framesets[selectedFrameset].split(",");
+			for (var i = 0; i < spl.length; i++) {
+				var frameid = spl[i];
+				var frame = atlasData.frames[frameid];
+				var coords = frame.split(",");
+				ctx.fillStyle = color1;
+				var l = coords[0];
+				var t = coords[1];
+				var w = coords[2];
+				var h = coords[3];
+				console.log(l, t, w, h);
+				//ctx.fillRect(l, t, cellw, cellh);
+				//ctx.fillRect(l, t, r.width, r.height);
+				ctx.fillRect(l, t, w, h);
 			}
 		}
 
-		// // draw row divisions for selecting rect
-		// var rows = rowsInput.innerHTML;
-		// if (rows != "") {
-		// 	for (var i = 1; i < rows; i++) {
-		// 		ctx.beginPath();
-		// 		ctx.strokeStyle = "red";
-		// 		ctx.moveTo(rect.left + 0.5, rect.top + (rect.height / rows) * i);
-		// 		ctx.lineTo(rect.left + 0.5 + rect.width,rect.top + (rect.height / rows) * i);
-		// 		ctx.stroke();
-		// 	}
-		// }
-
-		// // draw col divisions for selecting rect
-		// var cols = colsInput.innerHTML;
-		// if (cols != "") {
-		// 	for (var i = 1; i < cols; i++) {
-		// 		ctx.beginPath();
-		// 		ctx.strokeStyle = "red";
-		// 		ctx.moveTo(rect.left + 0.5 + (rect.width / cols) * i, rect.top);
-		// 		ctx.lineTo(rect.left + 0.5 + (rect.width / cols) * i, rect.top + rect.height);
-		// 		ctx.stroke();
-		// 	}
-		// }
-
-		// // draw row divisions for selectedArea rect
-		// var rows = rowsInput.innerHTML;
-		// if (rows != "") {
-		// 	for (var i = 1; i < rows; i++) {
-		// 		ctx.beginPath();
-		// 		ctx.strokeStyle = "blue";
-		// 		ctx.moveTo(selectedArea.left + 0.5, selectedArea.top + (selectedArea.height / rows) * i);
-		// 		ctx.lineTo(selectedArea.left + 0.5 + selectedArea.width, selectedArea.top + (selectedArea.height / rows) * i);
-		// 		ctx.stroke();
-		// 	}
-		// }
-
-		// // draw col divisions for selectedArea rect
-		// var cols = colsInput.innerHTML;
-		// if (cols != "") {
-		// 	for (var i = 1; i < cols; i++) {
-		// 		ctx.beginPath();
-		// 		ctx.strokeStyle = "blue";
-		// 		ctx.moveTo(selectedArea.left + 0.5 + (selectedArea.width / cols) * i, selectedArea.top);
-		// 		ctx.lineTo(selectedArea.left + 0.5 + (selectedArea.width / cols) * i, selectedArea.top + selectedArea.height);
-		// 		ctx.stroke();
-		// 	}
-		// }
-
 		ctx.closePath();
-
-		// draw the selection rect coords/size
-		// ctx.font = "12px Courier";
-		// ctx.fillStyle = "white";
-		// ctx.fillText((rect.left) + ", " + (rect.top), rect.left, rect.top - 4);
-		// ctx.fillText((rect.left + rect.width) + ", " + (rect.top + rect.height), rect.left + rect.width + 2, rect.top + rect.height);
-		// ctx.fillText("w " + rect.width, rect.left + rect.width / 2, rect.top + 14);
-		// ctx.fillText("h " + rect.height, rect.left + 10, rect.top + rect.height / 2);
 
 		// show the selected frames in the PREVIEW panel
 		var previewctx = previewCanvas.getContext("2d");
@@ -1133,6 +1025,20 @@ ASTRAL.spriter = (function() {
 
 	function isOdd(num) {
 		return num & 1;
+	}
+
+
+
+	function populateInspectorPanel() {
+		// populates the INSPECTOR panel with the selected frameset's props, occurs after user 
+		//	clicks a frameset in the ATLAS panel
+		var frameset = selectedFrameset;
+		nameInput.innerHTML = frameset.name;
+		rowsInput.innerHTML = frameset.rows;
+		colsInput.innerHTML = frameset.cols;
+		selectedAreaInput.innerHTML = frameset.x + ", " + frameset.y + ", " + frameset.width + ", " + frameset.height;
+		createSelect(frameset.x, frameset.y, frameset.width, frameset.height);
+		highlightNode(selectedNode);
 	}
 
 ///////////////////////////////////////
@@ -1167,6 +1073,25 @@ ASTRAL.spriter = (function() {
 
 		if (type.indexOf("input") != -1) {
 			el.contentEditable = true;
+		}
+		else if (type.indexOf("dropdown") != -1) {
+			el.innerHTML = "";
+			var dd = document.createElement("SELECT");
+			el.id = "";
+			dd.id = id;
+			// dd.onchange = function() {
+			// 	console.log("ONCHANGE");
+			// 	click();
+			// }
+			var spl = value.split(",");
+			for (var i = 0; i < spl.length; i++) {
+				var val = spl[i];
+				var opt = document.createElement("OPTION");
+				opt.innerHTML = val;
+				opt.value = val;
+				dd.appendChild(opt);
+			}
+			el.appendChild(dd);
 		}
 		if (label) {
 			var lbl = document.createElement("DIV");

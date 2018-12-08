@@ -884,6 +884,7 @@ ASTRAL.editor = (function() {
 			// plain Click should handle the file in Astral
 			//var relpath = path.replace(homePath, "");
 			path = path.toLowerCase();
+			// TODO: use getFileInfo() here for better handling and accuracy
 			if (path.includes(".png") || path.includes(".jpg")) {
 				ASTRAL.spriter.activate(path);
 			}
@@ -894,23 +895,12 @@ ASTRAL.editor = (function() {
 				ASTRAL.loadScene(path);
 			}
 			else if (path.includes("atlas")) {
-
+				ASTRAL.spriter.activate(path);
 			}
 			else if (path.includes("prefab")) {
 
 			}
 		}
-	}
-
-	function imageComponent(path) {
-		// we have this function because the image component is not a .js file on disk its just
-		//	created dynamically here if/when used
-		// TODO: im not sure this belongs in editor.js
-		ASTRAL.loadImage(path);
-		var component = {};
-		component.type = "image";
-		component.path = path;
-		return component;
 	}
 
 ///////////////////////////////////////
@@ -1040,19 +1030,18 @@ ASTRAL.editor = (function() {
 	}
 
 	function addComponentToGameObject(obj, path) {
+		console.log("adding " + path + " to gameobject " + obj.name);
+		
 		// adds an instance of a component.js to a gameobject
 		var fi = ASTRAL.getFileInfo(path);
 		var componentDiv;
-		var componentBase = ASTRAL.components[fi.nameNoExt];
-		// TODO: sometimes the component doesn't have instance() (like when adding a png to an object
-		//	by dragging it onto the inspector titlebar) so this fails
-		//var component = componentBase.instance();
-
+		//var componentBase = ASTRAL.components[fi.nameNoExt];
+		var componentBase = ASTRAL.components[fi.ext];
 		var component;
 
 		// check if componentBase is set which will tell us if the component is a .js file or img
 		if (componentBase) {
-			// the component.js file is already loaded, create an instance for the object to use
+			// the component js file is already loaded, create an instance for the object to use
 			if (componentBase.instance) {
 				component = componentBase.instance();
 			}
@@ -1061,31 +1050,20 @@ ASTRAL.editor = (function() {
 			}
 		}
 		else {
-			// the component isn't already loaded, this currently only happens if an image file 
+			// component not loaded/registered, this currently only happens if an image file 
 			//	was dropped, so we create the component dynamically instead of from file
 			if (fi.type = "image") {
 				ASTRAL.loadImage(path, function(img) {
-					//console.log(img);
-					// TODO: we shouldn't center the image like this, instead modify the origin
-					//	for objects to be in the center by default...if we do that here what 
-					//	happens is the object gets put in the inspector before the image finishes
-					//	loading and the callback fires to center the image, so the centering does
-					//	work, but clicking anywhere causes a blur() on the inspector which forces
-					//	the obj.x and obj.y back to the previous values
-					//obj.x -= img.width / 2;
-					//obj.y -= img.height / 2;
 					obj.baseWidth = img.width;
 					obj.baseHeight = img.height;
 					obj.width = obj.baseWidth * obj.scale;
 					obj.height = obj.baseHeight * obj.scale;
-					// TODO: i redacted this because i dont think it does anything (wtf is objectButton?) and it was tripping out when i added use strict
-					//objectButton.click(); // TODO: this is some magic...is var objectButton being hoisted?
 				});
-				component = imageComponent(path);
+				var component = {};
+				component.type = "image";
+				component.path = path;
 			}
 		}
-
-		//console.log("OBJ", obj);
 
 		obj.components.push(component);
 		componentDiv = ctlComponent(component, obj);

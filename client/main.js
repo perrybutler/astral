@@ -12,13 +12,7 @@ ASTRAL.game.main = (function() {
 		// });
 	}
 
-	function startGame() {
-		ASTRAL.playSound("assets/sounds/Breaker-1.mp3");
-		ASTRAL.loadScene("assets/level1.scene");
-	}
-
 	return {
-		init:init,
-		startGame:startGame
+		init:init
 	}
 }());
