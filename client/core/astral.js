@@ -380,11 +380,12 @@ var ASTRAL = (function() {
 					if (!img) img = imgMissing;
 					drawImage(img, obj, ctx);
 				}
-				else if (component.type == "atlas") {
-					img = images[component.path];
-					if (!img) img = imgMissing;
-					drawImage(img, obj, ctx);
-				}
+				// else if (component.type == "atlas") {
+				// 	img = images[component.path];
+				// 	console.log("ATLAS", images, component.path);
+				// 	if (!img) img = imgMissing;
+				// 	drawImage(img, obj, ctx);
+				// }
 				else {
 					var componentBase = components[component.type];
 					if (componentBase && componentBase.update) componentBase.update(obj, ctx, component);

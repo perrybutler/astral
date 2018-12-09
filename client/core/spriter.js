@@ -233,6 +233,7 @@ ASTRAL.spriter = (function() {
 
 		var fi = ASTRAL.getFileInfo(filename);
 		if (fi.ext == "atlas") {
+			// if its an atlas, load it and the image too
 			ASTRAL.loadJson(filename, function(strdata) {
 				var data = JSON.parse(strdata);
 				// load the atlas image
@@ -262,6 +263,7 @@ ASTRAL.spriter = (function() {
 			});
 		}
 		else if (fi.type == "image") {
+			// if its an image load it
 			ASTRAL.loadImage(filename, function() {
 				// set the current image
 				img = ASTRAL.images[filename];

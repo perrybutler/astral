@@ -855,19 +855,61 @@ ASTRAL.editor = (function() {
 	}
 
 	function addProjectFileToScene(path, mouseevent) {
-		// this handles dragging an asset from the PROJECT panel into the scene/canvas
-		// create the gameobject and set its position at the mouse position
-		console.log("creating object from project file:", path);
+		// // gets called when a file is dropped on the game canvas
+		// // create the gameobject and set its position at the mouse position
+		// console.log("creating object from project file:", path);
+		// var fi = ASTRAL.getFileInfo(path);
+		// var obj = ASTRAL.createObject(null, fi.nameNoExt); // this triggers addGameObjectToScenePanel()
+		// var cw = gameCanvas.width;
+		// var ch = gameCanvas.height;
+		// var rx = cw / window.innerWidth;
+		// var ry = ch / window.innerHeight;
+		// obj.x = mouseevent.pageX * rx;
+		// obj.y = mouseevent.pageY * ry;
+		// // TODO: we don't always want to call addComponentToGameObject() since the file might not be
+		// //	 component...
+		// addComponentToGameObject(obj, path);
+		// populateInspectorPanel(obj);
+
+
+		// gets called when a file is dropped on the game canvas
 		var fi = ASTRAL.getFileInfo(path);
-		var obj = ASTRAL.createObject(null, fi.nameNoExt); // this triggers addGameObjectToScenePanel()
+
+		if (fi.ext == "scene") {
+
+		}
+		else {
+			// create the gameobject and set its position at the mouse position
+			console.log("creating object from file ", path);
+			
+			var obj = ASTRAL.createObject(null, fi.nameNoExt); // this triggers addGameObjectToScenePanel()
+			obj.x = mouseevent.pageX * getScaleX();
+			obj.y = mouseevent.pageY * getScaleY();
+
+			addComponentToGameObject(obj, path);
+			
+			if (fi.ext == "atlas") {
+				// load the atlas data
+				// load the image
+				// populate component props
+			}
+
+			populateInspectorPanel(obj);
+		}
+
+
+	}
+
+	function getScaleX() {
 		var cw = gameCanvas.width;
-		var ch = gameCanvas.height;
 		var rx = cw / window.innerWidth;
+		return rx;
+	}
+
+	function getScaleY() {
+		var ch = gameCanvas.height;
 		var ry = ch / window.innerHeight;
-		obj.x = mouseevent.pageX * rx;
-		obj.y = mouseevent.pageY * ry;
-		addComponentToGameObject(obj, path);
-		populateInspectorPanel(obj);
+		return ry;
 	}
 
 	function openProjectFile(event, path) {
@@ -1037,13 +1079,22 @@ ASTRAL.editor = (function() {
 		var componentDiv;
 		//var componentBase = ASTRAL.components[fi.nameNoExt];
 		var componentBase = ASTRAL.components[fi.ext];
-		var component;
+		var component; // the instance
 
 		// check if componentBase is set which will tell us if the component is a .js file or img
 		if (componentBase) {
 			// the component js file is already loaded, create an instance for the object to use
 			if (componentBase.instance) {
 				component = componentBase.instance();
+				if (fi.ext == "atlas") {
+					ASTRAL.loadJson(path, function(strdata) {
+						var data = JSON.parse(strdata);
+						component.path = data.image;
+						component.runtime.frames = data.frames;
+						component.runtime.framesets = data.framesets;
+						component.frameset = Object.keys(data.framesets)[0];
+					});
+				}
 			}
 			else {
 				console.log("WARNING: componentBase had no instance method, therefore the component is void");
@@ -1052,7 +1103,7 @@ ASTRAL.editor = (function() {
 		else {
 			// component not loaded/registered, this currently only happens if an image file 
 			//	was dropped, so we create the component dynamically instead of from file
-			if (fi.type = "image") {
+			if (fi.type == "image") {
 				ASTRAL.loadImage(path, function(img) {
 					obj.baseWidth = img.width;
 					obj.baseHeight = img.height;
