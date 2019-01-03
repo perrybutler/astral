@@ -8,7 +8,7 @@ ASTRAL.netcode = new function() {
 	var connection;
 	var onHandlers = [];
 	var receiveQueue = [];
-	var sendQueue = [];
+	//var sendQueue = [];
 	var totalIn = 0;
 	var totalOut = 0;
 	var totalMessages = 0;
@@ -50,7 +50,8 @@ ASTRAL.netcode = new function() {
 			document.body.classList.add("connected");
 			doHandler("connect"); // notify listeners of the event
 			pingTime = Date.parse(new Date().toUTCString());
-			queueSend("*keepalive,ping?," + pingTime);
+			//queueSend("*keepalive,ping?," + pingTime);
+			sendNow("*keepalive,ping?," + pingTime);
 		}
 
 		connection.onerror = function(error) {
@@ -63,13 +64,38 @@ ASTRAL.netcode = new function() {
 		}
 	}
 
-	function sendNow(payload) {
+	// function sendNow(payload) {
+	// 	doHandler("beforesend");
+	// 	totalOut++;
+	// 	totalMessages++;
+	// 	var msg = JSON.stringify(payload);
+	// 	console.log("<-", msg);
+	// 	if (connection) {
+	// 		connection.send(msg);
+	// 		doHandler("aftersend");
+	// 	}
+	// 	else {
+	// 		console.log("failed to send message to server because connection is not established");
+	// 	}
+	// }
+
+	function sendMsg(msg, data) {
+		// sends data to the server in one of two ways
+		//  if only msg is present, server will treat msg as the command and payload
+		//  if both msg and data are present, server will treat msg as the command and data as the payload
+		//	the first method is more compact, reducing network traffic
+		//  the second method is more flexible, usually used when saving big data to disk
+		var str = msg + "***" + JSON.stringify(data);
+		sendNow(str);
+	}
+
+	function sendNow(str) {
 		doHandler("beforesend");
 		totalOut++;
 		totalMessages++;
-		console.log("<-", payload);
+		console.log("<-", str);
 		if (connection) {
-			connection.send(JSON.stringify(payload));
+			connection.send(str);
 			doHandler("aftersend");
 		}
 		else {
@@ -97,20 +123,20 @@ ASTRAL.netcode = new function() {
 		}
 	}
 
-	function queueSend(payload) {
-		sendQueue.push(payload);
-	}
+	// function queueSend(payload) {
+	// 	sendQueue.push(payload);
+	// }
 
-	function handleSendQueue() {
-		if (sendQueue.length > 0) {
-			console.log("sending " + sendQueue.length + " message(s)");
-			sendQueue.forEach(function(payload) {
-				sendNow(payload);
-			});
-			// clear the queue
-			sendQueue = [];
-		}
-	}
+	// function handleSendQueue() {
+	// 	if (sendQueue.length > 0) {
+	// 		console.log("sending " + sendQueue.length + " message(s)");
+	// 		sendQueue.forEach(function(str) {
+	// 			sendNow(str);
+	// 		});
+	// 		// clear the queue
+	// 		sendQueue = [];
+	// 	}
+	// }
 
 	function handleServerMessage(payload) {
 		console.log("handling", payload);
@@ -137,8 +163,8 @@ ASTRAL.netcode = new function() {
 	this.receive = receive;
 	this.getNetcodeInfo = getNetcodeInfo;
 	this.handleReceiveQueue = handleReceiveQueue;
-	this.queueSend = queueSend;
-	this.handleSendQueue = handleSendQueue;
+	//this.queueSend = queueSend;
+	//this.handleSendQueue = handleSendQueue;
 	this.on = onHandler;
 	this.do = doHandler;
 }

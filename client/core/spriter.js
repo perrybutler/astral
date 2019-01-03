@@ -999,7 +999,7 @@ ASTRAL.spriter = (function() {
 				var t = coords[1];
 				var w = coords[2];
 				var h = coords[3];
-				console.log(l, t, w, h);
+				//console.log(l, t, w, h);
 				//ctx.fillRect(l, t, cellw, cellh);
 				//ctx.fillRect(l, t, r.width, r.height);
 				ctx.fillRect(l, t, w, h);

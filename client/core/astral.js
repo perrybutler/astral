@@ -258,7 +258,7 @@ var ASTRAL = (function() {
 		input();
 		// handle messages to the server
 		// TODO: fix tight coupling (see note in Docs)...maybe fire an ASTRAL.do("afterinput") so other modules can hook in
-		if (ASTRAL.netcode) ASTRAL.netcode.handleSendQueue();
+		//if (ASTRAL.netcode) ASTRAL.netcode.handleSendQueue();
 		// update the objects by incrementing their state
 		for (var key in sceneData) {
 			updateObject(sceneData[key]);
@@ -380,12 +380,6 @@ var ASTRAL = (function() {
 					if (!img) img = imgMissing;
 					drawImage(img, obj, ctx);
 				}
-				// else if (component.type == "atlas") {
-				// 	img = images[component.path];
-				// 	console.log("ATLAS", images, component.path);
-				// 	if (!img) img = imgMissing;
-				// 	drawImage(img, obj, ctx);
-				// }
 				else {
 					var componentBase = components[component.type];
 					if (componentBase && componentBase.update) componentBase.update(obj, ctx, component);
@@ -462,6 +456,7 @@ var ASTRAL = (function() {
 					}
 					ctx.setLineDash([4, 2]);
 					ctx.lineDashOffset = -marchOffset;
+					ctx.strokeStyle = "yellow";
 				}
 				if (obj.isMouseOver == true) {
 					ctx.strokeStyle = "white";
@@ -710,11 +705,20 @@ var ASTRAL = (function() {
 		level = 1;
 	}
 
+	// TODO: createObject can be used in different ways
+	//	1) data is null, create a new empty object
+	//	2) data is object data, create object using this data
+	//	3) data is object data with no object id, create object using this data and assign new id
 	function createObject(data, name) {
+		console.log("createObject ::", data, name);
 		// create the object empty or using the data passed in
 		var obj;
 		if (data) {
 			obj = data;
+			if (!obj.id) {
+				obj.id = Date.parse(new Date().toUTCString());
+				ASTRAL.sceneData.push(obj);
+			}
 		}
 		else {
 			obj = {};
@@ -732,7 +736,7 @@ var ASTRAL = (function() {
 		if (!obj.rot) obj.rot = 0;
 		if (!obj.scale) obj.scale = 1;
 		if (!obj.speed) obj.speed = 0.088;
-		console.log("OBJ", obj);
+		//console.log("OBJ", obj);
 		obj.channels = [];
 		// observer
 		obj.onHandlers = [];

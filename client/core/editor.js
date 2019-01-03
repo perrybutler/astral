@@ -33,14 +33,14 @@ ASTRAL.editor = (function() {
 	var folderButton;
 	var fileButton;
 
-	var homePath = "../client/assets";
+	var homePath = "assets"; //"../client/assets";
 	var currentPath;
 
 	//var sceneData;
 	var inspectedObject;
 
 	var drawObjectName = true;
-	var drawObjectId = true;
+	var drawObjectId = false;
 	var drawObjectPos = false;
 	var drawObjectSize = false;
 	var drawObjectRot = false;
@@ -123,7 +123,7 @@ ASTRAL.editor = (function() {
 		var thing = ctl("button buttonicon message", "network", "netcodestuff", "netcodestuff", diagnosticsSection, null);
 		var thing = ctl("button buttonicon message", "memory", "memorystuff", "memorystuff", diagnosticsSection, null);
 		var thing = ctl("button pill toggle on", "draw object info", "name", null, diagnosticsSection, function() {toggleDrawObjectName()});
-		var thing = ctl("button pill toggle on", "", "id", null, diagnosticsSection, function() {toggleDrawObjectId()});
+		var thing = ctl("button pill toggle", "", "id", null, diagnosticsSection, function() {toggleDrawObjectId()});
 		var thing = ctl("button pill toggle", "", "pos", null, diagnosticsSection, function() {toggleDrawObjectPos()});
 		var thing = ctl("button pill toggle", "", "size", null, diagnosticsSection, function() {toggleDrawObjectSize()});
 		var thing = ctl("button pill toggle", "", "rot", null, diagnosticsSection, function() {toggleDrawObjectRot()});
@@ -205,7 +205,7 @@ ASTRAL.editor = (function() {
 		connectionSection.innerHTML = "Establish a connection to the server to use this feature, or use Windows Explorer as an alternative.";
 		projectSection = ctlSection("", "projectSection", "", projectPanel);
 		projectSection.classList.add("connectionreq");
-		homeButton = ctl("button icon home", null, "", null, projectSection, function() {getDir("../client/assets")});
+		homeButton = ctl("button icon home", null, "", null, projectSection, function() {getDir()});
 		homeButton.dataset.tip = "Return to the root assets folder";
 		upButton = ctl("button icon moveup", null, "", null, projectSection, function() {});
 		upButton.dataset.tip = "Go back to the previous folder";
@@ -242,7 +242,8 @@ ASTRAL.editor = (function() {
 			var el = document.getElementById(data);
 			console.log("drop event: " + el.id + " -> " + event.target.id);
 
-			var path = el.id.replace("../client/", "");
+			//var path = el.id.replace("../client/", "");
+			var path = homePath + el.id;
 			console.log("adding file to scene: " + path);
 			// TODO: now add a GameObject to the objects array/scene
 			//var obj = ASTRAL.createGameObject(Date.parse(new Date().toUTCString()), null, "zone1");
@@ -257,7 +258,7 @@ ASTRAL.editor = (function() {
 				// 	el.display = "block";
 				// });
 				//console.log("GETDIR");
-				getDir("../client/assets");
+				getDir();
 			});
 
 			ASTRAL.netcode.on("close", function() {
@@ -636,6 +637,9 @@ ASTRAL.editor = (function() {
 	function copyFile(node) {
 		var path = currentPath + "/" + node.innerHTML;
 		ASTRAL.netcode.sendNow("*copyfile," + path);
+		// TODO: instead of hard coupled to netcode here, we could implement an ASTRAL.copyFile
+		//	method which just sends a message to any listeners, and we can setup netcode as a 
+		//	listener in netcode.js e.g. ASTRAL.on("sendNow", function() {})
 	}
 
 	function copyObject(obj) {
@@ -645,6 +649,14 @@ ASTRAL.editor = (function() {
 		newobj.id = Date.parse(new Date().toUTCString());
 		ASTRAL.sceneData.push(newobj);
 		ASTRAL.do("objectcreated", newobj);
+	}
+
+	function makePrefab(obj) {
+		// save obj as data to file
+		var clone = JSON.parse(JSON.stringify(obj));
+		delete clone.id;
+		var data = JSON.stringify(clone);
+		ASTRAL.netcode.sendNow("*makeprefab," + obj.name + "," + data);
 	}
 
 	function deleteObject(node) {
@@ -711,6 +723,14 @@ ASTRAL.editor = (function() {
 		btn.className = "item";
 		btn.onclick = function() {
 			copyObject(obj);
+		}
+		menu.appendChild(btn);
+
+		btn = document.createElement("DIV");
+		btn.innerHTML = "Make a Prefab";
+		btn.className = "item";
+		btn.onclick = function() {
+			makePrefab(obj);
 		}
 		menu.appendChild(btn);
 
@@ -818,6 +838,7 @@ ASTRAL.editor = (function() {
 	}
 
 	function addGameObjectToScenePanel(obj) {
+		console.log("addGameObjectToScenePanel ::", obj);
 		// this normally gets called via ASTRAL.do("objectloaded") when a gameobject is created 
 		//	so it can be added to the SCENE panel
 		var level = 1;
@@ -837,7 +858,7 @@ ASTRAL.editor = (function() {
 		});
 		// visual feedback
 		flashDomElement(node);
-		console.log("created node for object:", obj);
+		//console.log("created ui node for gameobject '" + obj.name + "'", obj);
 	}
 
 	function deleteGameObjectFromScenePanel(obj) {
@@ -855,48 +876,98 @@ ASTRAL.editor = (function() {
 	}
 
 	function addProjectFileToScene(path, mouseevent) {
-		// // gets called when a file is dropped on the game canvas
-		// // create the gameobject and set its position at the mouse position
-		// console.log("creating object from project file:", path);
-		// var fi = ASTRAL.getFileInfo(path);
-		// var obj = ASTRAL.createObject(null, fi.nameNoExt); // this triggers addGameObjectToScenePanel()
-		// var cw = gameCanvas.width;
-		// var ch = gameCanvas.height;
-		// var rx = cw / window.innerWidth;
-		// var ry = ch / window.innerHeight;
-		// obj.x = mouseevent.pageX * rx;
-		// obj.y = mouseevent.pageY * ry;
-		// // TODO: we don't always want to call addComponentToGameObject() since the file might not be
-		// //	 component...
-		// addComponentToGameObject(obj, path);
-		// populateInspectorPanel(obj);
-
-
 		// gets called when a file is dropped on the game canvas
 		var fi = ASTRAL.getFileInfo(path);
-
 		if (fi.ext == "scene") {
-
+			// prompt user to merge dropped scene with existing scene
 		}
 		else {
 			// create the gameobject and set its position at the mouse position
 			console.log("creating object from file ", path);
-			
-			var obj = ASTRAL.createObject(null, fi.nameNoExt); // this triggers addGameObjectToScenePanel()
-			obj.x = mouseevent.pageX * getScaleX();
-			obj.y = mouseevent.pageY * getScaleY();
 
-			addComponentToGameObject(obj, path);
-			
-			if (fi.ext == "atlas") {
-				// load the atlas data
-				// load the image
-				// populate component props
+			var obj;
+
+			if (fi.ext == "prefab") {
+				ASTRAL.loadJson(path, function(strdata) {
+					var prefab = JSON.parse(strdata);
+					obj = ASTRAL.createObject(prefab, fi.nameNoExt); // this triggers addGameObjectToScenePanel()
+					obj.x = mouseevent.pageX * getScaleX();
+					obj.y = mouseevent.pageY * getScaleY();
+					populateInspectorPanel(obj);
+				});
+			}
+			else {
+				obj = ASTRAL.createObject(null, fi.nameNoExt); // this triggers addGameObjectToScenePanel()
+				obj.x = mouseevent.pageX * getScaleX();
+				obj.y = mouseevent.pageY * getScaleY();
 			}
 
-			populateInspectorPanel(obj);
+			var componentType;
+			if (fi.ext == "prefab") {
+				// do nothing
+				// this condition just prevents the else statement from picking up this file type
+			}
+			else if (fi.ext == "js") {
+				// file dropped is a base component e.g. atlas.js
+				componentType = fi.nameNoExt;
+				addComponent(componentType, path, obj);
+			}
+			else if (fi.type == "image") {
+				// file dropped is an image e.g. guy.png
+				componentType = "image";
+				ASTRAL.loadImage(path, function(img) {
+					obj.baseWidth = img.width;
+					obj.baseHeight = img.height;
+					obj.width = obj.baseWidth * obj.scale;
+					obj.height = obj.baseHeight * obj.scale;
+					addComponent(componentType, path, obj);
+				});
+			}
+			else {
+				// file dropped is other e.g. tiles.atlas
+				componentType = fi.ext;
+				ASTRAL.loadJson(path, function(strdata) {
+					var data = JSON.parse(strdata);
+					addComponent(componentType, path, obj, data);
+				});
+			}
 		}
+	}
 
+	function addComponent(type, path, obj, data, callback) {
+		console.log("adding " + type + " component to gameobject " + obj.name);
+		var fi = ASTRAL.getFileInfo(path);
+		var componentDiv;
+		var componentBase;
+		var instance = {};
+		instance.type = type;
+		if (type == "image") {
+			instance.path = path;
+		}
+		else {
+			componentBase = ASTRAL.components[type];
+			if (componentBase) {
+				if (componentBase.instance) {
+					instance = componentBase.instance();
+					// TODO: not fond of hard coding special component handling here it should be automatic...
+					if (fi.ext == "atlas") {
+						instance.path = data.image;
+						instance.runtime.frames = data.frames;
+						instance.runtime.framesets = data.framesets;
+						instance.frameset = Object.keys(data.framesets)[0];
+					}
+				}
+			}
+		}
+		obj.components.push(instance);
+		componentDiv = ctlComponent(instance, obj);
+		flashDomElement(componentDiv);
+		populateInspectorPanel(obj);
+	}
+
+
+
+	function loadComponentData() {
 
 	}
 
@@ -913,6 +984,7 @@ ASTRAL.editor = (function() {
 	}
 
 	function openProjectFile(event, path) {
+		path = homePath + path;
 		// this controls what to do when a file/folder is clicked in the PROJECT panel
 		if (event.ctrlKey) {
 			// CTRL + Click should open the file in a new browser tab
@@ -963,6 +1035,7 @@ ASTRAL.editor = (function() {
 			noSelectionSection.style.display = "none";
 			inspectorSection.style.display = "block";
 			// populate some basic props
+			// check document.activeElement to prevent updating a value the user is editing
 			if (document.activeElement != inspectoritem) inspectoritem.innerHTML = obj.name;
 			if (document.activeElement != posx) posx.innerHTML = obj.x;
 			if (document.activeElement != posy) posy.innerHTML = obj.y;
@@ -1067,60 +1140,103 @@ ASTRAL.editor = (function() {
 	}
 
 	function titleDrop(e) {
-		var path = e.dataTransfer.getData("text").replace("../client/", "");
-		addComponentToGameObject(inspectedObject, path);
-	}
-
-	function addComponentToGameObject(obj, path) {
-		console.log("adding " + path + " to gameobject " + obj.name);
-		
-		// adds an instance of a component.js to a gameobject
+		//var path = e.dataTransfer.getData("text").replace("../client/", "");
+		//addComponentToGameObject(inspectedObject, path);
+		var path = e.dataTransfer.getData("text");
+		path = homePath + path;
 		var fi = ASTRAL.getFileInfo(path);
-		var componentDiv;
-		//var componentBase = ASTRAL.components[fi.nameNoExt];
-		var componentBase = ASTRAL.components[fi.ext];
-		var component; // the instance
-
-		// check if componentBase is set which will tell us if the component is a .js file or img
-		if (componentBase) {
-			// the component js file is already loaded, create an instance for the object to use
-			if (componentBase.instance) {
-				component = componentBase.instance();
-				if (fi.ext == "atlas") {
-					ASTRAL.loadJson(path, function(strdata) {
-						var data = JSON.parse(strdata);
-						component.path = data.image;
-						component.runtime.frames = data.frames;
-						component.runtime.framesets = data.framesets;
-						component.frameset = Object.keys(data.framesets)[0];
-					});
-				}
-			}
-			else {
-				console.log("WARNING: componentBase had no instance method, therefore the component is void");
-			}
-		}
-		else {
-			// component not loaded/registered, this currently only happens if an image file 
-			//	was dropped, so we create the component dynamically instead of from file
-			if (fi.type == "image") {
-				ASTRAL.loadImage(path, function(img) {
-					obj.baseWidth = img.width;
-					obj.baseHeight = img.height;
-					obj.width = obj.baseWidth * obj.scale;
-					obj.height = obj.baseHeight * obj.scale;
-				});
-				var component = {};
-				component.type = "image";
-				component.path = path;
-			}
-		}
-
-		obj.components.push(component);
-		componentDiv = ctlComponent(component, obj);
-		console.log("added '" + fi.nameNoExt + "' component to gameobject '" + obj.name + "'");
-		flashDomElement(componentDiv);
+		addComponent(fi.nameNoExt, path, inspectedObject);
 	}
+
+	// function addComponentToGameObject(obj, path) {
+	// 	// adds an instance of a component.js to a gameobject
+	// 	console.log("adding " + path + " to gameobject " + obj.name);
+		
+	// 	// var fi = ASTRAL.getFileInfo(path);
+	// 	// var componentDiv;
+	// 	// //var componentBase = ASTRAL.components[fi.nameNoExt];
+	// 	// var componentBase = ASTRAL.components[fi.ext];
+	// 	// var component; // the instance
+
+	// 	// // TODO: bug identified...
+		
+	// 	// 	previously we would grab components using the fi.nameNoExt, so if we dropped the base
+	// 	// 	text.js or particle.js on the game canvas, it would grab the component using text or 
+	// 	// 	particle as the array key, but since its using fi.ext, it tries to grab a "js" 
+	// 	// 	component which doesn't exist
+
+	// 	// 	i changed this recently to make dropping .atlas files work...
+
+	// 	// console.log("COMPONENT", "obtaining", fi.ext, "instead of", fi.nameNoExt);
+
+	// 	var fi = ASTRAL.getFileInfo(path);
+	// 	var componentDiv;
+	// 	var componentBase;
+	// 	var component; // the instance
+
+	// 	if (fi.ext == "atlas") {
+	// 		componentBase = ASTRAL.components[fi.ext];
+	// 	}
+	// 	else {
+	// 		componentBase = ASTRAL.components[fi.nameNoExt];
+	// 	}
+
+	// 	// check if componentBase is set which will tell us if the component is a .js file or img
+	// 	if (componentBase) {
+	// 		// the component js file is already loaded, create an instance for the object to use
+	// 		if (componentBase.instance) {
+	// 			component = componentBase.instance();
+	// 			if (fi.ext == "atlas") {
+	// 				ASTRAL.loadJson(path, function(strdata) {
+	// 					var data = JSON.parse(strdata);
+	// 					component.path = data.image;
+	// 					component.runtime.frames = data.frames;
+	// 					component.runtime.framesets = data.framesets;
+	// 					component.frameset = Object.keys(data.framesets)[0];
+	// 					//refreshInspectorPanel(); // TODO: causes obj.name to blank out due to focus logic, but disabling this causes "None" to stay in the components section...
+	// 					// TODO: this is not DRY it used to be outside the callback but then it would
+	// 					//	update the inspector too soon and no atlas props would display unless
+	// 					//	you select the object again
+	// 					obj.components.push(component);
+	// 					componentDiv = ctlComponent(component, obj);
+	// 					// TODO: fi.nameNoExt is invalid for things such as tiles.atlas...we need to handle both cases
+	// 					console.log("added '" + fi.nameNoExt + "' component to gameobject '" + obj.name + "'");
+	// 					flashDomElement(componentDiv);
+	// 				});
+	// 			}
+	// 		}
+	// 		else {
+	// 			console.log("WARNING: componentBase had no instance method, therefore the component is void");
+	// 		}
+	// 	}
+	// 	else {
+	// 		// component not loaded/registered, this currently only happens if an image file 
+	// 		//	was dropped, so we create the component dynamically instead of from file
+	// 		if (fi.type == "image") {
+	// 			ASTRAL.loadImage(path, function(img) {
+	// 				obj.baseWidth = img.width;
+	// 				obj.baseHeight = img.height;
+	// 				obj.width = obj.baseWidth * obj.scale;
+	// 				obj.height = obj.baseHeight * obj.scale;
+	// 			});
+	// 			var component = {};
+	// 			component.type = "image";
+	// 			component.path = path;
+	// 			refreshInspectorPanel();
+	// 			// TODO: this is not DRY it used to be outside the callback but then it would
+	// 			//	update the inspector too soon and no atlas props would display unless
+	// 			//	you select the object again
+	// 			obj.components.push(component);
+	// 			componentDiv = ctlComponent(component, obj);
+	// 			console.log("added '" + fi.nameNoExt + "' component to gameobject '" + obj.name + "'");
+	// 			flashDomElement(componentDiv);
+	// 		}
+	// 	}
+	// 	// obj.components.push(component);
+	// 	// componentDiv = ctlComponent(component, obj);
+	// 	// console.log("added '" + fi.nameNoExt + "' component to gameobject '" + obj.name + "'");
+	// 	// flashDomElement(componentDiv);
+	// }
 
 	function removeComponent() {
 
@@ -1162,6 +1278,8 @@ ASTRAL.editor = (function() {
 ///////////////////////////////////////
 
 	function ctl(type, label, value, id, parent, click) {
+		//console.log("ctl ::", {"type": type, "label": label, "value": value, "id": id, "parent": parent, "click": click});
+		console.log("adding ui node '" + value + "'");
 		// this is a universal control factory for making buttons, labels, inputs, etc on a panel
 		// TODO: this is also in spriter.js with a different makeup...
 
@@ -1416,18 +1534,25 @@ ASTRAL.editor = (function() {
 
 	function getDir(path) {
 		// this requests a directory listing from the server
+		if (!path) path = "";
 
-		var parentPath = path.split("/").slice(0, -1).join("/");
-		if (parentPath == "../client") {
+		var parentPath;
+		if (path != "") {
+			parentPath = path.split("/").slice(0, -1).join("/");
+		}
+
+		if (path == "") {
 			upButton.classList.add("disabled");
 		}
 		else {
 			upButton.classList.remove("disabled");
 		}
+
 		upButton.onclick = function() {
 			var prev = parentPath;
 			getDir(prev);
 		}
+
 		ASTRAL.netcode.sendNow("*getdir," + path);
 		currentPath = path;
 	}

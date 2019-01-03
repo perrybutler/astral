@@ -1,14 +1,14 @@
 var Server = require('ws').Server;
 var port = process.env.PORT || 33333;
-var ws = new Server({port: port});
+var ws = new Server({port: port}); // websocket
 
-var fs = require('fs');
+var fs = require('fs'); // filesystem
 
 const {
   performance
-} = require('perf_hooks');
+} = require('perf_hooks'); // performance
 
-var chokidar = require('chokidar');
+var chokidar = require('chokidar'); // file watcher
 var watcher = chokidar.watch("../client/assets", {ignored: /.meta/, ignoreInitial: true, persistent: true});
 
 var objectCount = 0;
@@ -26,7 +26,10 @@ var metaBlacklist = [ // don't make .meta files for these filetypes
 	"prefab",
 	"scene",
 	"atlas"
-]
+];
+
+var clientPath = "../client/";
+var assetPath = "../client/assets";
 
 /*==================
 	STARTUP
@@ -163,10 +166,13 @@ function saveScene(spl) {
 		jsonParts.push(spl[i]);
 	}
 	var jsonString = jsonParts.join(",");
-	jsonString = "\"" + jsonString + "\"";
-	// TODO: we have to parse twice because we might be stringifying twice...
-	var jsonObject = JSON.parse(JSON.parse(jsonString));
-	fs.writeFileSync(path, JSON.stringify(jsonObject, null, 4));
+	//console.log(jsonString);
+	// jsonString = "\"" + jsonString + "\"";
+	// // TODO: we have to parse twice because we might be stringifying twice...
+	// var jsonObject = JSON.parse(JSON.parse(jsonString));
+	// fs.writeFileSync(path, JSON.stringify(jsonObject, null, 4));
+	jsonString = JSON.stringify(JSON.parse(jsonString), null, 4);
+	fs.writeFileSync(clientPath + path, jsonString);
 }
 
 function copyFile(spl) {
@@ -177,6 +183,24 @@ function copyFile(spl) {
 	    if (err) throw err;
 	    console.log("copied file:", fi.name + "->" + dstpath);
 	});
+}
+
+function makePrefab(spl) {
+	//console.log("MAKEPREFAB", spl);
+	var name = spl[1];
+	var jsonParts = [];
+	for (var i = 2; i < spl.length; i++) {
+		jsonParts.push(spl[i]);
+	}
+	var jsonString = jsonParts.join(",");
+	console.log(jsonString);
+
+	//console.log(JSON.parse(jsonString));
+	//jsonString = "\"" + jsonString + "\"";
+	//var jsonObject = JSON.parse(JSON.parse(jsonString));
+	//fs.writeFileSync("../client/assets/test.prefab", JSON.stringify(jsonObject, null, 4));
+	jsonString = JSON.stringify(JSON.parse(jsonString), null, 4);
+	fs.writeFileSync("../client/assets/" + name + ".prefab", jsonString);
 }
 
 console.log(getMetas("../client/assets"));
@@ -262,8 +286,9 @@ ws.on('connection', function(client, req) {
 		var cid = req.headers['sec-websocket-key'];
 		var player = players[cid];
 		// receive the message
-		var msg = rawmsg.slice(1, -1); // trims off the quotes
-		console.log("-> " + name + " :: " + msg);
+		//var msg = rawmsg.slice(1, -1); // trims off the quotes
+		console.log("-> " + name + " :: " + rawmsg);
+		var msg = rawmsg;
 		queueReceive(player, msg);
 	});
 
@@ -366,7 +391,7 @@ function handleReceiveQueue() {
 }
 
 function handleMessage(player, payload) {
-	console.log("handling " + payload + " for " + player.name);
+	console.log("handling message '" + payload + "' for " + player.name);
 
 	var task;
 	var spl = payload.split(",");
@@ -417,10 +442,14 @@ function handleMessage(player, payload) {
 		case "*copyfile":
 			copyFile(spl);
 			break;
+		case "*makeprefab":
+			makePrefab(spl);
+			break;
 	}
 }
 
 function getDir(path) {
+	path = assetPath + "/" + path;
 	var files = getFiles(path);
 	var folders = getDirectories(path);
 	//var final = folders.concat(['***']).concat(files);

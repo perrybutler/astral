@@ -5,6 +5,7 @@ ASTRAL.components.collider = (function() {
 		component.shape = "rectangle";
 		component.width = 64;
 		component.height = 64;
+		component.static = true;
 		component.isTrigger = false;
 		component.collideDirection = "nsew";
 		component.whitelist = "";
