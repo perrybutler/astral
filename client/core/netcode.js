@@ -1,6 +1,6 @@
 console.log("netcode.js entry point");
 
-ASTRAL.netcode = new function() {
+ASTRAL.netcode = (function() {
 
 	console.log("netcode.js constructor");
 
@@ -23,6 +23,7 @@ ASTRAL.netcode = new function() {
 			onHandlers[name] = [];
 		}
 		onHandlers[name].push(func);
+		console.log("ONHANDLER");
 	}
 
 	function doHandler(name, payload) {
@@ -109,6 +110,7 @@ ASTRAL.netcode = new function() {
 		totalMessages++;
 		//console.log(totalMessages);
 		receiveQueue.push({data: data});
+		console.log("pushed", data, "into receive queue");
 		doHandler("afterreceive");
 	}
 
@@ -157,14 +159,14 @@ ASTRAL.netcode = new function() {
 		return info;
 	}
 
-	this.init = init;
-	this.connect = connect;
-	this.sendNow = sendNow;
-	this.receive = receive;
-	this.getNetcodeInfo = getNetcodeInfo;
-	this.handleReceiveQueue = handleReceiveQueue;
-	//this.queueSend = queueSend;
-	//this.handleSendQueue = handleSendQueue;
-	this.on = onHandler;
-	this.do = doHandler;
-}
+	return {
+		init:init,
+		connect:connect,
+		sendNow:sendNow,
+		receive:receive,
+		getNetcodeInfo:getNetcodeInfo,
+		handleReceiveQueue:handleReceiveQueue,
+		on:onHandler,
+		do:doHandler
+	}
+}());

@@ -64,7 +64,7 @@
                 "fontFamily": "Arial",
                 "color": "#000",
                 "hoverColor": "#ff0000",
-                "onclick": "ASTRAL.game.main.startGame();"
+                "onclick": "ASTRAL.game.main.init();"
             }
         ],
         "width": 63.3544921875,

@@ -13,6 +13,7 @@ var ASTRAL = (function() {
 
 	var game = {};
 	var enabled = false;
+	var updateEnabled = false;
 	var gameInfo = [];
 
 	// observer pattern
@@ -27,10 +28,15 @@ var ASTRAL = (function() {
 	var atlases = [];
 	var prefabs = [];
 	var components = [];
+	var staticObjects = [];
+	var physicsObjects = [];
+
+	// sound stuff
+	var muteSound = true;
 
 	// timing stuff
-	var lastFrameTime = Date.now();
-	var pingTime = null;
+	//var lastFrameTime = Date.now();
+	//var pingTime = null;
 	var fps = 0;
 
 	// controls
@@ -59,6 +65,7 @@ var ASTRAL = (function() {
 //
 ///////////////////////////////////////
 
+
 	window.onload = function() {
 		ASTRAL.init();
 	}
@@ -73,7 +80,16 @@ var ASTRAL = (function() {
 				console.log("all modules loaded, initializing based on game.json order");
 				for (var i = 0; i < gameInfo.preload.length; i++) {
 					var info = gameInfo.preload[i];
-					var module = ASTRAL[info.name];
+					// TODO: info.name doesn't work for components
+					var module;
+					if (info.type == "module") {
+						module = ASTRAL[info.name];
+					}
+					else if (info.type == "component") {
+						module = ASTRAL.components[info.name];
+					}
+					//var module = ASTRAL[info.name];
+					//console.log("INITIALIZING", info, module);
 					if (module && module.init) module.init();
 				}
 				console.log("astral was initialized successfully");
@@ -120,6 +136,11 @@ var ASTRAL = (function() {
 		window.addEventListener("mousemove", function(e) {
 			mouseX = e.offsetX === undefined ? e.layerX : e.offsetX;
 			mouseY = e.offsetY === undefined ? e.layerY : e.offsetY;
+			// TODO: instead of checking editor enabled explicitly (lack of decoupling), we could
+			//	just check a game.enabled instead to eliminate the strong coupling
+			if (ASTRAL.editor.enabled == false) {
+				ASTRAL.do("mousemove");
+			}
 		});
 
 		// handle keydown
@@ -184,22 +205,75 @@ var ASTRAL = (function() {
 		});
 
 		// start the engine aka game loop
-		start();
+		// TODO: when editing we dont want this to start right away...
+		startGameLoop();
 
 		// fire a window resize event once to make editor resolution setting take effect 
 		//	since we can't call this in editor.js due to race condition (see the TODO there)
 		window.dispatchEvent(new Event('resize'));
 	}
 
-	function start() {
+	var gameLoopInterval;
+
+	function startGameLoop() {
 		enabled = true;
 		//requestAnimationFrame(gameLoop);
-		setInterval(gameLoop, 1);
+		gameLoopInterval = setInterval(gameLoop, 1);
 		//gameLoop();
 	}
 
-	function stop() {
+	function stopGameLoop() {
 		enabled = false;
+		clearInterval(gameLoopInterval); // TODO: doesnt seem to work
+	}
+
+	function startUpdate() {
+		updateEnabled = true;
+		if (inspectorPlayPause.classList.contains("play")) {
+			inspectorPlayPause.classList.add("pause");
+			inspectorPlayPause.classList.remove("play");
+			//inspectorPlayPause.classList.add("disabled");
+			inspectorStop.classList.remove("disabled");
+			if (!ASTRAL.editor.sceneSnapshot) ASTRAL.editor.sceneSnapshot = sceneDataToJson();
+		}
+		else {
+			inspectorPlayPause.classList.add("play");
+			inspectorPlayPause.classList.remove("pause");
+			pauseUpdate();
+		}
+	}
+
+	function pauseUpdate() {
+		updateEnabled = false;
+	}
+
+	function stopUpdate() {
+		updateEnabled = false;
+		// TODO: tight coupling here to editor made ui...
+		inspectorStop.classList.add("disabled");
+		inspectorPlayPause.classList.remove("disabled");
+		inspectorPlayPause.classList.remove("on");
+		inspectorPlayPause.classList.add("play");
+		inspectorPlayPause.classList.remove("pause");
+		// TODO: this is a copy of the loadScene() code, maybe we can separate it out into a loadSceneData()
+		// ASTRAL.sceneData = sceneSnapshot;
+		// loadObjects(ASTRAL.sceneData);
+		loadSceneData(ASTRAL.editor.sceneSnapshot);
+		ASTRAL.editor.sceneSnapshot = null;
+		ASTRAL.game.main.ready();
+	}
+
+	function toggleMute() {
+		// TODO: tight coupling here to editor made ui...
+		if (inspectorSound.className.includes("on")) {
+			// mute sounds
+			muteSound = false;
+		}
+		else {
+			// unmute sounds
+			muteSound = true;
+		}
+		console.log(muteSound);
 	}
 
 ///////////////////////////////////////
@@ -216,6 +290,8 @@ var ASTRAL = (function() {
 
 	function gameLoop() {
 		computeFps();
+		network();
+		input();
 		update();
 		draw();
 	}
@@ -249,29 +325,71 @@ var ASTRAL = (function() {
 		}
 	}
 
+	function network() {
+		// network gets called once per frame to receive and process messages from the server
+		// TODO: fix tight coupling (see note in Docs)...maybe fire an ASTRAL.do("beforeinput") so other modules can hook in
+		if (ASTRAL.netcode) {
+			ASTRAL.netcode.handleReceiveQueue();
+			//ASTRAL.netcode.handleSendQueue();
+		}
+	}
+
 	function update(delta) {
 		// update gets called once or more per frame to simulate the next fragment of game time
-		// handle messages from the server
-		// TODO: fix tight coupling (see note in Docs)...maybe fire an ASTRAL.do("beforeinput") so other modules can hook in
-		if (ASTRAL.netcode) ASTRAL.netcode.handleReceiveQueue();
-		// update user input state
-		input();
-		// handle messages to the server
-		// TODO: fix tight coupling (see note in Docs)...maybe fire an ASTRAL.do("afterinput") so other modules can hook in
-		//if (ASTRAL.netcode) ASTRAL.netcode.handleSendQueue();
-		// update the objects by incrementing their state
-		for (var key in sceneData) {
-			updateObject(sceneData[key]);
+		if (updateEnabled) {
+			ASTRAL.do("beforeupdate");
+			// clear the static and physics objects which get computed each frame
+			// staticObjects = [];
+			// physicsObjects = [];
+			// update the objects by incrementing their state
+			for (var key in sceneData) {
+				updateObject(sceneData[key]);
+			}
+			// // update the physics objects
+			// for (var key in physicsObjects) {
+			// 	updatePhysicsObject(physicsObjects[key]);
+			// }
+			ASTRAL.do("afterupdate");
 		}
 	}
 
 	function updateObject(obj) {
 		// updates the object state, this gets called every frame for every object
-		// update the object transform by applying its physics
-		obj.x += obj.vx * obj.speed * delta;
-		obj.y += obj.vy * obj.speed * delta;
-		// update the object input state
-		updateObjectInputState(obj);
+		if (!obj.runtime) obj.runtime = [];
+		obj.runtime.movementUpdated = false;
+		//var hasCollider = false;
+		// fire an update for each of this object's components
+		for (var i = 0; i < obj.components.length; i++) {
+			var ci = obj.components[i];
+			var cb = components[ci.type];
+			if (cb && cb.update) cb.update(obj, ci);
+			// TODO: since we are calling cb.update() and collider has that method,
+			//	we should handle it there
+			// if (ci.type == "collider") {
+			// 	hasCollider = true;
+			// }
+		}
+		// // detect if the object has a collider and if not, do a generic position update here
+		// if (hasCollider) {
+		// 	// defer updating the object's position so it can be handled in the physics stage
+		// 	if (ci.static == true || ci.static == "true") {
+		// 		staticObjects.push(obj);
+		// 	}
+		// 	if (ci.physics == true || ci.physics == "true") {
+		// 		physicsObjects.push(obj);
+		// 	}
+		// }
+		// else {
+		// 	// otherwise just update its movement using its movement vector and speed
+		// 	obj.x += obj.vx * obj.speed // * delta;
+		// 	obj.y += obj.vy * obj.speed // * delta;
+		// }
+		// if the object wasn't moved by external means (collider, etc) then allow it to perform
+		//	a basic move here
+		if (!obj.runtime.movementUpdated) {
+			obj.x += obj.vx * obj.speed // * delta;
+			obj.y += obj.vy * obj.speed // * delta;
+		}
 		// update this object's child objects recursively
 		if (obj.objects) {
 			for (var key in obj.objects) {
@@ -372,17 +490,18 @@ var ASTRAL = (function() {
 		if (obj.components) {
 			var img;
 			for (var i = 0; i < obj.components.length; i++) {
-				var component = obj.components[i];
+				var componentInstance = obj.components[i];
 				// if the component is an image or atlas, call drawImage(), otherwise call the 
 				//	component's update()
-				if (component.type == "image") {
-					img = images[component.path];
+				if (componentInstance.type == "image") {
+					img = images[componentInstance.path];
 					if (!img) img = imgMissing;
 					drawImage(img, obj, ctx);
 				}
 				else {
-					var componentBase = components[component.type];
-					if (componentBase && componentBase.update) componentBase.update(obj, ctx, component);
+					var componentBase = components[componentInstance.type];
+					//if (componentBase && componentBase.update) componentBase.update(obj, ctx, componentInstance);
+					if (componentBase && componentBase.draw) componentBase.draw(obj, ctx, componentInstance);
 				}
 			}
 		}
@@ -469,12 +588,31 @@ var ASTRAL = (function() {
 
 				// draw collider border which is separate from the obj border
 				// TODO: this is going to cause us to iterate all components for all objects...
+				// TODO: we should fire an event here (ASTRAL.do("drawobjectborders")) and handle it in collider.js
 				var c = findComponentByType(obj, "collider");
 				if (c) {
 					ctx.strokeStyle = "red";
 					ctx.strokeRect(obj.x, obj.y, c.width, c.height);
 				}
 			}
+
+			// draw direction vectors
+			ctx.save();
+			ctx.lineWidth = 2;
+			ctx.strokeStyle = "red"; // default border color
+
+			var x1 = obj.x + obj.width/2;
+			var x2 = x1 + obj.vx * (obj.width*3);
+			var y1 = obj.y + obj.height/2;
+			var y2 = y1 + obj.vy * (obj.height*3);
+			
+			ctx.beginPath();
+			ctx.moveTo(x1, y1);
+			ctx.lineTo(x2, y2);
+			ctx.stroke();
+			ctx.closePath();
+
+			ctx.restore();
 		}
 	}
 
@@ -635,50 +773,54 @@ var ASTRAL = (function() {
 	    var req = new XMLHttpRequest();
 	    //req.overrideMimeType("application/json");
 	    req.open("GET", name, true);
+	    req.responseType = "text"; // firefox...if we set this to json it will return a json object, not text!!
 	    req.onreadystatechange = function() {
+	    	console.log(req);
 	    	var statusPassing = "200";
+	    	var statusPassingFirefox = 200;
 	    	// if working from the filesystem, override statusPassing to "0" since
 	    	//	a json file returns req.status == "0" on success
 			if (window.location.protocol == "file:") {
 				statusPassing = "0";
 			}
-			if (req.readyState == 4 && req.status == statusPassing) {
-				callback(req.responseText);
+			if (req.readyState == 4) {
+				if (req.status == statusPassing || req.status == statusPassingFirefox) {
+					//callback(req.responseText);
+					console.log("READY");
+					callback(req.response);
+				}
 			}
 	    };
 	    req.send(null);
 	}
 
 	function loadScene(path, callback) {
+		loadJson(path, function(data) {
+			loadSceneData(data, path, callback);
+		});
+	}
+
+	function loadSceneData(data, path, callback) {
 		ASTRAL.do("beforesceneload"); // e.g. editor can listen to this and clear its scene list
 		sceneData = [];
-		loadJson(path, function(data) {
-			// var tempData = JSON.parse(data);
-			// for (var i = 0; i < tempData.length; i++) {
-			// 	var obj = tempData[i];
-			// 	sceneData[obj.id] = obj;
-			// }
-			//ASTRAL.currentScene = path; // why do we have to set thru the public interface?
-
-			try {
-				if (data) {
-					sceneData = JSON.parse(data);
-				}
-				else {
-					sceneData = [];
-				}
-				ASTRAL.currentScene = path;
-				ASTRAL.sceneData = sceneData;
-				loadObjects(sceneData);
-				console.log("loaded scene " + path + ", contains " + sceneData.length + " root nodes");
-				if (callback) callback();
+		try {
+			if (data) {
+				sceneData = JSON.parse(data);
 			}
-			catch (e) {
-				ASTRAL.error("Failed to load scene " + path + ". " + e, 3000);
-				//console.log("ERROR: failed to load scene " + path, e);
-				ASTRAL.sceneData = [];
+			else {
+				sceneData = [];
 			}
-		});
+			currentScene = path;
+			sceneData = sceneData;
+			loadObjects(sceneData);
+			console.log("loaded scene " + path + ", contains " + sceneData.length + " root nodes");
+			if (callback) callback();
+		}
+		catch (e) {
+			ASTRAL.error("Failed to load scene " + path + ". " + e, 3000);
+			//console.log("ERROR: failed to load scene " + path, e);
+			sceneData = [];
+		}
 	}
 
 	// TODO: maybe modify this to accept parent as the first parameter, which would be the
@@ -717,7 +859,8 @@ var ASTRAL = (function() {
 			obj = data;
 			if (!obj.id) {
 				obj.id = Date.parse(new Date().toUTCString());
-				ASTRAL.sceneData.push(obj);
+				//ASTRAL.sceneData.push(obj);
+				sceneData.push(obj);
 			}
 		}
 		else {
@@ -726,7 +869,8 @@ var ASTRAL = (function() {
 			obj.name = name;
 			//sceneData[obj.id] = obj;
 			//sceneData.push(obj); // TODO: why isnt this working
-			ASTRAL.sceneData.push(obj);
+			//ASTRAL.sceneData.push(obj);
+			sceneData.push(obj);
 		}
 		// props
 		if (!obj.x) obj.x = 0;
@@ -749,17 +893,21 @@ var ASTRAL = (function() {
 			this.onHandlers[name].push(callback);
 			console.log("object '" + this.name + "' subscribed to event '" + name + "'");
 		}
-		obj.do = function(name) {
-			console.log("entity '" + this.name + "' fired event '" + name + "'");
+		obj.do = function(name, payload) {
+			// function doHandler(name, payload) {
+			// 	var func = onHandlers[name];
+			// 	if (func) func(payload);
+			// }		
+			//console.log("entity '" + this.name + "' fired event '" + name + "'");
 			var handlers = this.onHandlers[name];
 			if (handlers != null) {
 				for (var i in handlers) {
 					var callback = handlers[i];
-					callback();
+					callback(payload);
 				}
 			}
 			else {
-				console.log("warning", "object.do() failed because no handler exists with the name '" + name + "'");
+				//console.log("warning", "object.do() failed because no handler exists with the name '" + name + "'");
 			}
 		}
 		// components
@@ -768,33 +916,52 @@ var ASTRAL = (function() {
 		}
 		else {
 			for (var key in obj.components) {
-				var component = obj.components[key];
+				var componentInstance = obj.components[key];
+				// TODO: if the base component changed, we need to detect differences and
+				//	update the existing instances on objects, then create a log file
+				//	outlining the changes made
 				// if the component uses any required resources, load them now
-				if (component.type == "image") {
+				if (componentInstance.type == "image") {
 					// TODO: we don't want to call loadImage() for images already loaded...
-					loadImage(component.path, function(img) {
+					loadImage(componentInstance.path, function(img) {
 						obj.baseWidth = img.width;
 						obj.baseHeight = img.height;
 						obj.width = obj.baseWidth * obj.scale;
 						obj.height = obj.baseHeight * obj.scale;
 					});
 				}
-				else if (component.type == "atlas") {
-					// TODO: this is wrong...we need to load the image referenced by the atlas, not the atlas itself
-					loadImage(component.path);
-				}
+				// else if (componentInstance.type == "atlas") {
+				// 	// TODO: this is wrong...we need to load the image referenced by the atlas, not the atlas itself
+				// 	loadImage(componentInstance.path);
+				// }
 				else {
-					// merge the saved component data with the runtime props
-					var componentBase = components[component.type];
-					//console.log("COMPONENT", component, componentBase, components);
+					if (componentInstance.type == "atlas") {
+						// TODO: this is wrong...we need to load the image referenced by the atlas, not the atlas itself
+						loadImage(componentInstance.path);
+					}
+
+					// obtain the base component for this object's component instance
+					var componentBase = components[componentInstance.type];
+					//console.log("COMPONENT", componentInstance, componentBase, components);
 					if (componentBase) {
+						console.log("BASE", componentBase);
+						// merge the saved component data with the runtime props
 						if (componentBase.applyRuntimeProps) {
-							componentBase.applyRuntimeProps(component);
-							console.log("applied component instance runtime props to", component);
+							componentBase.applyRuntimeProps(componentInstance);
+							console.log("applied component instance runtime props to", componentInstance);
+						}
+
+						// applyBaseProps - make sure the saved component data (instance data) 
+						// matches the existing schema in the component's base .js file
+						// we use versionMatch to make sure this only triggers one time, until the next load
+						if (componentInstance.runtime) {
+						  	if (!componentInstance.runtime.versionMatch) {
+								updateComponentInstanceFromBase(componentInstance, componentBase);
+							}
 						}
 					}
 					else {
-						console.log("WARNING: could not find componentBase '" + component.type + "', this means an object is using a component which hasn't been loaded or does not exist");
+						console.log("WARNING: could not find componentBase '" + componentInstance.type + "', this means an object is using a component which hasn't been loaded or does not exist");
 					}
 				}
 			}		
@@ -803,12 +970,56 @@ var ASTRAL = (function() {
 		return obj;
 	}
 
+	function updateComponentInstanceFromBase(componentInstance, componentBase) {
+		//console.log("COMPARE", componentBase.instance);
+		var componentBaseProps = componentBase["instance"]();
+		var componentInstanceProps = componentInstance;
+
+		//console.log("COMPARE", "OBJECT", componentInstance.type);
+		//console.log("COMPARE", componentBaseProps, componentInstanceProps);
+
+		for (var key in componentBaseProps) {
+			//var propName = componentBaseProps[key];
+			//console.log("COMPARE PROPNAME", propName, componentInstanceProps[propName]);
+			if (componentInstanceProps[key] != null) {
+				//console.log("COMPARE RESULT", "MATCH", key);
+				// do nothing, we're good
+			}
+			else {
+				//console.log("COMPARE RESULT", "MISSING", key);
+				// add the missing prop with the default value
+				componentInstance[key] = componentBaseProps[key];
+				console.log("added missing property '" + key + "'' to component instance '" + componentInstance.type + "'");
+			}
+		}
+
+		// find extras
+		for (var key in componentInstanceProps) {
+			if (componentBaseProps[key] == null) {
+				console.log("COMPARE RESULT", "EXTRA", key);
+				// remove the extra prop
+				// TODO: this is destructive, implement later
+				//delete componentInstance[key];
+			}
+		}
+
+		// TODO: better to build a list of the missing and extras, then solve them afterwards?
+
+		// if we update the instance, set a flag so we dont do this til next load
+		componentInstance.runtime.versionMatch = true;
+
+		// TODO: notify user?
+	}
+
 	function deleteInspectedObject() {
 		deleteObject(ASTRAL.editor.inspectedObject);
 	}
 
 	// TODO: this doesnt work for child objects we need to recursively search
 	function deleteObject(obj) {
+		var oldId = obj.id;
+		var oldName = obj.name;
+
 		// iterate the sceneData looking for the matching obj
 		// for (var i = 0; i < sceneData.length; i++) {
 		// 	if (obj.id == sceneData[i].id) {
@@ -843,6 +1054,8 @@ var ASTRAL = (function() {
 		// 	}
 		// }
 		// console.log(obj.parent);
+
+		console.log("deleted object '" + oldName + "' id " + oldId);
 	}
 
 	function loadComponentResources() {
@@ -858,6 +1071,12 @@ var ASTRAL = (function() {
 // TODO: make it pub/sub and let gamedev control more of this
 
 	function input() {
+
+		for (var key in sceneData) {
+			updateObjectInputState(sceneData[key]);
+		}
+
+
 		//mouseB1Old = mouseB1;
 		// if (mouseB1 == "beforemousedown") {
 		// 	mouseB1 = "mousedown";
@@ -1044,9 +1263,25 @@ var ASTRAL = (function() {
 		return color;
 	}
 
+	function getRandomNumber(min, max, signed) {
+		var rn = 0;
+		var rn = Math.floor((Math.random() * max) + min);
+		if (signed == true) {
+			rn = rn * (Math.round(Math.random()) * 2 - 1);
+		}
+		return rn;
+	}
+
 	function playSound(path) {
+		if (muteSound == true) return;
 		var snd = new Audio(path);
 		snd.play();
+
+		// var media = new Audio(path);
+		// const playPromise = media.play();
+		// if (playPromise !== null){
+		//     playPromise.catch(() => { media.play(); })
+		// }
 	}
 
 	function moveDomElement(el, offsetX, offsetY) {
@@ -1064,6 +1299,7 @@ var ASTRAL = (function() {
 		//	called when saving a scene to disk
 		//var filtered = filterSceneData(sceneData);
 		var clone = cloneObject(sceneData, formatObject);
+		delete clone.runtime; // we don't want to save this to disk
 		let json = JSON.stringify(clone, null, 2);
 		return json;
 	}
@@ -1097,18 +1333,19 @@ var ASTRAL = (function() {
 	function formatObject(obj) {
 		// formats the gameobject for saving to disk as json by removing any runtime 
 		//	props and circular refs
-		delete obj.do;
-		delete obj.isMouseOver;
-		delete obj.isDragging;
-		delete obj.level;
-		delete obj.on;
-		delete obj.onHandlers;
-		delete obj.parent;
-		if (obj.objects) {
-			for (var i = 0; i < obj.objects.length; i ++) {
-				formatObject(obj.objects[i]);
-			}
-		}
+
+		// delete obj.do;
+		// delete obj.isMouseOver;
+		// delete obj.isDragging;
+		// delete obj.level;
+		// delete obj.on;
+		// delete obj.onHandlers;
+		// delete obj.parent;
+		// if (obj.objects) {
+		// 	for (var i = 0; i < obj.objects.length; i ++) {
+		// 		formatObject(obj.objects[i]);
+		// 	}
+		// }
 	}
 
 	function saveSceneData(data) {
@@ -1168,6 +1405,130 @@ var ASTRAL = (function() {
 		//setTimeout(function() {el.remove()}, 1000);
 	}
 
+	// function collides(obj1, obj2) {
+	// 	// TODO: finding components and parsing int is just too much crap we dont need to be doing
+	// 	//	if we optimize elsewhere
+	// 	var c1 = findComponentByType(obj1, "collider");
+	// 	var c2 = findComponentByType(obj2, "collider");
+	// 	var r1 = {
+	// 		left: obj1.x,
+	// 		top: obj1.y,
+	// 		right: obj1.x + parseInt(c1.width),
+	// 		bottom: obj1.y + parseInt(c1.height)
+	// 	}
+	// 	var r2 = {
+	// 		left: obj2.x,
+	// 		top: obj2.y,
+	// 		right: obj2.x + parseInt(c2.width),
+	// 		bottom: obj2.y + parseInt(c2.height)
+	// 	}
+	// 	return intersectRect(r1, r2);
+	// }
+
+	function intersectRect(r1, r2) {
+		// https://stackoverflow.com/questions/2752349/fast-rectangle-to-rectangle-intersection
+		return !(r2.left > r1.right || 
+	       r2.right < r1.left || 
+	       r2.top > r1.bottom ||
+	       r2.bottom < r1.top);
+	}
+
+	function intersectRect2(r1, r2) {
+		var left = false;
+		var right = false;
+		var top = false;
+		var bottom = false;
+		var horz = false;
+		var vert = false;
+		var penetrationX = 0;
+		var penetrationY = 0;
+		var reflectX = 0;
+		var reflectY = 0;
+		var opponent = "";
+		var reflect = "";
+		if (r1.left > r2.left) {
+			if (r1.left < r2.right) {
+				// left side collision
+				//console.log("LEFT");
+				left = true;
+				horz = true;
+			}
+		}
+		if (r1.right > r2.left) {
+			if (r1.right < r2.right) {
+				// right side collision
+				//console.log("RIGHT");
+				right = true;
+				horz = true;
+			}
+		}
+		if (r1.top > r2.top) {
+			if (r1.top < r2.bottom) {
+				// top side collision
+				//console.log("TOP");
+				top = true;
+				vert = true;
+			}
+		}
+		if (r1.bottom > r2.top) {
+			if (r1.bottom < r2.bottom) {
+				// bottom side collision
+				//console.log("BOTTOM");
+				bottom = true;
+				vert = true;
+			}
+		}
+		if (horz && vert) {
+			//console.log("WHAM", r1, r2, top, right, bottom, left);
+			// console.log(r1.right - r2.left);
+			// console.log(r1.bottom - r2.top);
+
+			// the shallower intersect determines reflect direction
+
+			penetrationX = r1.right - r2.left;
+			penetrationY = r1.bottom - r2.top;
+
+			if (penetrationX < penetrationY) {
+				reflectX = -1;
+				reflectY = 1;
+			}
+			else {
+				reflectX = 1;
+				reflectY = -1;
+			}
+		}
+
+		// if (!top) {
+		// 	reflect = "up";
+		// }
+		// else if (!bottom) {
+		// 	reflect = "down";
+		// }
+		// else if (!left) {
+		// 	reflect = "left";
+		// }
+		// else if (!right) {
+		// 	reflect = "right";
+		// }
+
+		// TODO: we need an accurate penetration x/y so we can subtract that from the obj1 pos to put
+		//	it just outside obj2 bounds
+
+		return {
+			"top": top,
+			"right": right,
+			"bottom": bottom,
+			"left": left,
+			"horz": horz,
+			"vert": vert,
+			"penetrationX": penetrationX,
+			"penetrationY": penetrationY,
+			"reflectX": reflectX,
+			"reflectY": reflectY,
+			"reflect": reflect
+		}
+	}
+
 	return {
 		on:onHandler,
 		do:doHandler,
@@ -1179,6 +1540,7 @@ var ASTRAL = (function() {
 		createObject:createObject,
 		cloneObject:cloneObject,
 		deleteInspectedObject:deleteInspectedObject,
+		deleteObject:deleteObject,
 		/*createGameObject:createGameObject,*/
 		/*loadGameObject:loadGameObject,*/
 		findObject:findObject,
@@ -1192,6 +1554,7 @@ var ASTRAL = (function() {
 		saveSceneData:saveSceneData,
 		downloadSceneData:downloadSceneData,
 		openJsonInNewTab:openJsonInNewTab,
+		findComponentByType:findComponentByType,
 		error:error,
 		setPanelLayout:setPanelLayout,
 		components:components,
@@ -1199,6 +1562,19 @@ var ASTRAL = (function() {
 		isFunction:isFunction,
 		formatObject:formatObject,
 		setEndOfContenteditable:setEndOfContenteditable,
+		startGameLoop:startGameLoop,
+		stopGameLoop:stopGameLoop,
+		startUpdate:startUpdate,
+		stopUpdate:stopUpdate,
+		getRandomNumber:getRandomNumber,
+		//collides:collides,
+		intersectRect:intersectRect,
+		intersectRect2:intersectRect2,
+		staticObjects:staticObjects,
+		physicsObjects:physicsObjects,
+		toggleMute:toggleMute,
+		muteSound:muteSound,
+		pauseUpdate:pauseUpdate,
 		get mouseX() {
 			return mouseX;
 		},

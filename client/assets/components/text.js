@@ -10,7 +10,10 @@ ASTRAL.components.text = (function() {
 		component.onclick = "";
 		return component;
 	}
-	function update(obj, ctx, instance) {
+	function update(obj, instance) {
+		
+	}
+	function draw(obj, ctx, instance) {
 		ctx.save(); // TODO: save/restore per text object might slow things down later
 		ctx.font = instance.fontSize + "px " + instance.fontFamily; 
 		var h1 = ctx.measureText("M").width; //parseInt(instance.fontSize); // TODO: computing this every update() is not optimum
@@ -28,6 +31,7 @@ ASTRAL.components.text = (function() {
 	}
 	return {
 		instance:instance,
-		update:update
+		update:update,
+		draw:draw
 	}
 }());

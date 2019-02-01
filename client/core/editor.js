@@ -38,6 +38,7 @@ ASTRAL.editor = (function() {
 
 	//var sceneData;
 	var inspectedObject;
+	var sceneSnapshot;
 
 	var drawObjectName = true;
 	var drawObjectId = false;
@@ -93,10 +94,10 @@ ASTRAL.editor = (function() {
 		// create the tools panel
 		toolsPanel = ctlPanel("tools", "toolsPanel", "", "sidebar4");
 		var toolsSection = ctlSection("", "", "", toolsPanel);
-		var openImageButton = ctl("button buttonicon edit", null, "open spriter", null, toolsSection, function() {
+		var openImageButton = ctl("button buttonicon edit", null, "open spriter", null, toolsSection, "", function() {
 			ASTRAL.spriter.activate("assets/0x72_DungeonTilesetII_v1.1.png");
 		});
-		var connectButton = ctl("button buttonicon connect", null, "connect to server", null, toolsSection, function() {
+		var connectButton = ctl("button buttonicon connect", null, "connect to server", null, toolsSection, "", function() {
 			// TODO: hard coupling here...
 			if (ASTRAL.netcode) {
 				ASTRAL.netcode.connect();
@@ -109,12 +110,12 @@ ASTRAL.editor = (function() {
 		// create the display panel
 		displayPanel = ctlPanel("display", "displayPanel", "", "sidebar4");
 		var displaySection = ctlSection("", "", "", displayPanel);
-		var thing = ctl("dropdown", "resolution", "Dynamic,3840x2160,2560x1440,1920x1080,1366x768,1280x720,720x480,-,2048x1536,1600x1200,1280x1024,1024x768,640x480,320x240,320x200,-,1000x1000,500x500,250x250,100x100", "resolution", displaySection, null);
+		var thing = ctl("dropdown", "resolution", "Dynamic,3840x2160,2560x1440,1920x1080,1366x768,1280x720,720x480,-,2048x1536,1600x1200,1280x1024,1024x768,640x480,320x240,320x200,-,1000x1000,500x500,250x250,100x100", "resolution", displaySection, "", null);
 		resolution.onchange = function() {screenResolutionChange()}
 		resolution.value = "Dynamic";
-		var thing = ctl("dropdown", "scaling", "Stretch,3840x2160,2560x1440,1920x1080,1366x768,1280x720,720x480,-,2048x1536,1600x1200,1280x1024,1024x768,640x480,320x240,320x200,-,1000x1000,500x500,250x250,100x100", "scaling", displaySection, null);
+		var thing = ctl("dropdown", "scaling", "Stretch,3840x2160,2560x1440,1920x1080,1366x768,1280x720,720x480,-,2048x1536,1600x1200,1280x1024,1024x768,640x480,320x240,320x200,-,1000x1000,500x500,250x250,100x100", "scaling", displaySection, "", null);
 		scaling.onchange = function() {screenScalingChange()}
-		var thing = ctl("dropdown", "resampling", "Nearest,Bilinear", "resampling", displaySection, null);
+		var thing = ctl("dropdown", "resampling", "Nearest,Bilinear", "resampling", displaySection, "", null);
 		resampling.onchange = function() {screenResamplingChange()}
 
 		// create the diagnostics panel
@@ -122,28 +123,27 @@ ASTRAL.editor = (function() {
 		var diagnosticsSection = ctlSection("", "", "", diagnosticsPanel);
 		var thing = ctl("button buttonicon message", "network", "netcodestuff", "netcodestuff", diagnosticsSection, null);
 		var thing = ctl("button buttonicon message", "memory", "memorystuff", "memorystuff", diagnosticsSection, null);
-		var thing = ctl("button pill toggle on", "draw object info", "name", null, diagnosticsSection, function() {toggleDrawObjectName()});
-		var thing = ctl("button pill toggle", "", "id", null, diagnosticsSection, function() {toggleDrawObjectId()});
-		var thing = ctl("button pill toggle", "", "pos", null, diagnosticsSection, function() {toggleDrawObjectPos()});
-		var thing = ctl("button pill toggle", "", "size", null, diagnosticsSection, function() {toggleDrawObjectSize()});
-		var thing = ctl("button pill toggle", "", "rot", null, diagnosticsSection, function() {toggleDrawObjectRot()});
-		var thing = ctl("button pill toggle on", "", "origin", null, diagnosticsSection, function() {toggleDrawObjectOrigin()});
-		var thing = ctl("button pill toggle on", "", "borders", null, diagnosticsSection, function() {toggleDrawObjectBorders()});
-		var thing = ctl("button pill", "", "frameid", null, diagnosticsSection, function() {});
-		var thing = ctl("button pill toggle", "", "pcount", null, diagnosticsSection, function() {toggleDrawParticleCount()});
+		var thing = ctl("button pill toggle on", "draw object info", "name", null, diagnosticsSection, "", function() {toggleDrawObjectName()});
+		var thing = ctl("button pill toggle", "", "id", null, diagnosticsSection, "", function() {toggleDrawObjectId()});
+		var thing = ctl("button pill toggle", "", "pos", null, diagnosticsSection, "", function() {toggleDrawObjectPos()});
+		var thing = ctl("button pill toggle", "", "size", null, diagnosticsSection, "", function() {toggleDrawObjectSize()});
+		var thing = ctl("button pill toggle", "", "rot", null, diagnosticsSection, "", function() {toggleDrawObjectRot()});
+		var thing = ctl("button pill toggle on", "", "origin", null, diagnosticsSection, "", function() {toggleDrawObjectOrigin()});
+		var thing = ctl("button pill toggle on", "", "borders", null, diagnosticsSection, "", function() {toggleDrawObjectBorders()});
+		var thing = ctl("button pill", "", "frameid", null, diagnosticsSection, "", function() {});
+		var thing = ctl("button pill toggle", "", "pcount", null, diagnosticsSection, "", function() {toggleDrawParticleCount()});
 
 		// create the scene panel
 		scenePanel = ctlPanel("scene", "scenePanel", "", "sidebar1");
 		sceneSection = ctlSection("", "sceneSection", "", scenePanel);
-		var thing = ctl("button icon add", null, "", "inspectorCreateObject", sceneSection, function() {ASTRAL.createObject(null, "new object");});
-		inspectorCreateObject.dataset.tip = "Create a new empty object in the scene.";
-		var thing = ctl("button icon diskette", null, "", "scenesave", sceneSection, function() {saveScene()});
-		scenesave.dataset.tip = "Save changes to the current scene.";
-		var thing = ctl("button icon openexternal", null, "", "sceneopenexternal", sceneSection, function() {viewSceneData()});
-		sceneopenexternal.dataset.tip = "View the scene data in a new tab.";
-		var thing = ctl("button icon download", null, "", "scenedownload", sceneSection, function() {downloadScene()});
-		scenedownload.dataset.tip = "Download the scene data to disk.";
-		var thing = ctl("button sceneobjectbutton", null, "scene stuff here", null, sceneSection, null);
+		var thing = ctl("button icon play toggle", null, "", "inspectorPlayPause", sceneSection, "Play or pause the simulation.", function() {ASTRAL.startUpdate();});
+		var thing = ctl("button icon stop disabled", null, "", "inspectorStop", sceneSection, "Stop the simulation", function() {ASTRAL.stopUpdate();});
+		var thing = ctl("button icon sound toggle", null, "", "inspectorSound", sceneSection, "Mute or unmute the sound.", function() {ASTRAL.toggleMute();});
+		var thing = ctl("button icon add", null, "", "inspectorCreateObject", sceneSection, "Create a new empty object in the scene.", function() {ASTRAL.createObject(null, "new object");});
+		var thing = ctl("button icon diskette", null, "", "scenesave", sceneSection, "Save the current scene changes to disk.", function() {saveScene()});
+		var thing = ctl("button icon openexternal", null, "", "sceneopenexternal", sceneSection, "View the scene data in a new tab.", function() {viewSceneData()});
+		var thing = ctl("button icon download", null, "", "scenedownload", sceneSection, "Download the scene data.", function() {downloadScene()});
+		var thing = ctl("button sceneobjectbutton", null, "scene stuff here", null, sceneSection, "", null);
 
 		// // create the brush panel
 		// brushPanel = document.createElement("DIV");
@@ -157,15 +157,15 @@ ASTRAL.editor = (function() {
 		noSelectionSection.className = "selectionmsg";
 		noSelectionSection.innerHTML = "Select an object in the SCENE panel to view or modify its properties here.";
 		inspectorSection = ctlSection("", "", "", inspectorPanel);
-		var thing = ctl("button icon basic", null, "", "inspectorShowBasic", inspectorSection, function() {});
-		inspectorShowBasic.dataset.tip = "Show commonly used object properties.";
-		var thing = ctl("button icon advanced", null, "", "inspectorShowAdvanced", inspectorSection, function() {});
-		inspectorShowAdvanced.dataset.tip = "Show all object properties.";
-		var thing = ctl("button icon remove", null, "", "inspectorDeleteObject", inspectorSection, function() {ASTRAL.deleteInspectedObject();});
-		inspectorDeleteObject.dataset.tip = "Delete this object from the scene.";
-		var thing = ctl("input", null, "(nothing selected)", "inspectoritem", inspectorSection, null);
-		var thing = ctl("input pair", "position", "0", "posx", inspectorSection, null);
-		var thing = ctl("input pair", null, "0", "posy", inspectorSection, null);
+		// buttons
+		var thing = ctl("button icon basic", null, "", "inspectorShowBasic", inspectorSection, "Show commonly used object properties.", function() {});
+		var thing = ctl("button icon advanced", null, "", "inspectorShowAdvanced", inspectorSection, "Show all object properties.", function() {});
+		var thing = ctl("button icon remove", null, "", "inspectorDeleteObject", inspectorSection, "Delete this object from the scene.", function() {ASTRAL.deleteInspectedObject();});
+		// selected object name
+		var thing = ctl("input", null, "(nothing selected)", "inspectoritem", inspectorSection, "", null);
+		// position
+		var thing = ctl("input pair", "position x/y", "0", "posx", inspectorSection, "", null);
+		var thing = ctl("input pair", null, "0", "posy", inspectorSection, "", null);
 		posx.addEventListener("mousewheel", function(event) {
 			event.preventDefault();
 			posx.innerHTML = parseInt(posx.innerHTML) - event.deltaY / 5;
@@ -176,8 +176,9 @@ ASTRAL.editor = (function() {
 			posy.innerHTML = parseInt(posy.innerHTML) - event.deltaY / 5;
 			posy.dispatchEvent(new Event('input'));
 		});
-		var thing = ctl("input pair", "rotation / scale", "0", "rot", inspectorSection, null);
-		var thing = ctl("input pair", null, "0", "scale", inspectorSection, null);
+		// rotation/scale
+		var thing = ctl("input pair", "rotation / scale", "0", "rot", inspectorSection, "", null);
+		var thing = ctl("input pair", null, "0", "scale", inspectorSection, "", null);
 		rot.addEventListener("mousewheel", function(event) {
 			event.preventDefault();
 			rot.innerHTML = (parseFloat(rot.innerHTML) - event.deltaY / 5).toFixed(2);
@@ -188,6 +189,12 @@ ASTRAL.editor = (function() {
 			scale.innerHTML = (parseFloat(scale.innerHTML) - event.deltaY / 500).toFixed(2);
 			scale.dispatchEvent(new Event('input'));
 		});
+		// movement
+		var thing = ctl("input pair", "movement x/y", "0", "vx", inspectorSection, "", null);
+		var thing = ctl("input pair", null, "0", "vy", inspectorSection, "", null);
+		// speed
+		var thing = ctl("input", "speed", "1", "speed", inspectorSection, "", null);
+
 		var componentsTitle = document.createElement("DIV");
 		componentsTitle.className = "label";
 		componentsTitle.innerHTML = "components";
@@ -205,14 +212,10 @@ ASTRAL.editor = (function() {
 		connectionSection.innerHTML = "Establish a connection to the server to use this feature, or use Windows Explorer as an alternative.";
 		projectSection = ctlSection("", "projectSection", "", projectPanel);
 		projectSection.classList.add("connectionreq");
-		homeButton = ctl("button icon home", null, "", null, projectSection, function() {getDir()});
-		homeButton.dataset.tip = "Return to the root assets folder";
-		upButton = ctl("button icon moveup", null, "", null, projectSection, function() {});
-		upButton.dataset.tip = "Go back to the previous folder";
-		folderButton = ctl("button icon folderadd", null, "", null, projectSection, function() {createFolder()});
-		folderButton.dataset.tip = "Create a new folder in the current directory.";
-		fileButton = ctl("button icon fileadd", null, "", "projectPanelNewItem", projectSection, function() {createFile()});
-		fileButton.dataset.tip = "Create a new file in the current directory.";
+		homeButton = ctl("button icon home", null, "", null, projectSection, "Return to the root assets folder", function() {getDir()});
+		upButton = ctl("button icon moveup", null, "", null, projectSection, "Go back to the previous folder", function() {});
+		folderButton = ctl("button icon folderadd", null, "", null, projectSection, "Create a new folder in the current directory.", function() {createFolder()});
+		fileButton = ctl("button icon fileadd", null, "", "projectPanelNewItem", projectSection, "Create a new file in the current directory.", function() {createFile()});
 		currentPath = "../client/assets";
 
 		// create fps counter
@@ -270,6 +273,7 @@ ASTRAL.editor = (function() {
 
 			// subscribe to netcode dirlist which we use to update the PROJECT panel
 			ASTRAL.netcode.on("*dirlist", function(payload) {
+				console.log("POPULATE");
 				populateProjectPanel(payload);
 			});
 
@@ -542,6 +546,8 @@ ASTRAL.editor = (function() {
 	function populateProjectPanel(payload) {
 		// this clears the PROJECT panel and populates it with a new list of items
 
+		console.log("POPULATE");
+
 		// clear the panel
 		var currentList = document.querySelectorAll(".projectfolder, .projectfile");
 		for (var i = 0; i < currentList.length; i++) {
@@ -565,6 +571,7 @@ ASTRAL.editor = (function() {
 						folderName,
 						null,
 						projectSection,
+						"",
 						function() {getDir(path)}
 					);
 					assetButton.addEventListener("contextmenu", function(e) {
@@ -594,6 +601,7 @@ ASTRAL.editor = (function() {
 						fileName,
 						path,
 						projectSection,
+						"",
 						function(event) {openProjectFile(event, path)}
 					);
 					assetButton.addEventListener("contextmenu", function(e) {
@@ -617,6 +625,7 @@ ASTRAL.editor = (function() {
 			name,
 			path,
 			projectSection,
+			"",
 			function(event) {openProjectFile(event, path)}
 		);
 		node.addEventListener("contextmenu", function(e) {
@@ -850,6 +859,7 @@ ASTRAL.editor = (function() {
 			obj.name,
 			"objid" + obj.id,
 			sceneSection,
+			"",
 			function() {populateInspectorPanel(obj)}
 		);
 		node.addEventListener("contextmenu", function(e) {
@@ -952,8 +962,8 @@ ASTRAL.editor = (function() {
 					// TODO: not fond of hard coding special component handling here it should be automatic...
 					if (fi.ext == "atlas") {
 						instance.path = data.image;
-						instance.runtime.frames = data.frames;
-						instance.runtime.framesets = data.framesets;
+						instance.frames = data.frames;
+						instance.framesets = data.framesets;
 						instance.frameset = Object.keys(data.framesets)[0];
 					}
 				}
@@ -1043,6 +1053,14 @@ ASTRAL.editor = (function() {
 			if (document.activeElement != scale) scale.innerHTML = obj.scale;
 			if (!obj.rot) obj.rot = 0;
 			if (document.activeElement != rot) rot.innerHTML = obj.rot;
+			if (!obj.scale) obj.scale = 1;
+			if (document.activeElement != scale) scale.innerHTML = obj.scale;
+			if (!obj.vx) obj.vx = 0;
+			if (document.activeElement != vx) vx.innerHTML = obj.vx;
+			if (!obj.vy) obj.vy = 0;
+			if (document.activeElement != vy) vy.innerHTML = obj.vy;
+			if (!obj.speed) obj.speed = 1;
+			if (document.activeElement != speed) speed.innerHTML = obj.speed;
 		}
 		else {
 			noSelectionSection.style.display = "block";
@@ -1052,6 +1070,9 @@ ASTRAL.editor = (function() {
 			posy.innerHTML = "";
 			rot.innerHTML = "";
 			scale.innerHTML = "";
+			vx.innerHTML = "";
+			vy.innerHTML = "";
+			speed.innerHTML = "";
 		}
 	}
 
@@ -1072,23 +1093,42 @@ ASTRAL.editor = (function() {
 			inspectoritem.addEventListener("blur", nameChange);
 			inspectoritem.focus();
 
-			posx.removeEventListener("input", posChange);
-			posx.addEventListener("input", posChange);
 			posx.removeEventListener("blur", posChange);
 			posx.addEventListener("blur", posChange);
+			posx.removeEventListener("input", posChange);
+			posx.addEventListener("input", posChange);
+			
 			//posx.focus();
+
 			posy.removeEventListener("blur", posChange);
 			posy.addEventListener("blur", posChange);
 			posy.removeEventListener("input", posChange);
 			posy.addEventListener("input", posChange);
-			rot.removeEventListener("input", rotChange);
-			rot.addEventListener("input", rotChange);
+
 			rot.removeEventListener("blur", rotChange);
 			rot.addEventListener("blur", rotChange);
-			scale.removeEventListener("input", scaleChange);
-			scale.addEventListener("input", scaleChange);
+			rot.removeEventListener("input", rotChange);
+			rot.addEventListener("input", rotChange);
+
 			scale.removeEventListener("blur", scaleChange);
 			scale.addEventListener("blur", scaleChange);
+			scale.removeEventListener("input", scaleChange);
+			scale.addEventListener("input", scaleChange);
+			
+			vx.removeEventListener("blur", vxChange);
+			vx.addEventListener("blur", vxChange);
+			vx.removeEventListener("input", vxChange);
+			vx.addEventListener("input", vxChange);
+
+			vy.removeEventListener("blur", vyChange);
+			vy.addEventListener("blur", vyChange);
+			vy.removeEventListener("input", vyChange);
+			vy.addEventListener("input", vyChange);
+
+			speed.removeEventListener("blur", speedChange);
+			speed.addEventListener("blur", speedChange);
+			speed.removeEventListener("input", speedChange);
+			speed.addEventListener("input", speedChange);
 
 			// populate some basic props
 			inspectoritem.innerHTML = obj.name;
@@ -1098,6 +1138,9 @@ ASTRAL.editor = (function() {
 			scale.innerHTML = obj.scale;
 			if (!obj.rot) obj.rot = 0;
 			rot.innerHTML = obj.rot;
+			vx.innerHTML = obj.vx;
+			vy.innerHTML = obj.vy;
+			speed.innerHTML = obj.speed;
 
 			// clear old components from panel
 			document.querySelectorAll('.componentDiv').forEach(function(a){
@@ -1133,6 +1176,9 @@ ASTRAL.editor = (function() {
 			posy.innerHTML = "";
 			rot.innerHTML = "";
 			scale.innerHTML = "";
+			vx.innerHTML = "";
+			vy.innerHTML = "";
+			speed.innerHTML = "";
 		}
 
 		// visual feedback
@@ -1271,29 +1317,36 @@ ASTRAL.editor = (function() {
 		inspectedObject.scale = parseFloat(scale.innerHTML);
 	}
 
+	function vxChange() {
+		inspectedObject.vx = parseFloat(vx.innerHTML);
+	}
+
+	function vyChange() {
+		inspectedObject.vy = parseFloat(vy.innerHTML);
+	}
+
+	function speedChange() {
+		inspectedObject.speed = parseFloat(speed.innerHTML);
+	}
+
 ///////////////////////////////////////
 //
 //	UI BUILDERS
 //
 ///////////////////////////////////////
 
-	function ctl(type, label, value, id, parent, click) {
-		//console.log("ctl ::", {"type": type, "label": label, "value": value, "id": id, "parent": parent, "click": click});
-		console.log("adding ui node '" + value + "'");
+	function ctl(type, label, value, id, parent, tip, click) {
 		// this is a universal control factory for making buttons, labels, inputs, etc on a panel
 		// TODO: this is also in spriter.js with a different makeup...
-
+		
+		//console.log("ctl ::", {"type": type, "label": label, "value": value, "id": id, "parent": parent, "click": click});
+		console.log("adding ui node '" + value + "'");
+		
 		var el = document.createElement("DIV");
-		// TODO: not sure what this was for...its interfering with color hex codes tho
-		// if (value.toString().indexOf("#") != -1) {
-		// 	el.innerHTML = "";
-		// }
-		// else {
-		// 	el.innerHTML = value;
-		// }
 		el.innerHTML = value;
 		if (id) el.id = id;
 		el.className = type;
+		el.dataset.tip = tip;
 
 		// store the mouseup event so we can check which button/keys were held in the following onclick event
 		el.addEventListener("mousedown", function(event) {
@@ -1493,7 +1546,7 @@ ASTRAL.editor = (function() {
 			//console.log(key, index);
 			if (key != "type" && key != "runtime") {
 				if (key == "path") {
-					var thing = ctl("button filetarget", key, component[key], null, componentSection, null);
+					var thing = ctl("button filetarget", key, component[key], null, componentSection, "", null);
 					thing.addEventListener("drop", function(e) {
 						var path = e.dataTransfer.getData("text").replace("../client/", "");
 						component[key] = path;
@@ -1502,7 +1555,7 @@ ASTRAL.editor = (function() {
 					});
 				}
 				else {
-					var thing = ctl("input", key, component[key], null, componentSection, null);
+					var thing = ctl("input", key, component[key], null, componentSection, "", null);
 					thing.addEventListener("input", function() {
 						component[key] = this.innerHTML;
 					});

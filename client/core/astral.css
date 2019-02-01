@@ -343,6 +343,10 @@
 .panel .button.icon.basic {background-image:url('assets/basic.png');}
 .panel .button.icon.advanced {background-image:url('assets/advanced.png');}
 .panel .button.icon.add {background-image:url('assets/add.png');}
+.panel .button.icon.play {background-image:url('assets/play.png');}
+.panel .button.icon.pause {background-image:url('assets/pause.png');}
+.panel .button.icon.stop {background-image:url('assets/stop.png');}
+.panel .button.icon.sound {background-image:url('assets/sound.png');}
 
 .panel .button.buttonicon {background-repeat:no-repeat; padding-left:18px;}
 .panel .button.buttonicon.file {background-image:url('assets/file.png'); background-position-x:right; padding-left:0.2em; padding-right:18px;}

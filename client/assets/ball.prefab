@@ -1,8 +1,8 @@
 {
-    "name": "brick_blue",
-    "x": 665,
-    "y": 280,
-    "vx": 0,
+    "name": "ball",
+    "x": 682,
+    "y": 144,
+    "vx": 1,
     "vy": 0,
     "rot": 0,
     "scale": 1,
@@ -13,11 +13,9 @@
         {
             "type": "atlas",
             "path": "assets/packs/jsbreakouts/tiles.png",
-            "frameset": "brick_blue",
+            "frameset": "ball",
             "frameSequence": "*",
             "frameIndex": 0,
-            "frameDuration": 100,
-            "loop": false,
             "frames": {
                 "1": "0,0,32,16",
                 "2": "32,0,32,16",
@@ -63,24 +61,31 @@
                 "powerup": "31,32"
             },
             "runtime": {
-                "lastFrameTime": 11756.800000000112
+                "lastFrameTime": 74843093.89999998
             }
         },
         {
             "type": "collider",
             "shape": "rectangle",
-            "width": 32,
-            "height": 16,
-            "static": true,
-            "isTrigger": false,
-            "collideDirection": "nsew",
+            "width": "16",
+            "height": "16",
+            "static": "false",
+            "trigger": "false",
+            "physics": "true",
+            "mass": "60",
+            "stiffness": "5",
+            "elasticity": 100,
+            "restitution": "0",
+            "maxDeformation": "0.5",
+            "passableSides": "nsew",
             "whitelist": "",
-            "blacklist": ""
+            "doink": ""
         }
     ],
     "isMouseOver": false,
-    "baseWidth": "32",
+    "baseWidth": "16",
     "baseHeight": "16",
-    "width": 32,
-    "height": 16
+    "width": 16,
+    "height": 16,
+    "isDragging": false
 }

@@ -1,15 +1,15 @@
 {
 	"name": "My Super Fun Game",
 	"preload": [
-		{"name": "netcode", "path": "core/netcode.js"},
-		{"name": "editor", "path": "core/editor.js"},
-		{"name": "spriter", "path": "core/spriter.js"},
-		{"name": "rotate", "path": "assets/components/rotate.js"},
-		{"name": "mover", "path": "assets/components/mover.js"},
-		{"name": "particle", "path": "assets/components/particle.js"},
-		{"name": "collider", "path": "assets/components/collider.js"},
-		{"name": "text", "path": "assets/components/text.js"},
-		{"name": "atlas", "path": "assets/components/atlas.js"}
+		{"name": "netcode", "type": "module", "path": "core/netcode.js"},
+		{"name": "editor", "type": "module", "path": "core/editor.js"},
+		{"name": "spriter", "type": "module", "path": "core/spriter.js"},
+		{"name": "rotate", "type": "component", "path": "assets/components/rotate.js"},
+		{"name": "mover", "type": "component", "path": "assets/components/mover.js"},
+		{"name": "particle", "type": "component", "path": "assets/components/particle.js"},
+		{"name": "collider", "type": "component", "path": "assets/components/collider.js"},
+		{"name": "text", "type": "component", "path": "assets/components/text.js"},
+		{"name": "atlas", "type": "component", "path": "assets/components/atlas.js"}
 	],
 	"startup": "main.js"
 }

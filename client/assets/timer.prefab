@@ -1,7 +1,7 @@
 {
-    "name": "brick_blue",
-    "x": 665,
-    "y": 280,
+    "name": "timer",
+    "x": 694,
+    "y": 575,
     "vx": 0,
     "vy": 0,
     "rot": 0,
@@ -13,11 +13,9 @@
         {
             "type": "atlas",
             "path": "assets/packs/jsbreakouts/tiles.png",
-            "frameset": "brick_blue",
+            "frameset": "timer",
             "frameSequence": "*",
             "frameIndex": 0,
-            "frameDuration": 100,
-            "loop": false,
             "frames": {
                 "1": "0,0,32,16",
                 "2": "32,0,32,16",
@@ -63,24 +61,13 @@
                 "powerup": "31,32"
             },
             "runtime": {
-                "lastFrameTime": 11756.800000000112
+                "lastFrameTime": 74977809.60000004
             }
-        },
-        {
-            "type": "collider",
-            "shape": "rectangle",
-            "width": 32,
-            "height": 16,
-            "static": true,
-            "isTrigger": false,
-            "collideDirection": "nsew",
-            "whitelist": "",
-            "blacklist": ""
         }
     ],
     "isMouseOver": false,
     "baseWidth": "32",
-    "baseHeight": "16",
+    "baseHeight": "48",
     "width": 32,
-    "height": 16
+    "height": 48
 }

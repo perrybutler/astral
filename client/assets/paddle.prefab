@@ -1,7 +1,7 @@
 {
-    "name": "brick_blue",
-    "x": 665,
-    "y": 280,
+    "name": "paddle",
+    "x": 589,
+    "y": 131,
     "vx": 0,
     "vy": 0,
     "rot": 0,
@@ -13,11 +13,9 @@
         {
             "type": "atlas",
             "path": "assets/packs/jsbreakouts/tiles.png",
-            "frameset": "brick_blue",
+            "frameset": "paddle",
             "frameSequence": "*",
             "frameIndex": 0,
-            "frameDuration": 100,
-            "loop": false,
             "frames": {
                 "1": "0,0,32,16",
                 "2": "32,0,32,16",
@@ -63,15 +61,15 @@
                 "powerup": "31,32"
             },
             "runtime": {
-                "lastFrameTime": 11756.800000000112
+                "lastFrameTime": 74917656.9999999
             }
         },
         {
             "type": "collider",
             "shape": "rectangle",
-            "width": 32,
-            "height": 16,
-            "static": true,
+            "width": "48",
+            "height": "16",
+            "isDynamic": false,
             "isTrigger": false,
             "collideDirection": "nsew",
             "whitelist": "",
@@ -82,5 +80,6 @@
     "baseWidth": "32",
     "baseHeight": "16",
     "width": 32,
-    "height": 16
+    "height": 16,
+    "isDragging": false
 }
