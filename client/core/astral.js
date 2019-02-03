@@ -1440,55 +1440,56 @@ var ASTRAL = (function() {
 		var bottom = false;
 		var horz = false;
 		var vert = false;
-		var penetrationX = 0;
-		var penetrationY = 0;
+		var embedX = 0;
+		var embedY = 0;
 		var reflectX = 0;
 		var reflectY = 0;
-		var opponent = "";
-		var reflect = "";
+
 		if (r1.left > r2.left) {
 			if (r1.left < r2.right) {
-				// left side collision
+				// something on our left
 				//console.log("LEFT");
 				left = true;
 				horz = true;
+				embedX = r2.right - r1.left;
 			}
 		}
 		if (r1.right > r2.left) {
 			if (r1.right < r2.right) {
-				// right side collision
+				// something on our right
 				//console.log("RIGHT");
 				right = true;
 				horz = true;
+				embedX = r1.right - r2.left;
 			}
 		}
 		if (r1.top > r2.top) {
 			if (r1.top < r2.bottom) {
-				// top side collision
+				// something above us
 				//console.log("TOP");
 				top = true;
 				vert = true;
+				embedY = r2.bottom - r1.top;
 			}
 		}
 		if (r1.bottom > r2.top) {
 			if (r1.bottom < r2.bottom) {
-				// bottom side collision
+				// something below us
 				//console.log("BOTTOM");
 				bottom = true;
 				vert = true;
+				embedY = r1.bottom - r2.top;
 			}
 		}
+
+		// TODO: probably need to check for 2 or 3 side collision, if 2 side then we allow an x/y
+		//	correction, if 3 side we allow an x or y correction only
+
 		if (horz && vert) {
+			// at least two edges embed which means we have a collision
 			//console.log("WHAM", r1, r2, top, right, bottom, left);
-			// console.log(r1.right - r2.left);
-			// console.log(r1.bottom - r2.top);
-
 			// the shallower intersect determines reflect direction
-
-			penetrationX = r1.right - r2.left;
-			penetrationY = r1.bottom - r2.top;
-
-			if (penetrationX < penetrationY) {
+			if (embedX < embedY) {
 				reflectX = -1;
 				reflectY = 1;
 			}
@@ -1498,20 +1499,7 @@ var ASTRAL = (function() {
 			}
 		}
 
-		// if (!top) {
-		// 	reflect = "up";
-		// }
-		// else if (!bottom) {
-		// 	reflect = "down";
-		// }
-		// else if (!left) {
-		// 	reflect = "left";
-		// }
-		// else if (!right) {
-		// 	reflect = "right";
-		// }
-
-		// TODO: we need an accurate penetration x/y so we can subtract that from the obj1 pos to put
+		// TODO: we need an accurate embed x/y so we can subtract that from the obj1 pos to put
 		//	it just outside obj2 bounds
 
 		return {
@@ -1521,11 +1509,10 @@ var ASTRAL = (function() {
 			"left": left,
 			"horz": horz,
 			"vert": vert,
-			"penetrationX": penetrationX,
-			"penetrationY": penetrationY,
+			"embedX": embedX,
+			"embedY": embedY,
 			"reflectX": reflectX,
-			"reflectY": reflectY,
-			"reflect": reflect
+			"reflectY": reflectY
 		}
 	}
 

@@ -79,21 +79,22 @@ ASTRAL.components.collider = (function() {
 		for (var key in staticObjects) {
 			//console.log(key);
 			var sobj = staticObjects[key];
-			var cLeft = false;
-			var cRight = false;
-			var cTop = false;
-			var cBottom = false;
-			var bCollision = false;
+			// check for collision
 			var collision = objectsCollide(obj, sobj);
 			if (collision.horz && collision.vert) {
+				// there was a collision, alter the object's movement vector to simulate a bounce
+				console.log("collision", collision);
+
 				obj.vx *= collision.reflectX;
 				obj.vy *= collision.reflectY;
-				console.log("collision", collision);
-				ASTRAL.pauseUpdate();
+				
+				//ASTRAL.pauseUpdate();
 			}
 		}
+		// increment the object's position by apply its speed to its movement vector
 		obj.x += obj.vx * obj.speed // * delta;
 		obj.y += obj.vy * obj.speed // * delta;
+		// indicate that the object's movement was handled already
 		obj.runtime.movementUpdated = true;
 	}
 
