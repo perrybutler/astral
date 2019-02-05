@@ -5,6 +5,25 @@ ASTRAL.components.atlas = (function() {
 
 	console.log("atlas.js constructor");
 
+	function init() {
+		// hook objectcreated to extend all objects with a play() function
+		ASTRAL.on("objectcreated", function(obj) {
+			obj.play = function(name, count, callback) {
+				console.log("play", name, count, callback);
+				// TODO: set up animation to be played here
+				var instance = ASTRAL.findComponentByType(obj, "atlas");
+				instance.frameset = name;
+				instance.runtime.playCount = count;
+				instance.runtime.playCallback = callback;
+				// fire the callback so any listeners can respond
+				// TODO: we want to call this when the animation completes not here...
+				//if (callback) callback();
+			}
+		});
+		//console.log("ON");
+		//ASTRAL.on("objectcreated"); // TODO: this is overriding the other handler, need multiple handlers
+	}
+
 	function instance(obj) {
 		var component = {};
 		component.type = "atlas";
@@ -23,9 +42,17 @@ ASTRAL.components.atlas = (function() {
 		//instance.runtime.frames = {};
 		//instance.runtime.framesets = {};
 		instance.runtime.lastFrameTime = 0;
+		instance.runtime.playCount = 0;
 	}
 
 	function update(obj, instance) {
+		if (instance.runtime.playCount == 0) {
+			// dont play the animation anymore, set a static frame zero
+			instance.frameIndex = 0;
+			return;
+		}
+
+
 		// update frame every N milliseconds
 		var timeNow = performance.now();
 		if (timeNow - instance.runtime.lastFrameTime >= instance.frameDuration) { // >= instance.frameDuration
@@ -46,7 +73,9 @@ ASTRAL.components.atlas = (function() {
 			}
 			instance.runtime.lastFrameTime = performance.now();
 			if (complete) {
+				instance.runtime.playCount--;
 				obj.do("animationcomplete");
+				if (instance.runtime.playCallback) instance.runtime.playCallback();
 			}
 			else {
 				obj.do("animationupdate");
@@ -55,6 +84,8 @@ ASTRAL.components.atlas = (function() {
 	}
 
 	function draw(obj, ctx, instance) {
+		// draws the current frameset/frameindex of the atlas instance
+
 		// if the image specified by path isnt loaded load it now
 		if (!ASTRAL.images[instance.path]) {
 			ASTRAL.loadImage(instance.path);
@@ -132,6 +163,7 @@ ASTRAL.components.atlas = (function() {
 	}
 
 	return {
+		init:init,
 		instance:instance,
 		update:update,
 		draw:draw,

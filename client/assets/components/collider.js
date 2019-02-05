@@ -82,12 +82,13 @@ ASTRAL.components.collider = (function() {
 			// check for collision
 			var collision = objectsCollide(obj, sobj);
 			if (collision.horz && collision.vert) {
-				// there was a collision, alter the object's movement vector to simulate a bounce
+				// there was a collision
 				console.log("collision", collision);
-
+				// alter the object's movement vector to simulate a bounce
 				obj.vx *= collision.reflectX;
 				obj.vy *= collision.reflectY;
-				
+				// fire the collision event so listeners can run
+				obj.do("collision", sobj);
 				//ASTRAL.pauseUpdate();
 			}
 		}

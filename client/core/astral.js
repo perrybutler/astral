@@ -818,7 +818,6 @@ var ASTRAL = (function() {
 		}
 		catch (e) {
 			ASTRAL.error("Failed to load scene " + path + ". " + e, 3000);
-			//console.log("ERROR: failed to load scene " + path, e);
 			sceneData = [];
 		}
 	}
@@ -1159,13 +1158,38 @@ var ASTRAL = (function() {
 //
 ///////////////////////////////////////
 
-	function onHandler(name, func) {
-		onHandlers[name] = func;
+	// function onHandler(name, func) {
+	// 	onHandlers[name] = func;
+	// }
+
+	// function doHandler(name, payload) {
+	// 	var func = onHandlers[name];
+	// 	if (func) func(payload);
+	// }
+
+	function onHandler(name, callback) {
+		// get handler array matching name
+		var handlers = onHandlers[name];
+		if (!handlers) {
+			// if no handler array matching name, make the array now
+			onHandlers[name] = [];
+			console.log("created global event handler '" + name + "'");
+		}
+		// add the handler to the handler array
+		onHandlers[name].push(callback);
+		console.log("added event to '" + name + "'");
 	}
 
 	function doHandler(name, payload) {
-		var func = onHandlers[name];
-		if (func) func(payload);
+		// get handler array matching name
+		var handlers = onHandlers[name];
+		if (handlers != null) {
+			// there's a handler array! call all listeners in the array
+			for (var i in handlers) {
+				var callback = handlers[i];
+				callback(payload);
+			}
+		}
 	}
 
 	// function component(name, func) {
