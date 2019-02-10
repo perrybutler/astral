@@ -73,11 +73,11 @@ var ASTRAL = (function() {
 	function init() {
 		console.log("astral.js init()");
 
-		loadJson("game.json", function(val) {
+		loadJson("app.json", function(val) {
 			gameInfo = JSON.parse(val);
 			console.log("got game info:", gameInfo);
 			loadBatch(gameInfo.preload, function() {
-				console.log("all modules loaded, initializing based on game.json order");
+				console.log("all modules loaded, initializing based on app.json order");
 				for (var i = 0; i < gameInfo.preload.length; i++) {
 					var info = gameInfo.preload[i];
 					// TODO: info.name doesn't work for components
