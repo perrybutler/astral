@@ -1,0 +1,26 @@
+[
+	{
+		"id": "000001",
+		"name": "guy",
+		"x": 30,
+		"y": 30,
+		"components": [
+			{
+				"type": "image",
+				"path": "assets/guy.png"
+			}
+		]
+	},
+	{
+		"id": "000002",
+		"name": "guy",
+		"x": 10,
+		"y": 10,
+		"components": [
+			{
+				"type": "image",
+				"path": "assets/guy.png"
+			}
+		]
+	}
+]

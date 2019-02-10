@@ -1,5 +1,5 @@
 var Server = require('ws').Server;
-var port = process.env.PORT || 33333;
+var port = process.env.PORT || 33334;
 var ws = new Server({port: port}); // websocket
 
 var fs = require('fs'); // filesystem

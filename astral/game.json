@@ -1,0 +1,15 @@
+{
+	"name": "My Super Fun Game",
+	"preload": [
+		{"name": "bridge", "type": "module", "path": "core/bridge.js"},
+		{"name": "editor", "type": "module", "path": "core/editor.js"},
+		{"name": "spriter", "type": "module", "path": "core/spriter.js"},
+		{"name": "rotate", "type": "component", "path": "assets/components/rotate.js"},
+		{"name": "mover", "type": "component", "path": "assets/components/mover.js"},
+		{"name": "particle", "type": "component", "path": "assets/components/particle.js"},
+		{"name": "collider", "type": "component", "path": "assets/components/collider.js"},
+		{"name": "text", "type": "component", "path": "assets/components/text.js"},
+		{"name": "atlas", "type": "component", "path": "assets/components/atlas.js"}
+	],
+	"startup": "main.js"
+}

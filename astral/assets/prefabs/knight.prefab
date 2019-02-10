@@ -1,0 +1,33 @@
+{
+	"name": "knight",
+	"components": [
+		{
+			"type": "image",
+			"path": "assets/guy.png"
+		}
+	],
+	"objects": [
+		{
+			"name": "weapon",
+			"pos": "0, 0"
+		},
+		{
+			"name": "armor",
+			"pos": "0, 0"
+		},
+		{
+			"name": "head",
+			"pos": "0, 0",
+			"objects": [
+				{
+					"name": "headgear",
+					"pos": "0, 0"
+				},
+				{
+					"name": "accessory",
+					"pos": "0, 0"
+				}
+			]
+		}
+	]
+}

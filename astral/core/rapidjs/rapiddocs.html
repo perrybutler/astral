@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script type="text/javascript">
+			function newDoc() {
+				var doc = document.getElementById("doc");
+
+				var html = "";
+				html += "<div contenteditable class='para'><h1>Page Title</h1></div>";
+				html += "<div contenteditable class='para'>Click here to enter some text...</div>";
+
+				doc.innerHTML = html;
+			}
+ 
+			function saveDoc(fileName) {
+			    //var text = document.getElementById("text").value;
+			    var html = document.documentElement.innerHTML;
+			    var body = document.body;
+			    
+			    var title = "";
+			    if (fileName) {
+			    	title = fileName;
+			    }
+			    else {
+			    	//title = text.childNodes[0].nodeValue; //.nodeValue.split("\n")[0];
+			    	title = "new document"; //body.innerText.split("\n")[0];
+			    }
+
+			    var textBlob = new Blob([html], {type:"text/plain"});
+			    var textURL = window.URL.createObjectURL(textBlob);
+			    
+			    var downloadLink = document.createElement("a");
+			    downloadLink.download = title + ".html";
+			    downloadLink.innerHTML = "Download File";
+			    downloadLink.href = textURL;
+			    //downloadLink.onclick = destroyClickedElement;
+			    downloadLink.style.display = "none";
+			    document.body.appendChild(downloadLink);
+			    downloadLink.click();
+			}
+
+			function saveDocAs() {
+				var inp = prompt("Enter a name for this file, without the extension", "new document");
+				if (inp) {
+					saveDoc(inp);
+				}
+			}
+
+			window.addEventListener("DOMContentLoaded", function() {
+				// if (window.name) {
+				// 	if (document.documentElement.innerHTML !== window.name) {
+				// 		document.documentElement.innerHTML = window.name;
+				// 	}
+				// }
+
+				var btnNew = document.getElementById("new");
+				var btnOpen = document.getElementById("open");
+				var btnSave = document.getElementById("save");
+				var btnSaveAs = document.getElementById("saveas");
+				var btnPrint = document.getElementById("print");
+
+				var btnLetter = document.getElementById("layoutletter");
+				var btnFluid = document.getElementById("layoutfluid");
+
+				var btnBold = document.getElementById("setbold");
+				var btnItalic = document.getElementById("setitalic");
+				var btnMarkdown = document.getElementById("applymarkdown");
+
+				var btnHeading = document.getElementById("insertheading");
+				var btnParagraph = document.getElementById("insertparagraph");
+				var btnExpander = document.getElementById("insertexpander");
+				var btnOption = document.getElementById("insertoption");
+				var btnCellCalc = document.getElementById("insertcellcalc");
+				
+				btnNew.onclick = function() {newDoc();}
+				btnOpen.onclick = function() {}
+				btnSave.onclick = function() {saveDoc();}
+				btnSaveAs.onclick = function() {saveDocAs();}
+				btnPrint.onclick = function() {window.print();}
+
+				btnBold.addEventListener("mousedown", function(event) {
+					event.preventDefault();
+					document.execCommand('bold');
+				});
+				btnItalic.addEventListener("mousedown", function(event) {
+					event.preventDefault();
+					document.execCommand('italic');
+				});
+				// btnHeading.addEventListener("mousedown", function(event) {
+				// 	event.preventDefault();
+				// 	document.execCommand("formatBlock", false, "<h1>");
+				// });
+				btnMarkdown.addEventListener("mousedown", function(event) {
+					event.preventDefault();
+					doMarkdown(document.body);
+				});
+
+				btnExpander.addEventListener("mousedown", function(event) {
+					event.preventDefault();
+					var div = document.createElement("DIV");
+					div.dataset.rapidExpander = "TEST";
+					div.classList.add("rapid-expander");
+					div.innerHTML = "Some text...";
+					appendCustomElement(div);
+					// if (document.getSelection) {
+					// 	var range = document.getSelection().getRangeAt(0);
+					// 	var nnode = document.createElement("div");
+					// 	range.surroundContents(nnode);
+					// 	nnode.dataset.rapidExpander = "TEST";
+					// 	nnode.classList.add("rapid-expander");
+					// 	nnode.innerHTML = "Some text";
+					// }					
+				});
+				btnOption.addEventListener("mousedown", function(event) {
+					event.preventDefault();
+					var div = document.createElement("DIV");
+					div.dataset.rapidOption = "1,2,3,4";
+					div.classList.add("rapid-option");
+					appendCustomElement(div);
+				});
+				btnCellCalc.addEventListener("mousedown", function(event) {
+					event.preventDefault();
+					var table = document.createElement("TABLE");
+					table.dataset.cellCalc = "";
+					table.classList.add("rapid-cellcalc");
+					appendCustomElement(table);
+				});
+				btnHeading.addEventListener("mousedown", function(event) {
+					event.preventDefault();
+					var h1 = document.createElement("H1");
+					h1.setAttribute("contenteditable", "true");
+					h1.innerHTML = "Heading";
+					appendCustomElement(h1);
+				});
+				btnParagraph.addEventListener("mousedown", function(event) {
+					event.preventDefault();
+					var div = document.createElement("DIV");
+					div.setAttribute("contenteditable", "true");
+					div.classList.add("para");
+					div.innerHTML = "Click here to enter some text...";
+					appendCustomElement(div);
+				});
+				btnFluid.addEventListener("mousedown", function(event) {
+					event.preventDefault();
+					var doc = document.getElementById("doc");
+					//doc.style.padding = "0.5in";
+					doc.style.width = "auto";
+					doc.style.margin = "0 auto";
+					var tools = document.getElementById("tools");
+					tools.style.textAlign = "left";
+				});
+				btnLetter.addEventListener("mousedown", function(event) {
+					event.preventDefault();
+					var doc = document.getElementById("doc");
+					//doc.style.padding = "0.5in";
+					doc.style.width = "8.5in";
+					doc.style.margin = "0 auto";
+					var tools = document.getElementById("tools");
+					tools.style.textAlign = "center";
+				});
+
+				// setInterval(function() {
+				// 	window.name = document.documentElement.innerHTML;
+				// }, 3000);
+
+				triggerMouseEvent(btnLetter, "mousedown");
+			});
+
+			function triggerMouseEvent (node, eventType) {
+			    var clickEvent = document.createEvent ('MouseEvents');
+			    clickEvent.initEvent (eventType, true, true);
+			    node.dispatchEvent (clickEvent);
+			} // from StackOverflow
+
+			function appendCustomElement(el) {
+				if (document.activeElement === document.body) {
+					var doc = document.getElementById("doc");
+					doc.appendChild(el);
+				}
+				else {
+					document.activeElement.parentNode.insertBefore(el, document.activeElement.nextSibling);
+					//document.activeElement.parentNode.insertBefore(el, document.activeElement);
+				}
+			}
+		</script>
+
+		<style type="text/css">
+
+			/*=====================
+			CUSTOM ELEMENT STYLES
+			=====================*/
+
+			/* SPREADSHEET */
+
+			.rapid-cellcalc {
+				width:100%;
+				table-layout:fixed;
+			}
+
+			.rapid-cellcalc .row-header-col {
+				width:2em;
+			}
+
+			.rapid-cellcalc .row-header-cell {
+				font-weight:bold;
+			}
+
+			.rapid-cellcalc .cell {
+				border:1px solid #eee;
+				height:1em;
+				cursor:cell;
+			}
+
+			.rapid-cellcalc .cell.edit {
+				cursor:text;
+			}
+
+			/* GRID */
+
+			.rapid-grid-cell.last {
+				margin-right:0 !important;
+			}
+
+			/* OVERLAY */
+
+			.rapid-diag {
+				position:fixed;
+				top:0;
+				left:0;
+				font-size:0.7em;
+				color:red;
+			}
+
+			.rapid-overlay {
+				position:relative;
+			}
+
+			.rapid-element-overlay {
+				position:absolute;
+				left:0;
+				right:0;
+				top:0;
+				bottom:0;
+				opacity:0;
+				pointer-events:none;
+				transition:opacity 1s ease;
+				-webkit-transition:opacity 1s ease;
+			}
+
+			.rapid-element-overlay.on {
+				background:#ff3333;
+				border:2px solid #ff0000;
+				opacity:0.5;
+			}
+
+			/* EXPANDER */
+
+			.rapid-expander {
+				display:inline-block;
+				margin-top:0.5em;
+				margin-bottom:0.5em;
+				/*display:inline;*/
+			}
+
+			.rapid-expander .preview {
+				background:#0099ff;
+				color:white;
+				cursor:pointer;
+				padding:3px;
+				-webkit-user-select:none;
+				-moz-user-select:none;
+				-ms-user-select:none;
+				user-select:none;
+				display:inline-block;
+			}
+
+			.rapid-expander .preview:hover {
+				background:#999;
+				color:#fafafa;
+			}
+
+			.rapid-expander .body {
+				/*padding:3px;
+				display:inline;*/
+				display:none;
+			}
+			.rapid-expander.expanded>.body {
+				display:block;
+			}
+
+			.rapid-expander.mini>.preview {
+				font-family:arial;
+				font-size:11px;
+				font-style:italic;
+				background:#fff;
+				color:black;
+				border:1px solid #f0f0f0;
+			}
+
+			.rapid-expander.mini .preview:hover {
+				color:#999;
+			}
+
+			.rapid-expander.mini .preview::before {
+				content: "► ";
+			}
+
+			.rapid-expander.mini.expanded .preview::before {
+				content: "▼ ";
+			}
+
+			/* CODE */
+
+			[data-rapid-code] {
+				visibility:hidden;
+				display:none;
+			}
+
+			/* TOC */
+
+			.rapid-toc {
+				
+			}
+
+			.rapid-toc ul {
+				padding-left:1em;
+			}
+
+			.rapid-toc li {
+				margin-bottom:0;
+			}
+
+			.rapid-toc-node {
+				position:relative;
+				/*font-size:0.8em;*/
+			}
+
+			.rapid-toc-node a {
+				/*color:red;*/
+			}
+
+			.rapid-toc-node i {
+				transform:scale(0.7);
+			    position:absolute;
+			    left:-16px;
+			    top:-3px;
+			}
+
+			.rapid-toc-node.level-1 {
+
+			}
+
+			.rapid-toc-node.level-2 {
+				
+			}
+
+			/* OPTION */
+
+			.rapid-option {
+				text-align:center;
+				-webkit-user-select:none;
+				-moz-user-select:none;
+				-ms-user-select:none;
+				user-select:none;
+			}
+
+			.rapid-option table {
+			    box-sizing: border-box;
+			    border-collapse: collapse;
+			    text-align: center;
+			    vertical-align: middle;
+			    table-layout: fixed;
+			    font-size: 1em;
+			}
+
+			.rapid-option-sep {
+				position: relative;
+			    height: 100%;
+			    padding: 0;
+			}
+
+			.rapid-option-sep-line {
+				border-bottom: 2px solid #ccc;
+			    display: inline-block;
+			    position: absolute;
+			    top: 50%;
+			    left: 0;
+			    bottom: 0;
+			    right: 0;
+			    height: 0px;
+			}
+
+			.rapid-option-button {
+			    position: relative;
+			    width: 32px;
+			    padding: 0;
+			    cursor: pointer;
+			}
+
+			.rapid-option-button-label {
+				background-color:#ccc;
+			    height:32px;
+			    line-height:32px;
+			}
+
+			.rapid-option-button-label:hover {
+				color:#fff;
+				background:#555;
+			}
+
+			.rapid-option .rapid-option-button-label.selected {
+				background:#0099ff;
+				color:#fff;
+			}
+
+			/* OPTION - TABS */
+
+			.rapid-option.tabs table {
+				
+			}
+
+			.rapid-option.tabs .rapid-option-button {
+				width:auto;
+			}
+
+			.rapid-option.tabs .rapid-option-button-label {
+				border-radius:1em 1em 0 0;
+				border-bottom: 3px solid #0099ff;
+				padding-left:1em;
+				padding-right:1em;
+			}
+
+			.rapid-option.tabs .rapid-option-sep {
+				display:none;
+			}
+
+			.rapid-option.tabs .rapid-option-button-label.selected {
+
+			}
+
+			/* OPTION - LIKERT */
+
+			.rapid-option.likert table {
+				width:100%;
+			}
+
+			.rapid-option.likert .rapid-option-button-label {
+				border-radius:1em;
+			}
+
+			.rapid-option.likert .rapid-option-sep {
+
+			}
+
+			.rapid-option.likert .rapid-option-button-label.selected {
+
+			}
+
+			/* OPTION - PILLS */
+
+			.rapid-option.pills .rapid-option-button {
+				width:1.25em;
+				padding-right:0.25em;
+			}
+
+			.rapid-option.pills .rapid-option-button-label {
+				border-radius:0.25em;
+				background-color:transparent;
+				color:#aaa;
+			}
+
+			.rapid-option.pills .rapid-option-button-label:hover {
+				background:#555;
+				color:#fff;
+			}
+
+			.rapid-option.pills .rapid-option-sep {
+				display:none;
+			}
+
+			.rapid-option.pills .rapid-option-button-label.selected {
+				background-color:#0099ff;
+				color:#fff;
+			}
+
+			/* OPTION - WORDS */
+
+			.rapid-option.words table {
+
+			}
+
+			.rapid-option.words .rapid-option-button {
+				width:auto;
+				padding-right:0.5em;
+			}
+
+			.rapid-option.words .rapid-option-button-label {
+				border-radius:0.25em;
+				background-color:transparent;
+				color:#aaa;
+				font-weight:bold;
+			}
+
+			.rapid-option.words .rapid-option-button-label:hover {
+				background-color:transparent;
+				color:#555;
+			}
+
+			.rapid-option.words .rapid-option-sep {
+				display:none;
+			}
+
+			.rapid-option.words .rapid-option-button-label.selected {
+				background-color:transparent;
+				color:#0099ff;
+			}
+
+			/* OPTION - RATING */
+
+			.rapid-option.rating {
+				font-size:1.3em;
+			}
+
+			.rapid-option.rating table {
+
+			}
+
+			.rapid-option.rating .rapid-option-button {
+				width:auto;
+				padding-right:0;
+			}
+
+			.rapid-option.rating .rapid-option-button-label {
+				border-radius:0.25em;
+				background-color:transparent;
+				color:#aaa;
+				font-weight:bold;
+			}
+
+			.rapid-option.rating .rapid-option-button-label:hover {
+				background-color:transparent;
+				color:#555;
+			}
+
+			.rapid-option.rating .rapid-option-sep {
+				display:none;
+			}
+
+			.rapid-option.rating .rapid-option-button-label.selected {
+				background-color:transparent;
+				color:#0099ff;
+			}
+
+			/* SYNTAX */
+
+			.rapid-syntax {
+				font-size:0.9em;
+			}
+
+			pre code .string {
+			    color:#008C3D;
+			}
+			pre code .special {
+			    color:#A8007E;
+			    font-style:italic;
+			}
+			pre code .special-js {
+			    color:#1F2BC2;
+			}
+			pre code .special-js-glob {
+			    color:#A0509D;
+			}
+			pre code .special-comment{
+			    color:#aaa;
+			    font-style:italic;
+			}
+			pre code .special-js-meth {
+			    color:#E46D8A;
+			}
+			pre code .special-html {
+			    color:#E4D95F;
+			}
+			pre code .special-sql {
+			    color:#1D968C;
+			}
+			pre code .special-php{
+			    color:#597EA7;
+			}
+
+			/* MARKDOWN */
+
+			.rapid-markdown-em {
+				font-style:italic;
+			}
+			.rapid-markdown-strong {
+				font-weight:bold;
+			}
+			.rapid-markdown-h {
+				
+			}
+			.rapid-markdown-link {
+
+			}
+			.rapid-markdown-blockquote {
+
+			}
+			.rapid-markdown-hrule {
+
+			}
+			.rapid-markdown-inlinecode {
+				font-family:monospace;
+				padding: .2rem .5rem;
+			    margin: 0 .2rem;
+			    background: #F1F1F1;
+			    border: 1px solid #E1E1E1;
+			    border-radius: 4px;
+			}
+			.rapid-markdown-codeblock {
+				font-family:monospace;
+				padding: .2rem .5rem;
+			    margin: 0 .2rem;
+			    background: #F1F1F1;
+			    border: 1px solid #E1E1E1;
+			    border-radius: 4px;
+			}
+
+			.rapid-nav {
+
+			}
+			.rapid-nav span {
+				cursor:pointer;
+				-webkit-user-select:none;
+				-moz-user-select:none;
+				-ms-user-select:none;
+				user-select:none;
+				color:#0099ff;
+			}
+			.rapid-nav span:hover {
+				color:#aaa;
+			}
+			.rapid-nav ul {
+				display:none;
+			}
+			.rapid-nav li.empty {
+				list-style-type:none;
+			}
+
+			/*
+				PAGE STYLE
+			*/
+
+			#tools {
+				text-align:center;
+			}
+
+			#tools-inner {
+
+			}
+
+			.btn {
+				display:inline-block;
+				background:#ddd;
+				padding:0.5em;
+				cursor:pointer;
+				font:0.7em arial;
+			}
+			.btn:hover {
+				background:#ccc;
+			}
+
+			.grp {
+				display:inline-block;
+				background:#f0f0f0;
+				margin-right:1em;
+			}
+			.grptitle {
+				text-align:center;
+				font-style:italic;
+				color:#aaa;
+				font-size:0.7em;
+				padding:2px;
+			}
+
+			.para {
+
+			}
+
+			.para:hover {
+				background:#f0f0f0;
+			}
+
+			@media print {
+				.no-print, .no-print * {
+					display:none !important;
+				}
+			}
+		</style>
+	</head>
+	
+	<body>
+		<div id="tools" class="no-print">
+			<div id="tools-inner">
+				<div class="grp">
+					<div id="new" class="btn">New</div>
+					<div id="open" class="btn">Open</div>
+					<div id="save" class="btn">Save</div>
+					<div id="saveas" class="btn">Save As</div>
+					<div id="print" class="btn">Print</div>
+					<div class="grptitle">File</div>
+				</div>
+
+				<div class="grp">
+					<div id="layoutfluid" class="btn">Fluid</div>
+					<div id="layoutletter" class="btn">Letter</div>
+					<div class="grptitle">Layout</div>
+				</div>
+
+				<div class="grp">
+					<div id="setbold" class="btn">Bold</div>
+					<div id="setitalic" class="btn">Italic</div>
+					<div id="applymarkdown" class="btn">Markdown</div>
+					<div class="grptitle">Format</div>
+				</div>
+
+				<div class="grp">
+					<div id="insertheading" class="btn">Heading</div>
+					<div id="insertparagraph" class="btn">Paragraph</div>
+					<div id="insertexpander" class="btn">Expander</div>
+					<div id="insertoption" class="btn">Option</div>
+					<div id="insertcellcalc" class="btn">Cell Calc</div>
+					<div class="grptitle">Insert</div>
+				</div>
+			</div>
+		</div>
+
+		<div id="doc">
+
+			<div contenteditable class="para"><h1>Rapid Docs</h1></div>
+
+			<div contenteditable class="para">
+				Welcome! Rapid Docs is a light-weight replacement for Microsoft Word, Google Docs and Adobe Acrobat.
+
+				<p><strong><em>You can edit this document.</em></strong> Go ahead and try it now. When you're happy with the changes you can save the modified document to disk as a single .html file. The .html file contains everything needed by the document to function - your written content and the editor tools - which makes the document portable so that your recipients don't have to download or install any software to view, edit or print your document. They just have to open the .html file in a web browser.</p>
+
+				<p>What does Rapid Docs aim to do differently?</p>
+
+				<ul>
+					<li><strong>FILE FORMAT</strong> - Microsoft Word stores documents in Office Open XML format (DOCX, XLSX). Adobe Acrobat stores documents in Portable Document Format (PDF). Both of these formats require suitable software to open and view the files. This is fine for desktop PCs and office workstations, but mobile users with web access have different expectations. This is why Rapid Docs utilizes the appropriate technology - HTML, CSS and JS - for its document format. Rapid Docs empowers current computing trends.</li><br>
+					<li><strong>PROGRAMMABILITY</strong> - Microsoft Word supports VBA macros. Adobe Acrobat supports JS. But where Word documents might contain macro viruses, and Acrobat can be exploited with JS to gain access to the system, Rapid Docs supports <em>sandboxed JS</em>. This means the JavaScript is running in a protected environment created by the web browser, which limits access to the system.</li><br>
+					<li><strong>WEB CONTENT</strong> - Both Word docs and PDF docs allow embedded web content, hyperlinks, linked images, etc. But the web support is rather clunky and half-assed, propped up by an internal HTML engine, Internet Explorer and CEP respectively. While these engines get us half-way there by allowing web content to be rendered in a document, it's very limited and you'd be better off using a real HTML engine in a web browser. Rapid Docs can be viewed in Chrome, FireFox and iOS for the best reading and writing experience possible.</li><br>
+					<li><strong>HYBRID DOCUMENTS</strong> - In Word, you can embed an Excel spreadsheet inside the document, but it's a clunky solution at best. Rapid Docs supports this out of box. Just like the heading and paragraph elements, you can add a Cell Calc element to the page at the click of a button. Furthermore, each Cell Calc acts as its own sheet whose cells and values can be referenced anywhere within the document. Cell Calcs can also reference cells from other Cell Calcs.</li>
+				</ul>
+
+				<p>Rapid Docs is built with the RAPID JS library.</p>
+			</div>
+		</div>
+
+
+
+		<script type="text/javascript" src="../rapidjs/rapid.js"></script>
+		<script type="text/javascript" src="../rapidjs/customelements.js"></script>
+	</body>
+</html>
