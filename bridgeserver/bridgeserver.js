@@ -1,14 +1,14 @@
-var Server = require('ws').Server;
-var port = process.env.PORT || 33333;
-var ws = new Server({port: port}); // websocket
-
+// imports
+var ws = require('ws'); // websockets
 var fs = require('fs'); // filesystem
-
-const {
-  performance
-} = require('perf_hooks'); // performance
-
+var performance = require('perf_hooks'); // performance counter
 var chokidar = require('chokidar'); // file watcher
+
+// create a new ws.Server instance
+var port = process.env.PORT || 33333;
+var server = new ws.Server({port: port});
+
+// create a new chokidar.watch instance
 var watcher = chokidar.watch("../astral/assets", {ignored: /.meta/, ignoreInitial: true, persistent: true});
 
 var objectCount = 0;
@@ -38,6 +38,7 @@ var assetPath = "../astral/assets";
 init();
 
 function init() {
+	console.log("bridgeserver.js init()");
 	createTopic("zone1");
 	createTopic("serverglobal");
 	setInterval(serverLoop, 1000 / 30);
@@ -274,7 +275,7 @@ function getDirectories(path) {
 	NETCODE
 ==================*/
 
-ws.on('connection', function(client, req) {
+server.on('connection', function(client, req) {
 	// client connected, add a player for this client
 	var cid = req.headers['sec-websocket-key']; // unique client id from the socket
 	var player = addPlayer(cid, client);

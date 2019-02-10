@@ -1,16 +1,13 @@
-var Server = require('ws').Server;
-var port = process.env.PORT || 33334;
-var ws = new Server({port: port}); // websocket
-
+// imports
+var ws = require('ws'); // websockets
 var fs = require('fs'); // filesystem
+var performance = require('perf_hooks'); // performance
 
-const {
-  performance
-} = require('perf_hooks'); // performance
+// create a new ws.Server instance
+var port = process.env.PORT || 33334;
+var server = new ws.Server({port: port});
 
-var chokidar = require('chokidar'); // file watcher
-var watcher = chokidar.watch("../client/assets", {ignored: /.meta/, ignoreInitial: true, persistent: true});
-
+// vars
 var objectCount = 0;
 var playerCount = 0;
 var players = [];			// connected players
@@ -20,17 +17,6 @@ var sendQueue = [];			// send queue (unused see topics)
 var sendCount = 0;			// send count
 var receiveQueue = [];		// receive queue
 
-var metaBlacklist = [ // don't make .meta files for these filetypes
-	"meta",
-	"license",
-	"prefab",
-	"scene",
-	"atlas"
-];
-
-var clientPath = "../client/";
-var assetPath = "../client/assets";
-
 /*==================
 	STARTUP
 ==================*/
@@ -38,243 +24,17 @@ var assetPath = "../client/assets";
 init();
 
 function init() {
+	console.log("server.js init()");
 	createTopic("zone1");
 	createTopic("serverglobal");
 	setInterval(serverLoop, 1000 / 30);
 }
 
 /*==================
-	EDITOR STUFF
-==================*/
-
-var fileList = [];
-var addedFileName;
-var addedFilePath;
-var unlinkedFileInfo;
-var addedFileInfo;
-var unlinkedFiles = [];
-
-watcher.on("add", function(path) {
-	console.log("file added " + path);
-	setTimeout(function() {
-		var addedInfo = getFileInfo(path);
-		var unlinkedInfo = unlinkedFiles[addedInfo.name];
-		if (unlinkedInfo && addedInfo.name == unlinkedInfo.name) {
-			console.log("should move ", unlinkedInfo.name + ".meta", "to", addedInfo.dir);
-			fs.renameSync(unlinkedInfo.path + ".meta", addedInfo.path + ".meta");
-			delete unlinkedFiles[addedInfo.name];
-			console.log("unlinked remaining", unlinkedFiles);
-		}
-		else {
-			unlinkedFiles = [];
-			createMetaFile(path);
-		}
-	}, 300);
-});
-
-watcher.on("change", function(path) {
-	console.log("file changed " + path);
-});
-
-watcher.on("unlink", function(path) {
-	console.log("file unlinked " + path);
-	var info = getFileInfo(path);
-	if (fs.existsSync(info.path + ".meta")) {
-		unlinkedFiles[info.name] = info;
-	}
-});
-
-function getUniquePath(fi) {
-	var c = 1;
-	var finalPath = fi.path;
-	// if the path already exists make it unique
-	while(fs.existsSync(finalPath)) {
-		finalPath = fi.dir + "/" + fi.nameNoExt + c;
-		if (fi.ext) finalPath += "." + fi.ext;
-		c++;
-	}
-	return finalPath;
-}
-
-function createFile(path) {
-	// var c = 1;
-	// var finalPath = path;
-	// var fi = getFileInfo(path);
-
-	// // if the path already exists make it unique
-	// while(fs.existsSync(finalPath)) {
-	// 	finalPath = fi.dir + "/" + fi.nameNoExt + c;
-	// 	if (fi.ext) finalPath += "." + fi.ext;
-	// 	c++;
-	// }
-
-	var fi = getFileInfo(path);
-	var finalPath = getUniquePath(fi);
-
-	// TODO: if its a json file we need to add some content ([]) to make it valid json
-	var content = "";
-	switch (fi.ext) {
-		case "scene":
-		case "prefab":
-		case "atlas":
-			content = "[]";
-			break;
-	}
-
-	fs.writeFile(finalPath, content, function(err) {
-		if (err) {
-			queueSend("zone1", "*createfileresult,");
-		}
-		else {
-			queueSend("zone1", "*createfileresult," + finalPath);
-		}
-	});
-}
-
-function deleteFile(path) {
-	if (fs.existsSync(path)) {
-		fs.unlink(path, function(err) {
-			if (err) {
-				queueSend("zone1", "*deletefileresult,");
-			}
-			else {
-				queueSend("zone1", "*deletefileresult," + path);
-			}
-		});
-	}
-	else {
-		// the file doesnt exist
-		queueSend("zone1", "*deletefileresult,");
-	}
-}
-
-function renameFile(src, dst) {
-	fs.rename(src, dst, function(err) {
-		if (err) {
-			queueSend("zone1", "*renamefileresult,");
-		}
-		else {
-			queueSend("zone1", "*renamefileresult," + dst);
-		}
-	});
-}
-
-function saveScene(spl) {
-	var path = spl[1];
-	var jsonParts = [];
-	for (var i = 2; i < spl.length; i++) {
-		jsonParts.push(spl[i]);
-	}
-	var jsonString = jsonParts.join(",");
-	//console.log(jsonString);
-	// jsonString = "\"" + jsonString + "\"";
-	// // TODO: we have to parse twice because we might be stringifying twice...
-	// var jsonObject = JSON.parse(JSON.parse(jsonString));
-	// fs.writeFileSync(path, JSON.stringify(jsonObject, null, 4));
-	jsonString = JSON.stringify(JSON.parse(jsonString), null, 4);
-	fs.writeFileSync(clientPath + path, jsonString);
-}
-
-function copyFile(spl) {
-	var srcpath = spl[1];
-	var fi = getFileInfo(srcpath);
-	var dstpath = getUniquePath(fi);
-	fs.copyFile(srcpath, dstpath, (err) => {
-	    if (err) throw err;
-	    console.log("copied file:", fi.name + "->" + dstpath);
-	});
-}
-
-function makePrefab(spl) {
-	//console.log("MAKEPREFAB", spl);
-	var name = spl[1];
-	var jsonParts = [];
-	for (var i = 2; i < spl.length; i++) {
-		jsonParts.push(spl[i]);
-	}
-	var jsonString = jsonParts.join(",");
-	console.log(jsonString);
-
-	//console.log(JSON.parse(jsonString));
-	//jsonString = "\"" + jsonString + "\"";
-	//var jsonObject = JSON.parse(JSON.parse(jsonString));
-	//fs.writeFileSync("../client/assets/test.prefab", JSON.stringify(jsonObject, null, 4));
-	jsonString = JSON.stringify(JSON.parse(jsonString), null, 4);
-	fs.writeFileSync("../client/assets/" + name + ".prefab", jsonString);
-}
-
-console.log(getMetas("../client/assets"));
-
-function createMetaFile(path) {
-	console.log("WARNING: .meta function disabled for now");
-	return;
-	// var pathWithoutExt = path.split('.').slice(0, -1).join('.');
-	// var metaFilePath = pathWithoutExt + ".meta";
-	var metaFilePath = path + ".meta";
-	var content = {};
-	content.id = performance.now().toString().replace(".", "");
-	if (!fs.existsSync(metaFilePath)) {
-		console.log("creating meta file for " + path);
-		fs.writeFile(metaFilePath, JSON.stringify(content), function(err) {
-			if (err) {
-				console.log("ERROR: " + err);
-			}
-		});
-	}
-}
-
-function getMetas(dir) {
-	fs.readdirSync(dir).filter(function (file) {
-		const path = dir+'/'+file;
-		if (fs.statSync(path).isDirectory()) {
-			getMetas(path);
-		}
-		else {
-			const fi = getFileInfo(path);
-
-			// if (!file.includes(".meta") && 
-			// 	!file.includes(".prefab") && 
-			// 	!file.includes(".scene") && 
-			// 	!file.includes(".atlas")
-			// ) {
-			// 	// we have a raw resource, now check if it has a matching .meta file and if not 
-			//	//	create it
-			// 	createMetaFile(path);
-			// 	fileList.push(file);
-			// }
-
-			if (metaBlacklist.includes(fi.ext) == false) {
-				// we have a raw resource, now check if it has a matching .meta file and if not
-				//	create it
-				createMetaFile(path);
-				fileList.push(file);
-			}
-		}
-	});
-	return fileList;
-}
-
-function getFiles(path) {
-	return fs.readdirSync(path).filter(function (file) {
-		if (!file.includes(".meta")) {
-			return fs.statSync(path+'/'+file).isFile();	
-		}
-	});
-	// https://stackoverflow.com/questions/18112204/get-all-directories-within-directory-nodejs/24594123
-}
-
-function getDirectories(path) {
-	return fs.readdirSync(path).filter(function (file) {
-		return fs.statSync(path+'/'+file).isDirectory();
-	});
-	// https://stackoverflow.com/questions/18112204/get-all-directories-within-directory-nodejs/24594123
-}
-
-/*==================
 	NETCODE
 ==================*/
 
-ws.on('connection', function(client, req) {
+server.on('connection', function(client, req) {
 	// client connected, add a player for this client
 	var cid = req.headers['sec-websocket-key']; // unique client id from the socket
 	var player = addPlayer(cid, client);
@@ -446,15 +206,6 @@ function handleMessage(player, payload) {
 			makePrefab(spl);
 			break;
 	}
-}
-
-function getDir(path) {
-	path = assetPath + "/" + path;
-	var files = getFiles(path);
-	var folders = getDirectories(path);
-	//var final = folders.concat(['***']).concat(files);
-	var final = folders.join() + '***' + files.join();
-	return final;
 }
 
 /*==================
